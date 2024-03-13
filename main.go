@@ -1,14 +1,16 @@
 package main
-
 import (
 	"errors"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+//	"slices"
+//	"strings"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 func GetFiles(path string) []string {
@@ -23,8 +25,11 @@ func GetFiles(path string) []string {
 }
 
 type Ranger struct {
-	wd           string
-	furthestPath string
+	wd      string
+	sel     string
+	history History
+
+	historyMoment string
 
 	left   []string
 	middle []string
@@ -41,37 +46,23 @@ func (r *Ranger) Init() error {
 	var err error
 	r.wd, err = os.Getwd()
 
-	// TODO fix
-	r.furthestPath = r.wd
-
 	r.topPane = NewBar(&r.wd)
 	r.leftPane = NewFilesPane(&r.left)
 	r.middlePane = NewFilesPane(&r.middle)
 	r.rightPane = NewFilesPane(&r.right)
-	r.bottomPane = NewBar(&r.furthestPath)
+	r.bottomPane = NewBar(&r.historyMoment)
 
+	// KIVA KIVA HII
+//	r.middlePane.SetSelectedEntryFromIndex(0)
+	wdFiles := GetFiles(r.wd)
+	if len(wdFiles) > 0 {
+		r.sel = filepath.Join(r.wd, wdFiles[0])
+	}
+
+	r.history.AddToHistory(r.sel)
 	r.UpdatePanes()
 
 	return err
-}
-
-func (r *Ranger) UpdateSelectedEntries() {
-	return
-
-	/*	if len(wdSplit) > len(furthestSplit) {
-		r.furthestPath = r.wd
-	}*/
-
-	//	*leftPane.SetSelectedEntryFromString(filepath.Base(furthestPath)))
-	//	r.middlePane.SetSelectedEntryFromString(filepath.Base(middleSelectedEntry))
-
-	// FIXME: Don't use wd, use the furthest path up to wd thingy
-	r.leftPane.SetSelectedEntryFromString(filepath.Base(filepath.Dir(r.wd)))
-	//	r.middlePane.SetSelectedEntryFromString(filepath.Base(r.wd))
-	r.middlePane.SetSelectedEntryFromString(filepath.Base(filepath.Dir(r.furthestPath)))
-
-	rPath, _ := r.GetRightPath()
-	r.rightPane.SetSelectedEntryFromString(filepath.Base(rPath))
 }
 
 func (r *Ranger) GetRightPath() (string, error) {
@@ -79,51 +70,27 @@ func (r *Ranger) GetRightPath() (string, error) {
 		return "", errors.New("Out of bounds")
 	}
 
-	return filepath.Join(r.wd, r.middle[r.middlePane.selectedEntry]), nil
-
-	/*
-	   wdSplit := filepath.SplitList(r.wd)
-	   furthestSplit := filepath.SplitList(r.furthestPath)
-
-	   furthestPathUpToWD := ""
-
-	   // Gets furthestPath up to wd
-
-	   	for i := 0; i < len(furthestSplit); i++ {
-	   		furthestSection := furthestSplit[i]
-	   		furthestPathUpToWD += "/" + furthestSection
-
-	   		if i >= len(wdSplit) {
-	   			break
-	   		}
-
-	   		if furthestSection != wdSplit[i] {
-	   			break
-	   		}
-	   	}
-
-	   	if furthestPathUpToWD == r.wd {
-	   		return "", errors.New("Bruh")
-	   	}
-
-	   return furthestPathUpToWD, nil
-	*/
+	return r.GetSelectedFilePath(), nil
+	// return filepath.Join(r.wd, r.middle[r.middlePane.selectedEntry]), nil
 }
 
 func (r *Ranger) UpdatePanes() {
-	parentDir := filepath.Dir(r.wd)
-
-	r.left = GetFiles(parentDir)
+	r.left = GetFiles(filepath.Dir(r.wd))
 	r.middle = GetFiles(r.wd)
+	r.right = GetFiles(r.sel)
 
-	rPath, err := r.GetRightPath()
-	if err == nil {
-		r.right = GetFiles(rPath)
+	if r.wd != "/" {
+		r.leftPane.SetSelectedEntryFromString(filepath.Base(r.wd))
 	} else {
-		r.right = []string{}
+		r.left = []string{}
 	}
-
-	r.UpdateSelectedEntries()
+	r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel))
+	h, err := r.history.GetHistoryEntryForPath(r.sel)
+	if err != nil {
+		r.rightPane.SetSelectedEntryFromIndex(0)
+		return
+	}
+	r.rightPane.SetSelectedEntryFromString(filepath.Base(h))
 }
 
 func (r *Ranger) GetSelectedFilePath() string {
@@ -133,53 +100,46 @@ func (r *Ranger) GetSelectedFilePath() string {
 	return filepath.Join(r.wd, r.middle[r.middlePane.selectedEntry])
 }
 
-func (r *Ranger) GoToParent() {
-	r.wd = filepath.Dir(r.wd)
-	r.UpdatePanes()
-}
-
-func (r *Ranger) GoToChild() error {
-	if r.middlePane.selectedEntry >= len(r.middle) {
-		return errors.New("Out of bounds")
+func (r *Ranger) GoLeft() {
+	if filepath.Dir(r.wd) == r.wd {
+		return
 	}
 
-	r.wd = filepath.Join(r.wd, r.middle[r.middlePane.selectedEntry])
+	r.sel = r.wd
+	r.wd = filepath.Dir(r.wd)
+}
 
-	// FIXME: Hacky, fix with the furthest up to wd thingy
-	/*	if len(r.wd) > len(r.furthestPath) {
-		r.furthestPath = r.wd
-	}*/
-	r.furthestPath = r.wd
+func (r *Ranger) GoRight() {
+	if len(GetFiles(r.sel)) <= 0 {
+		return
+	}
 
-	r.UpdatePanes()
-
-	return nil
+	r.wd = r.sel
+	var err error
+	r.sel, err = r.history.GetHistoryEntryForPath(r.wd)
+	if err != nil {
+		// FIXME
+		r.sel = filepath.Join(r.wd, r.rightPane.GetSelectedEntryFromIndex(0))
+//		r.sel = r.rightPane.GetSelectedEntryFromIndex(0)
+	}
 }
 
 func (r *Ranger) GoUp() {
-	r.middlePane.selectedEntry--
-	if r.middlePane.selectedEntry < 0 {
-		r.middlePane.selectedEntry = 0
+	if r.middlePane.selectedEntry - 1 < 0 {
+		r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(0))
+		return
 	}
 
-	if r.middlePane.selectedEntry < len(r.middle) {
-		r.furthestPath = filepath.Join(r.wd, r.middle[r.middlePane.selectedEntry])
-	}
-
-	r.UpdatePanes()
+	r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(r.middlePane.selectedEntry - 1))
 }
 
 func (r *Ranger) GoDown() {
-	r.middlePane.selectedEntry++
-	if r.middlePane.selectedEntry >= len(r.middle) {
-		r.middlePane.selectedEntry = len(r.middle) - 1
+	if r.middlePane.selectedEntry + 1 >= len(r.middle) {
+		r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(len(r.middle) - 1))
+		return
 	}
 
-	if r.middlePane.selectedEntry < len(r.middle) {
-		r.furthestPath = filepath.Join(r.wd, r.middle[r.middlePane.selectedEntry])
-	}
-
-	r.UpdatePanes()
+	r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(r.middlePane.selectedEntry + 1))
 }
 
 func main() {
@@ -194,36 +154,48 @@ func main() {
 			return nil
 		}
 
-		if event.Key() == tcell.KeyEnter {
-			cmd := exec.Command("vim", ranger.GetSelectedFilePath())
+		if event.Key() == tcell.KeyF1 {
+			cmd := exec.Command("nano", ranger.GetSelectedFilePath())
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
 				log.Fatal(err)
 			}
+			ranger.UpdatePanes()
 			return nil
 		}
 
-		if event.Key() == tcell.KeyLeft {
-			ranger.GoToParent()
-			return nil
-		}
-
-		if event.Key() == tcell.KeyRight {
-			ranger.GoToChild()
-			return nil
-		}
-
-		if event.Key() == tcell.KeyUp {
+		wasMovementKey := true
+		if event.Key() == tcell.KeyLeft || event.Rune() == 'h' {
+			ranger.GoLeft()
+		} else if event.Key() == tcell.KeyRight || event.Rune() == 'l' {
+			ranger.GoRight()
+		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
 			ranger.GoUp()
+		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
+			ranger.GoDown()
+		} else {
+			wasMovementKey = false
+		}
+
+		if wasMovementKey {
+			if !(event.Key() == tcell.KeyLeft || event.Rune() == 'h') {
+				ranger.history.AddToHistory(ranger.sel)
+			}
+
+/*			ranger.historyMoment = ""
+			for _, e := range ranger.history.history {
+				ranger.historyMoment += filepath.Base(e) + ", "
+			}*/
+			ranger.UpdatePanes()
 			return nil
 		}
 
-		if event.Key() == tcell.KeyDown {
-			ranger.GoDown()
-			return nil
+		if event.Rune() == ' ' {
+			ranger.historyMoment = ranger.GetSelectedFilePath()
 		}
+
 		return event
 	})
 
