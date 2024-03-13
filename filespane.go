@@ -85,6 +85,6 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			color = tcell.ColorYellow
 		}
 
-		tview.Print(screen, extraStyle + entry.Name(), x, y+i, w, tview.AlignLeft, color)
+		tview.Print(screen, extraStyle + entry.Name(), x, y+i, w-3, tview.AlignLeft, color)
 	}
 }
