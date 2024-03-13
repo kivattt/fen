@@ -12,4 +12,4 @@ q to quit \
 F1 to open in nano \
 Delete to delete file(s) \
 Spacebar to select files \
-`a` to select all files
+`a` to flip selection in folder (select all files)
