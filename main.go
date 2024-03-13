@@ -57,10 +57,6 @@ func (r *Ranger) UpdatePanes() {
 	r.middlePane.SetEntries(r.wd)
 	r.rightPane.SetEntries(r.sel)
 
-/*	r.leftPane.entries, _ = os.ReadDir(filepath.Dir(r.wd))
-	r.middlePane.entries, _ = os.ReadDir(r.wd)
-	r.rightPane.entries, _ = os.ReadDir(r.sel)*/
-
 	if r.wd != "/" {
 		r.leftPane.SetSelectedEntryFromString(filepath.Base(r.wd))
 	} else {
@@ -147,7 +143,22 @@ func main() {
 
 	app := tview.NewApplication()
 
+	flex := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(ranger.topPane, 1, 0, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+			AddItem(ranger.leftPane, 0, 1, false).
+			AddItem(ranger.middlePane, 0, 2, false).
+			AddItem(ranger.rightPane, 0, 2, false), 0, 1, false).
+		AddItem(ranger.bottomPane, 1, 0, false)
+
+	pages := tview.NewPages().
+		AddPage("flex", flex, true, true)
+
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if pages.HasPage("modal") {
+			return event
+		}
+
 		if event.Rune() == 'q' {
 			app.Stop()
 			return nil
@@ -198,38 +209,45 @@ func main() {
 		}
 
 		if event.Key() == tcell.KeyDelete {
-			if len(ranger.selected) <= 0 {
-				fileToDelete := ranger.GetSelectedFilePath()
-				os.Remove(fileToDelete)
-				ranger.historyMoment = "Deleted " + fileToDelete
+			modal := tview.NewModal().
+				SetText("Delete files?").
+				AddButtons([]string{"Yes", "No"}).
+				SetFocus(1). // Default is "No"
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					pages.RemovePage("modal")
+					if buttonLabel != "Yes" {
+						return
+					}
 
-				ranger.UpdatePanes()
-				return nil
-			}
 
-			for _, filePath := range ranger.selected {
-				os.Remove(filePath)
-			}
+					if len(ranger.selected) <= 0 {
+						fileToDelete := ranger.GetSelectedFilePath()
+						os.Remove(fileToDelete)
+						ranger.historyMoment = "Deleted " + fileToDelete
 
-			ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
-			ranger.selected = []string{}
+						ranger.UpdatePanes()
+						return
+					}
 
-			ranger.UpdatePanes()
+					for _, filePath := range ranger.selected {
+						os.Remove(filePath)
+					}
+
+					ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
+					ranger.selected = []string{}
+
+					ranger.UpdatePanes()
+				})
+
+			pages.AddPage("modal", modal, true, true)
+			app.SetFocus(modal)
 			return nil
 		}
 
 		return event
 	})
 
-	flex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(ranger.topPane, 1, 0, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-			AddItem(ranger.leftPane, 0, 1, false).
-			AddItem(ranger.middlePane, 0, 2, false).
-			AddItem(ranger.rightPane, 0, 2, false), 0, 1, false).
-		AddItem(ranger.bottomPane, 1, 0, false)
-
-	if err := app.SetRoot(flex, true).Run(); err != nil {
+	if err := app.SetRoot(pages, true).EnableMouse(true).Run(); err != nil {
 		panic(err)
 	}
 }
