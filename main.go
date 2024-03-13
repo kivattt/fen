@@ -182,6 +182,8 @@ func main() {
 			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(0)
 		} else if event.Key() == tcell.KeyEnd || event.Rune() == 'G' {
 			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(len(ranger.middlePane.entries) - 1)
+		} else if event.Rune() == 'M' {
+			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex((len(ranger.middlePane.entries) - 1) / 2)
 		} else {
 			wasMovementKey = false
 		}
