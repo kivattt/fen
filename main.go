@@ -19,6 +19,7 @@ type Ranger struct {
 	history History
 
 	selected []string
+	yankSelected []string
 
 	historyMoment string
 
@@ -231,6 +232,7 @@ func main() {
 
 			inputField := tview.NewInputField().
 				SetLabel("New name: ").
+				SetText(filepath.Base(fileToRename)).
 				SetFieldWidth(45)
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
@@ -250,6 +252,15 @@ func main() {
 
 			pages.AddPage("inputfield", modal(inputField, 58, 3), true, true)
 			app.SetFocus(inputField)
+			return nil
+		} else if event.Rune() == 'y' {
+			// TODO: Add indicator for yank being active
+			// TODO: Set state to yank mode, not dd (d) for cut
+			ranger.yankSelected = ranger.selected
+			return nil
+		} else if event.Rune() == 'p' {
+			// TODO: Pasting (copying files)
+			// TODO: Check previous state either 'y' or 'd' for yank or cut set by those shortcuts
 			return nil
 		}
 
