@@ -178,6 +178,10 @@ func main() {
 			ranger.ToggleSelection(ranger.GetSelectedFilePath())
 			ranger.historyMoment = strings.Join(ranger.selected, ", ")
 			ranger.GoDown()
+		} else if event.Key() == tcell.KeyHome || event.Rune() == 'g' {
+			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(0)
+		} else if event.Key() == tcell.KeyEnd || event.Rune() == 'G' {
+			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(len(ranger.middlePane.entries) - 1)
 		} else {
 			wasMovementKey = false
 		}
