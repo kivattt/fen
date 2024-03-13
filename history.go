@@ -1,10 +1,10 @@
 package main
 
 import (
-	"slices"
-	"strings"
 	"errors"
 	"path/filepath"
+	"slices"
+	"strings"
 )
 
 type History struct {
@@ -12,14 +12,12 @@ type History struct {
 }
 
 func (h *History) GetHistoryEntryForPath(path string) (string, error) {
-//	return strings.Join(h.history, ", "), nil
-
 	for _, e := range h.history {
 		if strings.HasPrefix(e, path) {
 			if len(path) >= len(e) {
 				continue
 			}
-				
+
 			e = e[len(path)+1:]
 			nextSlashIdx := strings.Index(e, "/")
 			if nextSlashIdx == -1 {
@@ -27,7 +25,6 @@ func (h *History) GetHistoryEntryForPath(path string) (string, error) {
 			}
 
 			return filepath.Join(path, e[:nextSlashIdx]), nil
-//			return e, nil
 		}
 	}
 

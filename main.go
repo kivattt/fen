@@ -13,17 +13,6 @@ import (
 	"github.com/rivo/tview"
 )
 
-func GetFiles(path string) []string {
-	entries, _ := ioutil.ReadDir(path)
-	var ret []string
-
-	for _, e := range entries {
-		ret = append(ret, e.Name())
-	}
-
-	return ret
-}
-
 type Ranger struct {
 	wd      string
 	sel     string
@@ -32,10 +21,6 @@ type Ranger struct {
 	selected []string
 
 	historyMoment string
-
-/*	left   []string
-	middle []string
-	right  []string*/
 
 	topPane    *Bar
 	leftPane   *FilesPane
@@ -49,18 +34,13 @@ func (r *Ranger) Init() error {
 	r.wd, err = os.Getwd()
 
 	r.topPane = NewBar(&r.wd)
-/*	r.leftPane = NewFilesPane(&r.left)
-	r.middlePane = NewFilesPane(&r.middle)
-	r.rightPane = NewFilesPane(&r.right)*/
 
 	r.leftPane = NewFilesPane()
 	r.middlePane = NewFilesPane()
 	r.rightPane = NewFilesPane()
+
 	r.bottomPane = NewBar(&r.historyMoment)
 
-	// KIVA KIVA HII
-//	r.middlePane.SetSelectedEntryFromIndex(0)
-//	wdFiles := GetFiles(r.wd)
 	wdFiles, _ := os.ReadDir(r.wd)
 
 	if len(wdFiles) > 0 {
@@ -74,13 +54,9 @@ func (r *Ranger) Init() error {
 }
 
 func (r *Ranger) UpdatePanes() {
-/*	r.left = GetFiles(filepath.Dir(r.wd))
-	r.middle = GetFiles(r.wd)
-	r.right = GetFiles(r.sel)*/
-
-	r.leftPane.entries, _   = os.ReadDir(filepath.Dir(r.wd))
+	r.leftPane.entries, _ = os.ReadDir(filepath.Dir(r.wd))
 	r.middlePane.entries, _ = os.ReadDir(r.wd)
-	r.rightPane.entries, _  = os.ReadDir(r.sel)
+	r.rightPane.entries, _ = os.ReadDir(r.sel)
 
 	if r.wd != "/" {
 		r.leftPane.SetSelectedEntryFromString(filepath.Base(r.wd))
@@ -130,7 +106,6 @@ func (r *Ranger) GoLeft() {
 }
 
 func (r *Ranger) GoRight() {
-//	if len(GetFiles(r.sel)) <= 0 {
 	rightFiles, _ := os.ReadDir(r.sel)
 	if len(rightFiles) <= 0 {
 		return
@@ -142,26 +117,25 @@ func (r *Ranger) GoRight() {
 	if err != nil {
 		// FIXME
 		r.sel = filepath.Join(r.wd, r.rightPane.GetSelectedEntryFromIndex(0))
-//		r.sel = r.rightPane.GetSelectedEntryFromIndex(0)
 	}
 }
 
 func (r *Ranger) GoUp() {
-	if r.middlePane.selectedEntry - 1 < 0 {
+	if r.middlePane.selectedEntry-1 < 0 {
 		r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(0))
 		return
 	}
 
-	r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(r.middlePane.selectedEntry - 1))
+	r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(r.middlePane.selectedEntry-1))
 }
 
 func (r *Ranger) GoDown() {
-	if r.middlePane.selectedEntry + 1 >= len(r.middlePane.entries) {
-		r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries) - 1))
+	if r.middlePane.selectedEntry+1 >= len(r.middlePane.entries) {
+		r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries)-1))
 		return
 	}
 
-	r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(r.middlePane.selectedEntry + 1))
+	r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(r.middlePane.selectedEntry+1))
 }
 
 func main() {
@@ -199,7 +173,6 @@ func main() {
 			ranger.GoDown()
 		} else if event.Rune() == ' ' {
 			ranger.ToggleSelection(ranger.GetSelectedFilePath())
-//			ranger.historyMoment = ranger.GetSelectedFilePath()
 			ranger.historyMoment = strings.Join(ranger.selected, ", ")
 			ranger.GoDown()
 		} else {
@@ -211,10 +184,6 @@ func main() {
 				ranger.history.AddToHistory(ranger.sel)
 			}
 
-/*			ranger.historyMoment = ""
-			for _, e := range ranger.history.history {
-				ranger.historyMoment += filepath.Base(e) + ", "
-			}*/
 			ranger.UpdatePanes()
 			return nil
 		}
