@@ -87,7 +87,15 @@ func (r *Ranger) UpdatePanes() {
 	} else {
 		r.leftPane.entries = []os.DirEntry{}
 	}
+
 	r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel))
+
+	// FIXME: Generic bounds checking across all panes in this function
+	if r.middlePane.selectedEntry >= len(r.middlePane.entries) {
+		r.sel = r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries) - 1)
+		r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel)) // Duplicated from above...
+	}
+
 	h, err := r.history.GetHistoryEntryForPath(r.sel)
 	if err != nil {
 		r.rightPane.SetSelectedEntryFromIndex(0)
@@ -207,6 +215,15 @@ func main() {
 			for _, e := range ranger.history.history {
 				ranger.historyMoment += filepath.Base(e) + ", "
 			}*/
+			ranger.UpdatePanes()
+			return nil
+		}
+
+		if event.Key() == tcell.KeyDelete {
+			fileToDelete := ranger.GetSelectedFilePath()
+			os.Remove(fileToDelete)
+			ranger.historyMoment = "Deleted " + fileToDelete
+
 			ranger.UpdatePanes()
 			return nil
 		}

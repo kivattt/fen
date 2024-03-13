@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 
 	"github.com/gdamore/tcell/v2"
@@ -23,16 +24,17 @@ func NewFilesPane() *FilesPane {
 	}
 }
 
-func (fp *FilesPane) SetSelectedEntryFromString(entryName string) {
+func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {
 //	for i, entry := range *fp.entries {
 	for i, entry := range fp.entries {
 		if entry.Name() == entryName {
 			fp.selectedEntry = i
-			return
+			return nil
 		}
 	}
 
-	fp.selectedEntry = 0
+//	fp.selectedEntry = 0
+	return errors.New("No entry with that name")
 }
 
 func (fp *FilesPane) SetSelectedEntryFromIndex(index int) {
