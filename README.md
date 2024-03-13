@@ -11,4 +11,5 @@ Arrow keys/hjkl to navigate \
 q to quit \
 F1 to open in nano \
 Delete to delete file(s) \
-Spacebar to select files
+Spacebar to select files \
+`a` to select all files
