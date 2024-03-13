@@ -5,6 +5,8 @@ go build
 ```
 
 Arrow keys/hjkl to navigate \
+`Home` or `g` to go to the top \
+`End` or `G` to go to the bottom \
 q to quit \
 F1 to open in nano \
 Delete to delete a file \
