@@ -157,7 +157,7 @@ func main() {
 		AddPage("flex", flex, true, true)
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if pages.HasPage("modal") {
+		if pages.HasPage("modal") || pages.HasPage("inputfield") {
 			return event
 		}
 
@@ -210,10 +210,47 @@ func main() {
 			return nil
 		}
 
-		if event.Rune() == 'a' {
+		if event.Rune() == 'A' {
 			for _, e := range ranger.middlePane.entries {
 				ranger.ToggleSelection(filepath.Join(ranger.wd, e.Name()))
 			}
+			return nil
+		} else if event.Rune() == 'a' {
+			fileToRename := ranger.GetSelectedFilePath()
+
+			// https://github.com/rivo/tview/wiki/Modal
+			modal := func(p tview.Primitive, width, height int) tview.Primitive {
+				return tview.NewFlex().
+					AddItem(nil, 0, 1, false).
+					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+						AddItem(nil, 0, 1, false).
+						AddItem(p, height, 1, true).
+						AddItem(nil, 0, 1, false), width, 1, true).
+					AddItem(nil, 0, 1, false)
+			}
+
+			inputField := tview.NewInputField().
+				SetLabel("New name: ").
+				SetFieldWidth(45)
+
+			inputField.SetDoneFunc(func(key tcell.Key) {
+				if key == tcell.KeyEscape {
+					pages.RemovePage("inputfield")
+					return
+				} else if key == tcell.KeyEnter {
+					os.Rename(fileToRename, filepath.Join(filepath.Dir(fileToRename), inputField.GetText()))
+					ranger.UpdatePanes()
+
+					pages.RemovePage("inputfield")
+					return
+				}
+			})
+
+			inputField.SetBorder(true)
+
+			pages.AddPage("inputfield", modal(inputField, 58, 3), true, true)
+			app.SetFocus(inputField)
+			return nil
 		}
 
 		if event.Key() == tcell.KeyDelete {

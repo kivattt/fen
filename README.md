@@ -12,4 +12,5 @@ q to quit \
 F1 to open in nano \
 Delete to delete file(s) \
 Spacebar to select files \
-`a` to flip selection in folder (select all files)
+`A` to flip selection in folder (select all files) \
+'a' to rename a file
