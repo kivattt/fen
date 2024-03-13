@@ -1,1 +1,2 @@
-Commands like :mkdir etc.
+- Confirmation [modal](https://github.com/rivo/tview/blob/master/demos/modal/main.go)
+- Commands like :mkdir etc.
