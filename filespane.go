@@ -2,7 +2,9 @@ package main
 
 import (
 	"errors"
+	"slices"
 	"os"
+	"path/filepath"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -10,15 +12,23 @@ import (
 
 type FilesPane struct {
 	*tview.Box
+	selected *[]string
+	folder string
 	entries       []os.DirEntry
 	selectedEntry int
 }
 
-func NewFilesPane() *FilesPane {
+func NewFilesPane(selected *[]string) *FilesPane {
 	return &FilesPane{
 		Box:           tview.NewBox(),
+		selected: selected,
 		selectedEntry: 0,
 	}
+}
+
+func (fp *FilesPane) SetEntries(path string) {
+	fp.folder = path
+	fp.entries, _ = os.ReadDir(fp.folder)
 }
 
 func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {
@@ -65,10 +75,16 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			color = tcell.ColorGray
 		}
 
+		extraStyle := ""
 		if i == fp.selectedEntry {
+			extraStyle = "[:gray]"
+			color = tcell.ColorBlack
+		}
+
+		if slices.Contains(*fp.selected, filepath.Join(fp.folder, entry.Name())) {
 			color = tcell.ColorYellow
 		}
 
-		tview.Print(screen, entry.Name(), x, y+i, w, tview.AlignLeft, color)
+		tview.Print(screen, extraStyle + entry.Name(), x, y+i, w, tview.AlignLeft, color)
 	}
 }

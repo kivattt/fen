@@ -34,9 +34,9 @@ func (r *Ranger) Init() error {
 
 	r.topPane = NewBar(&r.wd)
 
-	r.leftPane = NewFilesPane()
-	r.middlePane = NewFilesPane()
-	r.rightPane = NewFilesPane()
+	r.leftPane = NewFilesPane(&r.selected)
+	r.middlePane = NewFilesPane(&r.selected)
+	r.rightPane = NewFilesPane(&r.selected)
 
 	r.bottomPane = NewBar(&r.historyMoment)
 
@@ -53,9 +53,13 @@ func (r *Ranger) Init() error {
 }
 
 func (r *Ranger) UpdatePanes() {
-	r.leftPane.entries, _ = os.ReadDir(filepath.Dir(r.wd))
+	r.leftPane.SetEntries(filepath.Dir(r.wd))
+	r.middlePane.SetEntries(r.wd)
+	r.rightPane.SetEntries(r.sel)
+
+/*	r.leftPane.entries, _ = os.ReadDir(filepath.Dir(r.wd))
 	r.middlePane.entries, _ = os.ReadDir(r.wd)
-	r.rightPane.entries, _ = os.ReadDir(r.sel)
+	r.rightPane.entries, _ = os.ReadDir(r.sel)*/
 
 	if r.wd != "/" {
 		r.leftPane.SetSelectedEntryFromString(filepath.Base(r.wd))

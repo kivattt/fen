@@ -1,1 +1,1 @@
-- Visualize selected files (the ones that show up on the bottom of the screen
+Commands like :mkdir etc.
