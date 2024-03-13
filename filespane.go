@@ -47,6 +47,14 @@ func (fp *FilesPane) SetSelectedEntryFromIndex(index int) {
 }
 
 func (fp *FilesPane) GetSelectedEntryFromIndex(index int) string {
+	if index >= len(fp.entries) {
+		return ""
+	}
+
+	if index < 0 {
+		return ""
+	}
+
 	return fp.entries[index].Name()
 }
 

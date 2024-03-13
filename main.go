@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strconv"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,6 +69,7 @@ func (r *Ranger) UpdatePanes() {
 	// FIXME: Generic bounds checking across all panes in this function
 	if r.middlePane.selectedEntry >= len(r.middlePane.entries) {
 		r.sel = r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries) - 1)
+
 		r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel)) // Duplicated from above...
 	}
 
@@ -209,8 +211,18 @@ func main() {
 		}
 
 		if event.Key() == tcell.KeyDelete {
-			modal := tview.NewModal().
-				SetText("Delete files?").
+			modal := tview.NewModal()
+
+			fileToDelete := ""
+
+			if len(ranger.selected) <= 0 {
+				fileToDelete = ranger.GetSelectedFilePath()
+				modal.SetText("Delete " + filepath.Base(fileToDelete) + " ?")
+			} else {
+				modal.SetText("Delete " + strconv.Itoa(len(ranger.selected)) + " files?")
+			}
+
+			modal.
 				AddButtons([]string{"Yes", "No"}).
 				SetFocus(1). // Default is "No"
 				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
@@ -219,9 +231,7 @@ func main() {
 						return
 					}
 
-
 					if len(ranger.selected) <= 0 {
-						fileToDelete := ranger.GetSelectedFilePath()
 						os.Remove(fileToDelete)
 						ranger.historyMoment = "Deleted " + fileToDelete
 
