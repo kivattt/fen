@@ -1,13 +1,13 @@
 package main
+
 import (
-	"errors"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-//	"slices"
-//	"strings"
+	"slices"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -29,11 +29,13 @@ type Ranger struct {
 	sel     string
 	history History
 
+	selected []string
+
 	historyMoment string
 
-	left   []string
+/*	left   []string
 	middle []string
-	right  []string
+	right  []string*/
 
 	topPane    *Bar
 	leftPane   *FilesPane
@@ -47,16 +49,22 @@ func (r *Ranger) Init() error {
 	r.wd, err = os.Getwd()
 
 	r.topPane = NewBar(&r.wd)
-	r.leftPane = NewFilesPane(&r.left)
+/*	r.leftPane = NewFilesPane(&r.left)
 	r.middlePane = NewFilesPane(&r.middle)
-	r.rightPane = NewFilesPane(&r.right)
+	r.rightPane = NewFilesPane(&r.right)*/
+
+	r.leftPane = NewFilesPane()
+	r.middlePane = NewFilesPane()
+	r.rightPane = NewFilesPane()
 	r.bottomPane = NewBar(&r.historyMoment)
 
 	// KIVA KIVA HII
 //	r.middlePane.SetSelectedEntryFromIndex(0)
-	wdFiles := GetFiles(r.wd)
+//	wdFiles := GetFiles(r.wd)
+	wdFiles, _ := os.ReadDir(r.wd)
+
 	if len(wdFiles) > 0 {
-		r.sel = filepath.Join(r.wd, wdFiles[0])
+		r.sel = filepath.Join(r.wd, wdFiles[0].Name())
 	}
 
 	r.history.AddToHistory(r.sel)
@@ -65,24 +73,19 @@ func (r *Ranger) Init() error {
 	return err
 }
 
-func (r *Ranger) GetRightPath() (string, error) {
-	if r.middlePane.selectedEntry >= len(r.middle) {
-		return "", errors.New("Out of bounds")
-	}
-
-	return r.GetSelectedFilePath(), nil
-	// return filepath.Join(r.wd, r.middle[r.middlePane.selectedEntry]), nil
-}
-
 func (r *Ranger) UpdatePanes() {
-	r.left = GetFiles(filepath.Dir(r.wd))
+/*	r.left = GetFiles(filepath.Dir(r.wd))
 	r.middle = GetFiles(r.wd)
-	r.right = GetFiles(r.sel)
+	r.right = GetFiles(r.sel)*/
+
+	r.leftPane.entries, _   = os.ReadDir(filepath.Dir(r.wd))
+	r.middlePane.entries, _ = os.ReadDir(r.wd)
+	r.rightPane.entries, _  = os.ReadDir(r.sel)
 
 	if r.wd != "/" {
 		r.leftPane.SetSelectedEntryFromString(filepath.Base(r.wd))
 	} else {
-		r.left = []string{}
+		r.leftPane.entries = []os.DirEntry{}
 	}
 	r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel))
 	h, err := r.history.GetHistoryEntryForPath(r.sel)
@@ -93,11 +96,20 @@ func (r *Ranger) UpdatePanes() {
 	r.rightPane.SetSelectedEntryFromString(filepath.Base(h))
 }
 
+func (r *Ranger) ToggleSelection(filePath string) {
+	if index := slices.Index(r.selected, filePath); index != -1 {
+		r.selected = append(r.selected[:index], r.selected[index+1:]...)
+		return
+	}
+
+	r.selected = append(r.selected, filePath)
+}
+
 func (r *Ranger) GetSelectedFilePath() string {
-	if r.middlePane.selectedEntry >= len(r.middle) {
+	if r.middlePane.selectedEntry >= len(r.middlePane.entries) {
 		return ""
 	}
-	return filepath.Join(r.wd, r.middle[r.middlePane.selectedEntry])
+	return filepath.Join(r.wd, r.middlePane.entries[r.middlePane.selectedEntry].Name())
 }
 
 func (r *Ranger) GoLeft() {
@@ -110,7 +122,9 @@ func (r *Ranger) GoLeft() {
 }
 
 func (r *Ranger) GoRight() {
-	if len(GetFiles(r.sel)) <= 0 {
+//	if len(GetFiles(r.sel)) <= 0 {
+	rightFiles, _ := os.ReadDir(r.sel)
+	if len(rightFiles) <= 0 {
 		return
 	}
 
@@ -134,8 +148,8 @@ func (r *Ranger) GoUp() {
 }
 
 func (r *Ranger) GoDown() {
-	if r.middlePane.selectedEntry + 1 >= len(r.middle) {
-		r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(len(r.middle) - 1))
+	if r.middlePane.selectedEntry + 1 >= len(r.middlePane.entries) {
+		r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries) - 1))
 		return
 	}
 
@@ -175,6 +189,11 @@ func main() {
 			ranger.GoUp()
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
 			ranger.GoDown()
+		} else if event.Rune() == ' ' {
+			ranger.ToggleSelection(ranger.GetSelectedFilePath())
+//			ranger.historyMoment = ranger.GetSelectedFilePath()
+			ranger.historyMoment = strings.Join(ranger.selected, ", ")
+			ranger.GoDown()
 		} else {
 			wasMovementKey = false
 		}
@@ -190,10 +209,6 @@ func main() {
 			}*/
 			ranger.UpdatePanes()
 			return nil
-		}
-
-		if event.Rune() == ' ' {
-			ranger.historyMoment = ranger.GetSelectedFilePath()
 		}
 
 		return event

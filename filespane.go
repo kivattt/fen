@@ -1,27 +1,32 @@
 package main
 
 import (
+	"os"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 type FilesPane struct {
 	*tview.Box
-	entries       *[]string
+//	entries       *[]string
+	entries []os.DirEntry
 	selectedEntry int
 }
 
-func NewFilesPane(entries *[]string) *FilesPane {
+//func NewFilesPane(entries *[]string) *FilesPane {
+func NewFilesPane() *FilesPane {
 	return &FilesPane{
 		Box:           tview.NewBox(),
-		entries:       entries,
+//		entries:       entries,
 		selectedEntry: 0,
 	}
 }
 
 func (fp *FilesPane) SetSelectedEntryFromString(entryName string) {
-	for i, entry := range *fp.entries {
-		if entry == entryName {
+//	for i, entry := range *fp.entries {
+	for i, entry := range fp.entries {
+		if entry.Name() == entryName {
 			fp.selectedEntry = i
 			return
 		}
@@ -35,7 +40,8 @@ func (fp *FilesPane) SetSelectedEntryFromIndex(index int) {
 }
 
 func (fp *FilesPane) GetSelectedEntryFromIndex(index int) string {
-	return (*fp.entries)[index]
+//	return (*fp.entries)[index]
+	return fp.entries[index].Name()
 }
 
 func (fp *FilesPane) Draw(screen tcell.Screen) {
@@ -43,21 +49,32 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 	x, y, w, h := fp.GetInnerRect()
 
-	if len(*fp.entries) <= 0 {
+//	if len(*fp.entries) <= 0 {
+	if len(fp.entries) <= 0 {
 		tview.Print(screen, "empty", x, y, w, tview.AlignLeft, tcell.ColorRed)
 		return
 	}
 
-	for i, entry := range *fp.entries {
+//	for i, entry := range *fp.entries {
+	for i, entry := range fp.entries {
 		if i >= h {
 			break
 		}
 
 		color := tcell.ColorWhite
+
+		if entry.IsDir() {
+			color = tcell.ColorBlue
+		} else if entry.Type().IsRegular() {
+			color = tcell.ColorWhite
+		} else {
+			color = tcell.ColorGray
+		}
+
 		if i == fp.selectedEntry {
 			color = tcell.ColorYellow
 		}
 
-		tview.Print(screen, entry, x, y+i, w, tview.AlignLeft, color)
+		tview.Print(screen, entry.Name(), x, y+i, w, tview.AlignLeft, color)
 	}
 }
