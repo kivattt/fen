@@ -198,9 +198,21 @@ func main() {
 		}
 
 		if event.Key() == tcell.KeyDelete {
-			fileToDelete := ranger.GetSelectedFilePath()
-			os.Remove(fileToDelete)
-			ranger.historyMoment = "Deleted " + fileToDelete
+			if len(ranger.selected) <= 0 {
+				fileToDelete := ranger.GetSelectedFilePath()
+				os.Remove(fileToDelete)
+				ranger.historyMoment = "Deleted " + fileToDelete
+
+				ranger.UpdatePanes()
+				return nil
+			}
+
+			for _, filePath := range ranger.selected {
+				os.Remove(filePath)
+			}
+
+			ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
+			ranger.selected = []string{}
 
 			ranger.UpdatePanes()
 			return nil
