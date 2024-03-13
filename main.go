@@ -210,6 +210,12 @@ func main() {
 			return nil
 		}
 
+		if event.Rune() == 'a' {
+			for _, e := range ranger.middlePane.entries {
+				ranger.ToggleSelection(filepath.Join(ranger.wd, e.Name()))
+			}
+		}
+
 		if event.Key() == tcell.KeyDelete {
 			modal := tview.NewModal()
 
