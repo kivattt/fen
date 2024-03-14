@@ -1,16 +1,20 @@
 package main
 
 import (
+	//	"io"
+	"io"
 	"log"
-	"strconv"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+
+	dirCopy "github.com/otiai10/copy"
 )
 
 type Ranger struct {
@@ -18,8 +22,9 @@ type Ranger struct {
 	sel     string
 	history History
 
-	selected []string
+	selected     []string
 	yankSelected []string
+	yankType     string // "", "copy", "cut"
 
 	historyMoment string
 
@@ -55,6 +60,11 @@ func (r *Ranger) Init() error {
 }
 
 func (r *Ranger) UpdatePanes() {
+	/*	_, err := os.Stat(r.sel)
+		if err != nil {
+			return
+		}*/
+
 	r.leftPane.SetEntries(filepath.Dir(r.wd))
 	r.middlePane.SetEntries(r.wd)
 	r.rightPane.SetEntries(r.sel)
@@ -69,9 +79,10 @@ func (r *Ranger) UpdatePanes() {
 
 	// FIXME: Generic bounds checking across all panes in this function
 	if r.middlePane.selectedEntry >= len(r.middlePane.entries) {
-		r.sel = r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries) - 1)
-
-		r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel)) // Duplicated from above...
+		if len(r.middlePane.entries) > 0 {
+			r.sel = r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries) - 1)
+			r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel)) // Duplicated from above...
+		}
 	}
 
 	h, err := r.history.GetHistoryEntryForPath(r.sel)
@@ -92,6 +103,8 @@ func (r *Ranger) ToggleSelection(filePath string) {
 }
 
 func (r *Ranger) GetSelectedFilePath() string {
+//	return filepath.Join(r.wd, filepath.Base(r.sel))
+
 	if r.middlePane.selectedEntry >= len(r.middlePane.entries) {
 		return ""
 	}
@@ -108,13 +121,25 @@ func (r *Ranger) GoLeft() {
 }
 
 func (r *Ranger) GoRight() {
-	rightFiles, _ := os.ReadDir(r.sel)
-	if len(rightFiles) <= 0 {
+	if len(r.middlePane.entries) <= 0 {
 		return
 	}
 
+	fi, err := os.Stat(r.sel)
+	if err != nil {
+		return
+	}
+
+	if !fi.IsDir() {
+		return
+	}
+
+	/*	rightFiles, _ := os.ReadDir(r.sel)
+		if len(rightFiles) <= 0 {
+			return
+		}*/
+
 	r.wd = r.sel
-	var err error
 	r.sel, err = r.history.GetHistoryEntryForPath(r.wd)
 	if err != nil {
 		// FIXME
@@ -207,6 +232,7 @@ func main() {
 				ranger.history.AddToHistory(ranger.sel)
 			}
 
+			ranger.historyMoment = ranger.sel
 			ranger.UpdatePanes()
 			return nil
 		}
@@ -254,13 +280,71 @@ func main() {
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'y' {
-			// TODO: Add indicator for yank being active
-			// TODO: Set state to yank mode, not dd (d) for cut
+			ranger.yankType = "copy"
 			ranger.yankSelected = ranger.selected
+			ranger.historyMoment = "Yank!"
+			return nil
+		} else if event.Rune() == 'd' {
+			ranger.yankType = "cut"
+			ranger.yankSelected = ranger.selected
+			ranger.historyMoment = "Cut!"
 			return nil
 		} else if event.Rune() == 'p' {
-			// TODO: Pasting (copying files)
-			// TODO: Check previous state either 'y' or 'd' for yank or cut set by those shortcuts
+			if ranger.yankType == "copy" {
+				for _, e := range ranger.yankSelected {
+					fi, err := os.Stat(e)
+					if err != nil {
+						continue
+					}
+
+					newPath := filepath.Join(ranger.sel, filepath.Base(e))
+					if fi.IsDir() {
+//						newPath := filepath.Join(ranger.sel, filepath.Base(e))
+						err := os.Mkdir(newPath, 0755)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							ranger.historyMoment = newPath
+						}
+						ranger.historyMoment = ranger.sel
+
+						err = dirCopy.Copy(e, newPath)
+					} else if fi.Mode().IsRegular() {
+						err = dirCopy.Copy(e, ranger.sel)
+
+						source, err := os.Open(e)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							continue
+						}
+						defer source.Close()
+
+						destination, err := os.Create(newPath)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							continue
+						}
+						defer destination.Close()
+
+						_, err = io.Copy(destination, source)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							continue
+						}
+					}
+
+					if err != nil {
+						// TODO: We need an error log we can scroll through
+						ranger.historyMoment = err.Error()
+					}
+				}
+			}
+
+			ranger.yankSelected = []string{}
+			ranger.selected = []string{}
+
+			//			ranger.historyMoment = "Paste!"
+
+			ranger.UpdatePanes()
 			return nil
 		}
 
@@ -273,7 +357,7 @@ func main() {
 				fileToDelete = ranger.GetSelectedFilePath()
 				modal.SetText("Delete " + filepath.Base(fileToDelete) + " ?")
 			} else {
-				modal.SetText("Delete " + strconv.Itoa(len(ranger.selected)) + " files?")
+				modal.SetText("Delete " + strconv.Itoa(len(ranger.selected)) + " selected files?")
 			}
 
 			modal.
@@ -286,7 +370,12 @@ func main() {
 					}
 
 					if len(ranger.selected) <= 0 {
-						os.Remove(fileToDelete)
+						err := os.RemoveAll(fileToDelete)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							ranger.historyMoment = "Failed to delete!"
+						}
+						ranger.history.RemoveFromHistory(fileToDelete)
 						ranger.historyMoment = "Deleted " + fileToDelete
 
 						ranger.UpdatePanes()
@@ -294,7 +383,12 @@ func main() {
 					}
 
 					for _, filePath := range ranger.selected {
-						os.Remove(filePath)
+						err := os.RemoveAll(filePath)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							continue
+						}
+						ranger.history.RemoveFromHistory(filePath)
 					}
 
 					ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+//	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -13,6 +14,25 @@ type History struct {
 
 func (h *History) GetHistoryEntryForPath(path string) (string, error) {
 	for _, e := range h.history {
+		sub, err := filepath.Rel(path, e)
+		if err != nil {
+			continue
+		}
+
+		// HACKY
+		if strings.HasPrefix(sub, "..") {
+			continue
+		}
+
+
+		//fmt.Println("sub: " + sub)
+
+/*		if len(path) >= len(sub) {
+			continue
+		}*/
+
+//		return filepath.Join(e, sub), nil
+
 		if strings.HasPrefix(e, path) {
 			if len(path) >= len(e) {
 				continue
@@ -45,4 +65,10 @@ func (h *History) AddToHistory(path string) {
 	}
 
 	h.history = slices.Concat([]string{path}, h.history)
+}
+
+func (h *History) RemoveFromHistory(path string) {
+	if index := slices.Index(h.history, path); index != -1 {
+		h.history = append(h.history[:index], h.history[index+1:]...)
+	}
 }
