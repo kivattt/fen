@@ -1,6 +1,7 @@
 package main
 
 import (
+//	"fmt"
 	"testing"
 )
 
@@ -20,4 +21,16 @@ func TestGetHistoryEntryForPath(t *testing.T) {
 	if e != "/home/user/test/something" {
 		t.Fatalf("Expected /home/user/test/something, but got: " + e)
 	}
+/*
+	h.ClearHistory()
+	h.AddToHistory("/home/user/folder/file.txt")
+	h.RemoveFromHistory("/home/user/folder/file.txt")
+	h.AddToHistory("/home/user/folder")
+
+	fmt.Println(h.history)
+
+	e, _ = h.GetHistoryEntryForPath("/home/user/folder")
+	if e != "/home/user/folder" {
+		t.Fatalf("Expected /home/user/folder, but got: " + e)
+	}*/
 }

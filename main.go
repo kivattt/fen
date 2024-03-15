@@ -102,15 +102,6 @@ func (r *Ranger) ToggleSelection(filePath string) {
 	r.selected = append(r.selected, filePath)
 }
 
-func (r *Ranger) GetSelectedFilePath() string {
-//	return filepath.Join(r.wd, filepath.Base(r.sel))
-
-	if r.middlePane.selectedEntry >= len(r.middlePane.entries) {
-		return ""
-	}
-	return filepath.Join(r.wd, r.middlePane.entries[r.middlePane.selectedEntry].Name())
-}
-
 func (r *Ranger) GoLeft() {
 	if filepath.Dir(r.wd) == r.wd {
 		return
@@ -193,7 +184,7 @@ func main() {
 		}
 
 		if event.Key() == tcell.KeyF1 {
-			cmd := exec.Command("nano", ranger.GetSelectedFilePath())
+			cmd := exec.Command("nano", ranger.sel)
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
@@ -214,15 +205,18 @@ func main() {
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
 			ranger.GoDown()
 		} else if event.Rune() == ' ' {
-			ranger.ToggleSelection(ranger.GetSelectedFilePath())
+			ranger.ToggleSelection(ranger.sel)
 			ranger.historyMoment = strings.Join(ranger.selected, ", ")
 			ranger.GoDown()
 		} else if event.Key() == tcell.KeyHome || event.Rune() == 'g' {
-			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(0)
+//			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(0)
+			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(0))
 		} else if event.Key() == tcell.KeyEnd || event.Rune() == 'G' {
-			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(len(ranger.middlePane.entries) - 1)
+//			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(len(ranger.middlePane.entries) - 1)
+			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(len(ranger.middlePane.entries) - 1))
 		} else if event.Rune() == 'M' {
-			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex((len(ranger.middlePane.entries) - 1) / 2)
+//			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex((len(ranger.middlePane.entries) - 1) / 2)
+			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex((len(ranger.middlePane.entries) - 1) / 2))
 		} else {
 			wasMovementKey = false
 		}
@@ -242,8 +236,12 @@ func main() {
 				ranger.ToggleSelection(filepath.Join(ranger.wd, e.Name()))
 			}
 			return nil
+		} else if event.Rune() == 'D' {
+			ranger.selected = []string{}
+			ranger.yankSelected = []string{}
+			ranger.historyMoment = "Deselected!"
 		} else if event.Rune() == 'a' {
-			fileToRename := ranger.GetSelectedFilePath()
+			fileToRename := ranger.sel
 
 			// https://github.com/rivo/tview/wiki/Modal
 			modal := func(p tview.Primitive, width, height int) tview.Primitive {
@@ -297,7 +295,8 @@ func main() {
 						continue
 					}
 
-					newPath := filepath.Join(ranger.sel, filepath.Base(e))
+//					newPath := filepath.Join(ranger.sel, filepath.Base(e))
+					newPath := filepath.Join(ranger.wd, filepath.Base(e))
 					if fi.IsDir() {
 //						newPath := filepath.Join(ranger.sel, filepath.Base(e))
 						err := os.Mkdir(newPath, 0755)
@@ -305,12 +304,11 @@ func main() {
 							// TODO: We need an error log we can scroll through
 							ranger.historyMoment = newPath
 						}
-						ranger.historyMoment = ranger.sel
+//						ranger.historyMoment = ranger.sel
+						ranger.historyMoment = ranger.wd
 
 						err = dirCopy.Copy(e, newPath)
 					} else if fi.Mode().IsRegular() {
-						err = dirCopy.Copy(e, ranger.sel)
-
 						source, err := os.Open(e)
 						if err != nil {
 							// TODO: We need an error log we can scroll through
@@ -331,19 +329,16 @@ func main() {
 							continue
 						}
 					}
-
-					if err != nil {
-						// TODO: We need an error log we can scroll through
-						ranger.historyMoment = err.Error()
-					}
 				}
 			}
 
 			ranger.yankSelected = []string{}
 			ranger.selected = []string{}
 
-			//			ranger.historyMoment = "Paste!"
+			ranger.historyMoment = "Paste!"
 
+			// FIXME: Wat?
+			ranger.UpdatePanes()
 			ranger.UpdatePanes()
 			return nil
 		}
@@ -354,7 +349,7 @@ func main() {
 			fileToDelete := ""
 
 			if len(ranger.selected) <= 0 {
-				fileToDelete = ranger.GetSelectedFilePath()
+				fileToDelete = ranger.sel
 				modal.SetText("Delete " + filepath.Base(fileToDelete) + " ?")
 			} else {
 				modal.SetText("Delete " + strconv.Itoa(len(ranger.selected)) + " selected files?")
@@ -374,10 +369,12 @@ func main() {
 						if err != nil {
 							// TODO: We need an error log we can scroll through
 							ranger.historyMoment = "Failed to delete!"
+							return
 						}
 						ranger.history.RemoveFromHistory(fileToDelete)
 						ranger.historyMoment = "Deleted " + fileToDelete
 
+						ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
 						ranger.UpdatePanes()
 						return
 					}
@@ -394,6 +391,9 @@ func main() {
 					ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
 					ranger.selected = []string{}
 
+//					ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
+					// FIXME: wat?
+					ranger.UpdatePanes()
 					ranger.UpdatePanes()
 				})
 

@@ -72,3 +72,7 @@ func (h *History) RemoveFromHistory(path string) {
 		h.history = append(h.history[:index], h.history[index+1:]...)
 	}
 }
+
+func (h *History) ClearHistory() {
+	h.history = []string{}
+}
