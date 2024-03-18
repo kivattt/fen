@@ -2,4 +2,5 @@
 - Commands like :mkdir etc.
 - More rules for when "empty" shows up, not at / and not twice at the right
 - Disallow recursive copies or whatever
+- Add an underscore for duplicate pasting
 - Refactor out `ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))`
