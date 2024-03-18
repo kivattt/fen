@@ -1,16 +1,19 @@
 package main
 
 import (
+	"io"
 	"log"
-	"strconv"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+
+	dirCopy "github.com/otiai10/copy"
 )
 
 type Ranger struct {
@@ -18,10 +21,13 @@ type Ranger struct {
 	sel     string
 	history History
 
-	selected []string
+	selected     []string
 	yankSelected []string
+	yankType     string // "", "copy", "cut"
 
 	historyMoment string
+
+	showHiddenFiles bool
 
 	topPane    *Bar
 	leftPane   *FilesPane
@@ -31,14 +37,16 @@ type Ranger struct {
 }
 
 func (r *Ranger) Init() error {
+	r.showHiddenFiles = true
+
 	var err error
 	r.wd, err = os.Getwd()
 
 	r.topPane = NewBar(&r.wd)
 
-	r.leftPane = NewFilesPane(&r.selected)
-	r.middlePane = NewFilesPane(&r.selected)
-	r.rightPane = NewFilesPane(&r.selected)
+	r.leftPane = NewFilesPane(&r.selected, &r.yankSelected, &r.showHiddenFiles)
+	r.middlePane = NewFilesPane(&r.selected, &r.yankSelected, &r.showHiddenFiles)
+	r.rightPane = NewFilesPane(&r.selected, &r.yankSelected, &r.showHiddenFiles)
 
 	r.bottomPane = NewBar(&r.historyMoment)
 
@@ -55,9 +63,13 @@ func (r *Ranger) Init() error {
 }
 
 func (r *Ranger) UpdatePanes() {
+	/*	_, err := os.Stat(r.sel)
+		if err != nil {
+			return
+		}*/
+
 	r.leftPane.SetEntries(filepath.Dir(r.wd))
 	r.middlePane.SetEntries(r.wd)
-	r.rightPane.SetEntries(r.sel)
 
 	if r.wd != "/" {
 		r.leftPane.SetSelectedEntryFromString(filepath.Base(r.wd))
@@ -69,10 +81,14 @@ func (r *Ranger) UpdatePanes() {
 
 	// FIXME: Generic bounds checking across all panes in this function
 	if r.middlePane.selectedEntry >= len(r.middlePane.entries) {
-		r.sel = r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries) - 1)
-
-		r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel)) // Duplicated from above...
+		if len(r.middlePane.entries) > 0 {
+			r.sel = r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries) - 1)
+			r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel)) // Duplicated from above...
+		}
 	}
+
+	r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(r.middlePane.selectedEntry))
+	r.rightPane.SetEntries(r.sel)
 
 	h, err := r.history.GetHistoryEntryForPath(r.sel)
 	if err != nil {
@@ -91,13 +107,6 @@ func (r *Ranger) ToggleSelection(filePath string) {
 	r.selected = append(r.selected, filePath)
 }
 
-func (r *Ranger) GetSelectedFilePath() string {
-	if r.middlePane.selectedEntry >= len(r.middlePane.entries) {
-		return ""
-	}
-	return filepath.Join(r.wd, r.middlePane.entries[r.middlePane.selectedEntry].Name())
-}
-
 func (r *Ranger) GoLeft() {
 	if filepath.Dir(r.wd) == r.wd {
 		return
@@ -107,14 +116,37 @@ func (r *Ranger) GoLeft() {
 	r.wd = filepath.Dir(r.wd)
 }
 
-func (r *Ranger) GoRight() {
-	rightFiles, _ := os.ReadDir(r.sel)
-	if len(rightFiles) <= 0 {
+func (r *Ranger) GoRight(app *tview.Application) {
+	if len(r.middlePane.entries) <= 0 {
 		return
 	}
 
+	fi, err := os.Stat(r.sel)
+	if err != nil {
+		return
+	}
+
+	if !fi.IsDir() {
+		cmd := exec.Command("nvim", r.sel)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		app.Suspend(func() {
+			if err := cmd.Run(); err != nil {
+				log.Fatal(err)
+			}
+		})
+
+		return
+	}
+
+	/*	rightFiles, _ := os.ReadDir(r.sel)
+		if len(rightFiles) <= 0 {
+			return
+		}*/
+
 	r.wd = r.sel
-	var err error
 	r.sel, err = r.history.GetHistoryEntryForPath(r.wd)
 	if err != nil {
 		// FIXME
@@ -157,6 +189,35 @@ func main() {
 	pages := tview.NewPages().
 		AddPage("flex", flex, true, true)
 
+	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
+		wasMovementKey := true
+
+		switch event.Buttons() {
+		case tcell.WheelLeft:
+			ranger.GoLeft()
+		case tcell.WheelRight:
+			ranger.GoRight(app)
+		case tcell.WheelUp:
+			ranger.GoUp()
+		case tcell.WheelDown:
+			ranger.GoDown()
+		default:
+			wasMovementKey = false
+		}
+
+		if wasMovementKey {
+			if !(event.Buttons() == tcell.WheelLeft) {
+				ranger.history.AddToHistory(ranger.sel)
+			}
+
+			ranger.historyMoment = ranger.sel
+			ranger.UpdatePanes()
+			return nil, action // ?
+		}
+
+		return event, action
+	})
+
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if pages.HasPage("modal") || pages.HasPage("inputfield") {
 			return event
@@ -167,37 +228,28 @@ func main() {
 			return nil
 		}
 
-		if event.Key() == tcell.KeyF1 {
-			cmd := exec.Command("nano", ranger.GetSelectedFilePath())
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				log.Fatal(err)
-			}
-			ranger.UpdatePanes()
-			return nil
-		}
-
 		wasMovementKey := true
 		if event.Key() == tcell.KeyLeft || event.Rune() == 'h' {
 			ranger.GoLeft()
-		} else if event.Key() == tcell.KeyRight || event.Rune() == 'l' {
-			ranger.GoRight()
+		} else if event.Key() == tcell.KeyRight || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
+			ranger.GoRight(app)
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
 			ranger.GoUp()
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
 			ranger.GoDown()
 		} else if event.Rune() == ' ' {
-			ranger.ToggleSelection(ranger.GetSelectedFilePath())
+			ranger.ToggleSelection(ranger.sel)
 			ranger.historyMoment = strings.Join(ranger.selected, ", ")
 			ranger.GoDown()
 		} else if event.Key() == tcell.KeyHome || event.Rune() == 'g' {
-			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(0)
+			//			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(0)
+			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(0))
 		} else if event.Key() == tcell.KeyEnd || event.Rune() == 'G' {
-			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(len(ranger.middlePane.entries) - 1)
+			//			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(len(ranger.middlePane.entries) - 1)
+			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(len(ranger.middlePane.entries)-1))
 		} else if event.Rune() == 'M' {
-			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex((len(ranger.middlePane.entries) - 1) / 2)
+			//			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex((len(ranger.middlePane.entries) - 1) / 2)
+			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex((len(ranger.middlePane.entries)-1)/2))
 		} else {
 			wasMovementKey = false
 		}
@@ -207,6 +259,7 @@ func main() {
 				ranger.history.AddToHistory(ranger.sel)
 			}
 
+			ranger.historyMoment = ranger.sel
 			ranger.UpdatePanes()
 			return nil
 		}
@@ -216,8 +269,12 @@ func main() {
 				ranger.ToggleSelection(filepath.Join(ranger.wd, e.Name()))
 			}
 			return nil
+		} else if event.Rune() == 'D' {
+			ranger.selected = []string{}
+			ranger.yankSelected = []string{}
+			ranger.historyMoment = "Deselected and un-yanked!"
 		} else if event.Rune() == 'a' {
-			fileToRename := ranger.GetSelectedFilePath()
+			fileToRename := ranger.sel
 
 			// https://github.com/rivo/tview/wiki/Modal
 			modal := func(p tview.Primitive, width, height int) tview.Primitive {
@@ -241,7 +298,10 @@ func main() {
 					return
 				} else if key == tcell.KeyEnter {
 					os.Rename(fileToRename, filepath.Join(filepath.Dir(fileToRename), inputField.GetText()))
+					ranger.history.RemoveFromHistory(fileToRename)
+
 					ranger.UpdatePanes()
+					ranger.historyMoment = ranger.sel
 
 					pages.RemovePage("inputfield")
 					return
@@ -254,26 +314,107 @@ func main() {
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'y' {
-			// TODO: Add indicator for yank being active
-			// TODO: Set state to yank mode, not dd (d) for cut
-			ranger.yankSelected = ranger.selected
+			ranger.yankType = "copy"
+			if len(ranger.selected) <= 0 {
+				ranger.yankSelected = []string{ranger.sel}
+			} else {
+				ranger.yankSelected = ranger.selected
+			}
+			ranger.historyMoment = "Yank!"
 			return nil
+		} else if event.Rune() == 'd' {
+			ranger.yankType = "cut"
+			ranger.yankSelected = ranger.selected
+			ranger.historyMoment = "Cut!"
+			return nil
+		} else if event.Rune() == 'z' {
+			ranger.showHiddenFiles = !ranger.showHiddenFiles
+			ranger.UpdatePanes()
+			ranger.historyMoment = ranger.sel
 		} else if event.Rune() == 'p' {
-			// TODO: Pasting (copying files)
-			// TODO: Check previous state either 'y' or 'd' for yank or cut set by those shortcuts
+			if len(ranger.yankSelected) <= 0 {
+				ranger.historyMoment = "Nothing to paste..."
+				return nil
+			}
+
+			if ranger.yankType == "copy" {
+				for _, e := range ranger.yankSelected {
+					fi, err := os.Stat(e)
+					if err != nil {
+						continue
+					}
+
+					//					newPath := filepath.Join(ranger.sel, filepath.Base(e))
+					newPath := filepath.Join(ranger.wd, filepath.Base(e))
+					if fi.IsDir() {
+						//						newPath := filepath.Join(ranger.sel, filepath.Base(e))
+						err := os.Mkdir(newPath, 0755)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							ranger.historyMoment = newPath
+						}
+						//						ranger.historyMoment = ranger.sel
+						ranger.historyMoment = ranger.wd
+
+						err = dirCopy.Copy(e, newPath)
+					} else if fi.Mode().IsRegular() {
+						source, err := os.Open(e)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							continue
+						}
+						defer source.Close()
+
+						destination, err := os.Create(newPath)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							continue
+						}
+						defer destination.Close()
+
+						_, err = io.Copy(destination, source)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							continue
+						}
+					}
+				}
+			}
+
+			// Reset selection after paste
+			ranger.yankSelected = []string{}
+			ranger.selected = []string{}
+
+			ranger.UpdatePanes()
+			ranger.historyMoment = "Paste! (ranger.sel = " + ranger.sel + ")"
+
 			return nil
 		}
 
 		if event.Key() == tcell.KeyDelete {
 			modal := tview.NewModal()
+			modal.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
+				switch e.Rune() {
+				case 'h':
+					return tcell.NewEventKey(tcell.KeyLeft, e.Rune(), e.Modifiers())
+				case 'l':
+					return tcell.NewEventKey(tcell.KeyRight, e.Rune(), e.Modifiers())
+				case 'j':
+					return tcell.NewEventKey(tcell.KeyDown, e.Rune(), e.Modifiers())
+				case 'k':
+					return tcell.NewEventKey(tcell.KeyUp, e.Rune(), e.Modifiers())
+				}
+
+				return e
+			})
 
 			fileToDelete := ""
 
 			if len(ranger.selected) <= 0 {
-				fileToDelete = ranger.GetSelectedFilePath()
+				fileToDelete = ranger.sel
 				modal.SetText("Delete " + filepath.Base(fileToDelete) + " ?")
 			} else {
-				modal.SetText("Delete " + strconv.Itoa(len(ranger.selected)) + " files?")
+				modal.SetText("Delete " + strconv.Itoa(len(ranger.selected)) + " selected files?")
 			}
 
 			modal.
@@ -286,18 +427,27 @@ func main() {
 					}
 
 					if len(ranger.selected) <= 0 {
-						os.Remove(fileToDelete)
+						err := os.RemoveAll(fileToDelete)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							ranger.historyMoment = "Failed to delete!"
+							return
+						}
+						ranger.history.RemoveFromHistory(fileToDelete)
 						ranger.historyMoment = "Deleted " + fileToDelete
+					} else {
+						for _, filePath := range ranger.selected {
+							err := os.RemoveAll(filePath)
+							if err != nil {
+								// TODO: We need an error log we can scroll through
+								continue
+							}
+							ranger.history.RemoveFromHistory(filePath)
+						}
 
-						ranger.UpdatePanes()
-						return
+						ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
 					}
 
-					for _, filePath := range ranger.selected {
-						os.Remove(filePath)
-					}
-
-					ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
 					ranger.selected = []string{}
 
 					ranger.UpdatePanes()

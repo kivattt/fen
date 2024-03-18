@@ -4,13 +4,14 @@ go build
 ./kivaranger
 ```
 
-Arrow keys/hjkl to navigate \
+Arrow keys, hjkl or scrollwheel to navigate (Enter goes right) \
 `Home` or `g` to go to the top \
 `End` or `G` to go to the bottom \
 `M` to go to the middle \
-q to quit \
-F1 to open in nano \
-Delete to delete file(s) \
-Spacebar to select files \
+`q` to quit \
+`Del` to delete file(s) \
+` ` to select files \
 `A` to flip selection in folder (select all files) \
-`a` to rename a file
+'D' to deselect all, and un-yank \
+`a` to rename a file \
+`z` to toggle hidden files

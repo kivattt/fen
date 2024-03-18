@@ -2,9 +2,10 @@ package main
 
 import (
 	"errors"
-	"slices"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -13,22 +14,48 @@ import (
 type FilesPane struct {
 	*tview.Box
 	selected *[]string
+	yankSelected *[]string
+	showHiddenFiles *bool
 	folder string
 	entries       []os.DirEntry
 	selectedEntry int
 }
 
-func NewFilesPane(selected *[]string) *FilesPane {
+func NewFilesPane(selected *[]string, yankSelected *[]string, showHiddenFiles *bool) *FilesPane {
 	return &FilesPane{
 		Box:           tview.NewBox(),
 		selected: selected,
+		yankSelected: yankSelected,
+		showHiddenFiles: showHiddenFiles,
 		selectedEntry: 0,
 	}
 }
 
 func (fp *FilesPane) SetEntries(path string) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		fp.entries = []os.DirEntry{}
+		return
+	}
+
+	if !fi.IsDir() {
+		fp.entries = []os.DirEntry{}
+		return
+	}
+
 	fp.folder = path
 	fp.entries, _ = os.ReadDir(fp.folder)
+
+	if !*fp.showHiddenFiles {
+		withoutHiddenFiles := []os.DirEntry{}
+		for _, e := range fp.entries {
+			if !strings.HasPrefix(e.Name(), ".") {
+				withoutHiddenFiles = append(withoutHiddenFiles, e)
+			}
+		}
+
+		fp.entries = withoutHiddenFiles
+	}
 }
 
 func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {
@@ -94,6 +121,14 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			color = tcell.ColorYellow
 		}
 
-		tview.Print(screen, extraStyle + entry.Name(), x, y+i, w-3, tview.AlignLeft, color)
+		// Dim the entry if its in yankSelected
+		dimColor := slices.Contains(*fp.yankSelected, filepath.Join(fp.folder, entry.Name()))
+
+		if dimColor {
+			// FIXME: Dim any color, yellow should turn dim aswell as the "no color"
+			tview.Print(screen, extraStyle + entry.Name(), x, y+i, w-3, tview.AlignLeft, tcell.ColorDimGray)
+		} else {
+			tview.Print(screen, extraStyle + entry.Name(), x, y+i, w-3, tview.AlignLeft, color)
+		}
 	}
 }
