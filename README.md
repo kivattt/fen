@@ -4,7 +4,7 @@ go build
 ./kivaranger
 ```
 
-Arrow keys, hjkl or scrollwheel to navigate \
+Arrow keys, hjkl or scrollwheel to navigate (Enter goes right) \
 `Home` or `g` to go to the top \
 `End` or `G` to go to the bottom \
 `M` to go to the middle \
