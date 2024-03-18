@@ -173,6 +173,35 @@ func main() {
 	pages := tview.NewPages().
 		AddPage("flex", flex, true, true)
 
+	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
+		wasMovementKey := true
+
+		switch event.Buttons() {
+			case tcell.WheelLeft:
+				ranger.GoLeft()
+			case tcell.WheelRight:
+				ranger.GoRight()
+			case tcell.WheelUp:
+				ranger.GoUp()
+			case tcell.WheelDown:
+				ranger.GoDown()
+			default:
+				wasMovementKey = false
+		}
+
+		if wasMovementKey {
+			if !(event.Buttons() == tcell.WheelLeft) {
+				ranger.history.AddToHistory(ranger.sel)
+			}
+
+			ranger.historyMoment = ranger.sel
+			ranger.UpdatePanes()
+			return nil, action // ?
+		}
+
+		return event, action
+	})
+
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if pages.HasPage("modal") || pages.HasPage("inputfield") {
 			return event
@@ -184,14 +213,18 @@ func main() {
 		}
 
 		if event.Key() == tcell.KeyF1 {
-			cmd := exec.Command("nano", ranger.sel)
+//			cmd := exec.Command("nano", ranger.sel)
+			cmd := exec.Command("nvim", ranger.sel)
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				log.Fatal(err)
-			}
-			ranger.UpdatePanes()
+
+			app.Suspend(func() {
+				if err := cmd.Run(); err != nil {
+					log.Fatal(err)
+				}
+			})
+
 			return nil
 		}
 
@@ -337,7 +370,9 @@ func main() {
 
 			ranger.historyMoment = "Paste!"
 
-			// FIXME: Wat?
+			// TODO: Fix properly?
+			// We do this twice to get rid of a bug where you'd paste a file and it would show up on both the middle and right pane
+			// Probably because r.sel wasn't being updated properly prior to ranger.UpdatePanes(), but is after it so we run it twice
 			ranger.UpdatePanes()
 			ranger.UpdatePanes()
 			return nil
