@@ -373,12 +373,14 @@ func main() {
 			ranger.yankSelected = []string{}
 			ranger.selected = []string{}
 
-			ranger.historyMoment = "Paste!"
+			ranger.UpdatePanes()
+			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
+
+			ranger.historyMoment = "Paste! (ranger.sel = " + ranger.sel + ")"
 
 			// TODO: Fix properly?
 			// We do this twice to get rid of a bug where you'd paste a file and it would show up on both the middle and right pane
 			// Probably because r.sel wasn't being updated properly prior to ranger.UpdatePanes(), but is after it so we run it twice
-			ranger.UpdatePanes()
 			ranger.UpdatePanes()
 			return nil
 		}
@@ -427,8 +429,6 @@ func main() {
 						}
 						ranger.history.RemoveFromHistory(fileToDelete)
 						ranger.historyMoment = "Deleted " + fileToDelete
-
-						ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
 					} else {
 						for _, filePath := range ranger.selected {
 							err := os.RemoveAll(filePath)
@@ -438,9 +438,12 @@ func main() {
 							}
 							ranger.history.RemoveFromHistory(filePath)
 						}
+
+						ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
 					}
 
-					ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
+					ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
+
 					ranger.selected = []string{}
 
 //					ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))

@@ -27,6 +27,17 @@ func NewFilesPane(selected *[]string) *FilesPane {
 }
 
 func (fp *FilesPane) SetEntries(path string) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		fp.entries = []os.DirEntry{}
+		return
+	}
+
+	if !fi.IsDir() {
+		fp.entries = []os.DirEntry{}
+		return
+	}
+
 	fp.folder = path
 	fp.entries, _ = os.ReadDir(fp.folder)
 }
