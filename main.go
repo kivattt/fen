@@ -442,14 +442,10 @@ func main() {
 						ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
 					}
 
-					ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
-
 					ranger.selected = []string{}
 
-//					ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
-					// FIXME: wat?
 					ranger.UpdatePanes()
-					ranger.UpdatePanes()
+					ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
 				})
 
 			pages.AddPage("modal", modal, true, true)
