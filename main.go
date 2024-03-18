@@ -28,6 +28,8 @@ type Ranger struct {
 
 	historyMoment string
 
+	showHiddenFiles bool
+
 	topPane    *Bar
 	leftPane   *FilesPane
 	middlePane *FilesPane
@@ -36,14 +38,16 @@ type Ranger struct {
 }
 
 func (r *Ranger) Init() error {
+	r.showHiddenFiles = true
+
 	var err error
 	r.wd, err = os.Getwd()
 
 	r.topPane = NewBar(&r.wd)
 
-	r.leftPane = NewFilesPane(&r.selected, &r.yankSelected)
-	r.middlePane = NewFilesPane(&r.selected, &r.yankSelected)
-	r.rightPane = NewFilesPane(&r.selected, &r.yankSelected)
+	r.leftPane = NewFilesPane(&r.selected, &r.yankSelected, &r.showHiddenFiles)
+	r.middlePane = NewFilesPane(&r.selected, &r.yankSelected, &r.showHiddenFiles)
+	r.rightPane = NewFilesPane(&r.selected, &r.yankSelected, &r.showHiddenFiles)
 
 	r.bottomPane = NewBar(&r.historyMoment)
 
@@ -328,6 +332,12 @@ func main() {
 			ranger.yankSelected = ranger.selected
 			ranger.historyMoment = "Cut!"
 			return nil
+		} else if event.Rune() == 'z' {
+			ranger.showHiddenFiles = !ranger.showHiddenFiles
+			ranger.UpdatePanes()
+			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
+			ranger.historyMoment = ranger.sel
+			ranger.UpdatePanes()
 		} else if event.Rune() == 'p' {
 			if len(ranger.yankSelected) <= 0 {
 				ranger.historyMoment = "Nothing to paste..."

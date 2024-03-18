@@ -2,9 +2,10 @@ package main
 
 import (
 	"errors"
-	"slices"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -14,16 +15,18 @@ type FilesPane struct {
 	*tview.Box
 	selected *[]string
 	yankSelected *[]string
+	showHiddenFiles *bool
 	folder string
 	entries       []os.DirEntry
 	selectedEntry int
 }
 
-func NewFilesPane(selected *[]string, yankSelected *[]string) *FilesPane {
+func NewFilesPane(selected *[]string, yankSelected *[]string, showHiddenFiles *bool) *FilesPane {
 	return &FilesPane{
 		Box:           tview.NewBox(),
 		selected: selected,
 		yankSelected: yankSelected,
+		showHiddenFiles: showHiddenFiles,
 		selectedEntry: 0,
 	}
 }
@@ -42,6 +45,17 @@ func (fp *FilesPane) SetEntries(path string) {
 
 	fp.folder = path
 	fp.entries, _ = os.ReadDir(fp.folder)
+
+	if !*fp.showHiddenFiles {
+		withoutHiddenFiles := []os.DirEntry{}
+		for _, e := range fp.entries {
+			if !strings.HasPrefix(e.Name(), ".") {
+				withoutHiddenFiles = append(withoutHiddenFiles, e)
+			}
+		}
+
+		fp.entries = withoutHiddenFiles
+	}
 }
 
 func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {

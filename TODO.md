@@ -2,4 +2,5 @@
 - Commands like :mkdir etc.
 - More rules for when "empty" shows up, not at / and not twice at the right
 - Disallow recursive copies or whatever
-- Refactor out `ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))`
+- Fix the double ranger.UpdatePanes() pattern by doing the below inside of it somehow
+- ^ Refactor out `ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))`
