@@ -365,6 +365,7 @@ func main() {
 				}
 			}
 
+			// Reset selection after paste
 			ranger.yankSelected = []string{}
 			ranger.selected = []string{}
 
@@ -380,6 +381,20 @@ func main() {
 
 		if event.Key() == tcell.KeyDelete {
 			modal := tview.NewModal()
+			modal.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
+				switch e.Rune() {
+					case 'h':
+						return tcell.NewEventKey(tcell.KeyLeft, e.Rune(), e.Modifiers())
+					case 'l':
+						return tcell.NewEventKey(tcell.KeyRight, e.Rune(), e.Modifiers())
+					case 'j':
+						return tcell.NewEventKey(tcell.KeyDown, e.Rune(), e.Modifiers())
+					case 'k':
+						return tcell.NewEventKey(tcell.KeyUp, e.Rune(), e.Modifiers())
+				}
+
+				return e
+			})
 
 			fileToDelete := ""
 
@@ -410,17 +425,15 @@ func main() {
 						ranger.historyMoment = "Deleted " + fileToDelete
 
 						ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
-						ranger.UpdatePanes()
-						return
-					}
-
-					for _, filePath := range ranger.selected {
-						err := os.RemoveAll(filePath)
-						if err != nil {
-							// TODO: We need an error log we can scroll through
-							continue
+					} else {
+						for _, filePath := range ranger.selected {
+							err := os.RemoveAll(filePath)
+							if err != nil {
+								// TODO: We need an error log we can scroll through
+								continue
+							}
+							ranger.history.RemoveFromHistory(filePath)
 						}
-						ranger.history.RemoveFromHistory(filePath)
 					}
 
 					ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
