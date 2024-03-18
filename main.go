@@ -216,26 +216,27 @@ func main() {
 			return nil
 		}
 
-		if event.Key() == tcell.KeyF1 {
-//			cmd := exec.Command("nano", ranger.sel)
-			cmd := exec.Command("nvim", ranger.sel)
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-
-			app.Suspend(func() {
-				if err := cmd.Run(); err != nil {
-					log.Fatal(err)
-				}
-			})
-
-			return nil
-		}
-
 		wasMovementKey := true
 		if event.Key() == tcell.KeyLeft || event.Rune() == 'h' {
 			ranger.GoLeft()
 		} else if event.Key() == tcell.KeyRight || event.Rune() == 'l' {
+			fi, err := os.Stat(ranger.sel)
+			if err == nil {
+				if !fi.IsDir() {
+					cmd := exec.Command("nvim", ranger.sel)
+					cmd.Stdin = os.Stdin
+					cmd.Stdout = os.Stdout
+					cmd.Stderr = os.Stderr
+
+					app.Suspend(func() {
+						if err := cmd.Run(); err != nil {
+							log.Fatal(err)
+						}
+					})
+
+					return nil
+				}
+			}
 			ranger.GoRight()
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
 			ranger.GoUp()
