@@ -298,7 +298,11 @@ func main() {
 					return
 				} else if key == tcell.KeyEnter {
 					os.Rename(fileToRename, filepath.Join(filepath.Dir(fileToRename), inputField.GetText()))
+					ranger.history.RemoveFromHistory(fileToRename)
+
 					ranger.UpdatePanes()
+					ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
+					ranger.historyMoment = ranger.sel
 
 					pages.RemovePage("inputfield")
 					return
