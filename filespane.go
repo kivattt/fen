@@ -13,15 +13,17 @@ import (
 type FilesPane struct {
 	*tview.Box
 	selected *[]string
+	yankSelected *[]string
 	folder string
 	entries       []os.DirEntry
 	selectedEntry int
 }
 
-func NewFilesPane(selected *[]string) *FilesPane {
+func NewFilesPane(selected *[]string, yankSelected *[]string) *FilesPane {
 	return &FilesPane{
 		Box:           tview.NewBox(),
 		selected: selected,
+		yankSelected: yankSelected,
 		selectedEntry: 0,
 	}
 }
@@ -105,6 +107,14 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			color = tcell.ColorYellow
 		}
 
-		tview.Print(screen, extraStyle + entry.Name(), x, y+i, w-3, tview.AlignLeft, color)
+		// Dim the entry if its in yankSelected
+		dimColor := slices.Contains(*fp.yankSelected, filepath.Join(fp.folder, entry.Name()))
+
+		if dimColor {
+			// FIXME: Dim any color, yellow should turn dim aswell as the "no color"
+			tview.Print(screen, extraStyle + entry.Name(), x, y+i, w-3, tview.AlignLeft, tcell.ColorDimGray)
+		} else {
+			tview.Print(screen, extraStyle + entry.Name(), x, y+i, w-3, tview.AlignLeft, color)
+		}
 	}
 }

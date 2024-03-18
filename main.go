@@ -41,9 +41,9 @@ func (r *Ranger) Init() error {
 
 	r.topPane = NewBar(&r.wd)
 
-	r.leftPane = NewFilesPane(&r.selected)
-	r.middlePane = NewFilesPane(&r.selected)
-	r.rightPane = NewFilesPane(&r.selected)
+	r.leftPane = NewFilesPane(&r.selected, &r.yankSelected)
+	r.middlePane = NewFilesPane(&r.selected, &r.yankSelected)
+	r.rightPane = NewFilesPane(&r.selected, &r.yankSelected)
 
 	r.bottomPane = NewBar(&r.historyMoment)
 
@@ -272,7 +272,7 @@ func main() {
 		} else if event.Rune() == 'D' {
 			ranger.selected = []string{}
 			ranger.yankSelected = []string{}
-			ranger.historyMoment = "Deselected!"
+			ranger.historyMoment = "Deselected and un-yanked!"
 		} else if event.Rune() == 'a' {
 			fileToRename := ranger.sel
 
@@ -316,7 +316,11 @@ func main() {
 			return nil
 		} else if event.Rune() == 'y' {
 			ranger.yankType = "copy"
-			ranger.yankSelected = ranger.selected
+			if len(ranger.selected) <= 0 {
+				ranger.yankSelected = []string{ranger.sel}
+			} else {
+				ranger.yankSelected = ranger.selected
+			}
 			ranger.historyMoment = "Yank!"
 			return nil
 		} else if event.Rune() == 'd' {
@@ -325,6 +329,11 @@ func main() {
 			ranger.historyMoment = "Cut!"
 			return nil
 		} else if event.Rune() == 'p' {
+			if len(ranger.yankSelected) <= 0 {
+				ranger.historyMoment = "Nothing to paste..."
+				return nil
+			}
+
 			if ranger.yankType == "copy" {
 				for _, e := range ranger.yankSelected {
 					fi, err := os.Stat(e)
@@ -446,6 +455,7 @@ func main() {
 
 					ranger.UpdatePanes()
 					ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))
+					ranger.UpdatePanes() // FIXME...
 				})
 
 			pages.AddPage("modal", modal, true, true)

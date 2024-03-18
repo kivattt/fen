@@ -13,5 +13,5 @@ Arrow keys, hjkl or scrollwheel to navigate \
 `Del` to delete file(s) \
 ` ` to select files \
 `A` to flip selection in folder (select all files) \
-'D' to deselect all \
+'D' to deselect all, and un-yank \
 `a` to rename a file
