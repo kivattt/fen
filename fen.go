@@ -81,21 +81,21 @@ func (fen *Fen) UpdatePanes() {
 	fen.rightPane.SetEntries(fen.sel)
 
 	// DEBUG
-//	fen.historyMoment = strings.Join(fen.history.history, ", ")
+	//	fen.historyMoment = strings.Join(fen.history.history, ", ")
 
 	h, err := fen.history.GetHistoryEntryForPath(fen.sel, !fen.showHiddenFiles)
 	if err != nil {
-//		if fen.showHiddenFiles {
-			fen.rightPane.SetSelectedEntryFromIndex(0)
-//		}
-//		fen.historyMoment = "BRUH"
+		//		if fen.showHiddenFiles {
+		fen.rightPane.SetSelectedEntryFromIndex(0)
+		//		}
+		//		fen.historyMoment = "BRUH"
 		return
 	}
 
-//	fen.historyMoment = "BRUH 2.0: " + filepath.Base(h)
-//	if fen.showHiddenFiles {
-		fen.rightPane.SetSelectedEntryFromString(filepath.Base(h))
-//	}
+	//	fen.historyMoment = "BRUH 2.0: " + filepath.Base(h)
+	//	if fen.showHiddenFiles {
+	fen.rightPane.SetSelectedEntryFromString(filepath.Base(h))
+	// }
 }
 
 func (fen *Fen) RemoveFromSelectedAndYankSelected(path string) {

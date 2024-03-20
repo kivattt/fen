@@ -174,8 +174,8 @@ func main() {
 			fen.showHiddenFiles = !fen.showHiddenFiles
 			fen.UpdatePanes()
 			fen.history.AddToHistory(fen.sel)
-//			fen.historyMoment = strings.Join(fen.history.history, ", ") // TODO: remove later
-//			fen.historyMoment = fen.sel
+			//			fen.historyMoment = strings.Join(fen.history.history, ", ") // TODO: remove later
+			//			fen.historyMoment = fen.sel
 		} else if event.Rune() == 'p' {
 			if len(fen.yankSelected) <= 0 {
 				fen.historyMoment = "Nothing to paste..."
@@ -229,7 +229,7 @@ func main() {
 			fen.selected = []string{}
 
 			fen.UpdatePanes()
-//			fen.historyMoment = "Paste! (fen.sel = " + fen.sel + ")"
+			//			fen.historyMoment = "Paste! (fen.sel = " + fen.sel + ")"
 
 			return nil
 		}

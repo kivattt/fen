@@ -13,21 +13,21 @@ import (
 
 type FilesPane struct {
 	*tview.Box
-	selected *[]string
-	yankSelected *[]string
+	selected        *[]string
+	yankSelected    *[]string
 	showHiddenFiles *bool
-	folder string
-	entries       []os.DirEntry
-	selectedEntry int
+	folder          string
+	entries         []os.DirEntry
+	selectedEntry   int
 }
 
 func NewFilesPane(selected *[]string, yankSelected *[]string, showHiddenFiles *bool) *FilesPane {
 	return &FilesPane{
-		Box:           tview.NewBox(),
-		selected: selected,
-		yankSelected: yankSelected,
+		Box:             tview.NewBox(),
+		selected:        selected,
+		yankSelected:    yankSelected,
 		showHiddenFiles: showHiddenFiles,
-		selectedEntry: 0,
+		selectedEntry:   0,
 	}
 }
 
@@ -59,7 +59,7 @@ func (fp *FilesPane) SetEntries(path string) {
 		// TODO: Generic bounds checking function?
 		if len(fp.entries) > 0 && fp.selectedEntry >= len(fp.entries) {
 			fp.selectedEntry = len(fp.entries) - 1
-//			fp.SetSelectedEntryFromIndex(len(fp.entries) - 1)
+			//			fp.SetSelectedEntryFromIndex(len(fp.entries) - 1)
 		}
 	}
 }
@@ -133,9 +133,9 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		if dimColor {
 			// FIXME: Dim any color, yellow should turn dim aswell as the "no color"
-			tview.Print(screen, extraStyle + entry.Name(), x, y+i, w-3, tview.AlignLeft, tcell.ColorDimGray)
+			tview.Print(screen, extraStyle+entry.Name(), x, y+i, w-3, tview.AlignLeft, tcell.ColorDimGray)
 		} else {
-			tview.Print(screen, extraStyle + entry.Name(), x, y+i, w-3, tview.AlignLeft, color)
+			tview.Print(screen, extraStyle+entry.Name(), x, y+i, w-3, tview.AlignLeft, color)
 		}
 	}
 }

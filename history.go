@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-//	"fmt"
+	//	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -28,14 +28,13 @@ func (h *History) GetHistoryEntryForPath(path string, ignoreHiddenFiles bool) (s
 			continue
 		}
 
-
 		//fmt.Println("sub: " + sub)
 
-/*		if len(path) >= len(sub) {
-			continue
-		}*/
+		/*		if len(path) >= len(sub) {
+				continue
+			}*/
 
-//		return filepath.Join(e, sub), nil
+		//		return filepath.Join(e, sub), nil
 
 		if strings.HasPrefix(e, path) {
 			if len(path) >= len(e) {
