@@ -3,4 +3,5 @@
 - More rules for when "empty" shows up, not at / and not twice at the right
 - Disallow recursive copies or whatever
 - Add an underscore for duplicate pasting
-- Refactor out `ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(ranger.middlePane.selectedEntry))`
+- Vim/ranger stuff like `5<space>` selecting 5 files, or `5j` going down 5
+- Remove being able to delete while mid and right pane are empty? (Going into an empty folder (mid and right pane are empty), then deleting it will set selected entry on the left pane to 0 instead of matching the GoDown() when deleting in middlePane)

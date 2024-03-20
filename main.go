@@ -16,7 +16,7 @@ import (
 	dirCopy "github.com/otiai10/copy"
 )
 
-type Ranger struct {
+type Fen struct {
 	wd      string
 	sel     string
 	history History
@@ -36,98 +36,115 @@ type Ranger struct {
 	bottomPane *Bar
 }
 
-func (r *Ranger) Init() error {
-	r.showHiddenFiles = true
+func (fen *Fen) Init() error {
+	fen.showHiddenFiles = true
 
 	var err error
-	r.wd, err = os.Getwd()
+	fen.wd, err = os.Getwd()
 
-	r.topPane = NewBar(&r.wd)
+	fen.topPane = NewBar(&fen.wd)
 
-	r.leftPane = NewFilesPane(&r.selected, &r.yankSelected, &r.showHiddenFiles)
-	r.middlePane = NewFilesPane(&r.selected, &r.yankSelected, &r.showHiddenFiles)
-	r.rightPane = NewFilesPane(&r.selected, &r.yankSelected, &r.showHiddenFiles)
+	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles)
+	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles)
+	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles)
 
-	r.bottomPane = NewBar(&r.historyMoment)
+	fen.bottomPane = NewBar(&fen.historyMoment)
 
-	wdFiles, _ := os.ReadDir(r.wd)
+	wdFiles, _ := os.ReadDir(fen.wd)
 
 	if len(wdFiles) > 0 {
-		r.sel = filepath.Join(r.wd, wdFiles[0].Name())
+		fen.sel = filepath.Join(fen.wd, wdFiles[0].Name())
 	}
 
-	r.history.AddToHistory(r.sel)
-	r.UpdatePanes()
+	fen.history.AddToHistory(fen.sel)
+	fen.UpdatePanes()
 
 	return err
 }
 
-func (r *Ranger) UpdatePanes() {
-	/*	_, err := os.Stat(r.sel)
-		if err != nil {
-			return
-		}*/
+func (fen *Fen) UpdatePanes() {
+	fen.leftPane.SetEntries(filepath.Dir(fen.wd))
+	fen.middlePane.SetEntries(fen.wd)
 
-	r.leftPane.SetEntries(filepath.Dir(r.wd))
-	r.middlePane.SetEntries(r.wd)
-
-	if r.wd != "/" {
-		r.leftPane.SetSelectedEntryFromString(filepath.Base(r.wd))
+	if fen.wd != "/" {
+		fen.leftPane.SetSelectedEntryFromString(filepath.Base(fen.wd))
 	} else {
-		r.leftPane.entries = []os.DirEntry{}
+		fen.leftPane.entries = []os.DirEntry{}
 	}
 
-	r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel))
+	fen.historyMoment = "Set selected entry from string: " + filepath.Base(fen.sel)
+	fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel))
 
 	// FIXME: Generic bounds checking across all panes in this function
-	if r.middlePane.selectedEntry >= len(r.middlePane.entries) {
-		if len(r.middlePane.entries) > 0 {
-			r.sel = r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries) - 1)
-			r.middlePane.SetSelectedEntryFromString(filepath.Base(r.sel)) // Duplicated from above...
+	if fen.middlePane.selectedEntry >= len(fen.middlePane.entries) {
+		if len(fen.middlePane.entries) > 0 {
+			fen.sel = fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries) - 1)
+			fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel)) // Duplicated from above...
 		}
 	}
 
-	r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(r.middlePane.selectedEntry))
-	r.rightPane.SetEntries(r.sel)
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry))
+	fen.rightPane.SetEntries(fen.sel)
 
-	h, err := r.history.GetHistoryEntryForPath(r.sel)
+	// DEBUG
+//	fen.historyMoment = strings.Join(fen.history.history, ", ")
+
+	h, err := fen.history.GetHistoryEntryForPath(fen.sel, !fen.showHiddenFiles)
 	if err != nil {
-		r.rightPane.SetSelectedEntryFromIndex(0)
+//		if fen.showHiddenFiles {
+			fen.rightPane.SetSelectedEntryFromIndex(0)
+//		}
+//		fen.historyMoment = "BRUH"
 		return
 	}
-	r.rightPane.SetSelectedEntryFromString(filepath.Base(h))
+
+//	fen.historyMoment = "BRUH 2.0: " + filepath.Base(h)
+//	if fen.showHiddenFiles {
+		fen.rightPane.SetSelectedEntryFromString(filepath.Base(h))
+//	}
 }
 
-func (r *Ranger) ToggleSelection(filePath string) {
-	if index := slices.Index(r.selected, filePath); index != -1 {
-		r.selected = append(r.selected[:index], r.selected[index+1:]...)
-		return
+func (fen *Fen) RemoveFromSelectedAndYankSelected(path string) {
+	if index := slices.Index(fen.selected, path); index != -1 {
+		fen.selected = append(fen.selected[:index], fen.selected[index+1:]...)
 	}
 
-	r.selected = append(r.selected, filePath)
+	if index := slices.Index(fen.yankSelected, path); index != -1 {
+		fen.yankSelected = append(fen.yankSelected[:index], fen.yankSelected[index+1:]...)
+	}
 }
 
-func (r *Ranger) GoLeft() {
-	if filepath.Dir(r.wd) == r.wd {
+func (fen *Fen) ToggleSelection(filePath string) {
+	if index := slices.Index(fen.selected, filePath); index != -1 {
+		fen.selected = append(fen.selected[:index], fen.selected[index+1:]...)
 		return
 	}
 
-	r.sel = r.wd
-	r.wd = filepath.Dir(r.wd)
+	fen.selected = append(fen.selected, filePath)
 }
 
-func (r *Ranger) GoRight(app *tview.Application) {
-	if len(r.middlePane.entries) <= 0 {
+func (fen *Fen) GoLeft() {
+	// Not sure if this is necessary
+	if filepath.Dir(fen.wd) == fen.wd {
 		return
 	}
 
-	fi, err := os.Stat(r.sel)
+	fen.sel = fen.wd
+	fen.wd = filepath.Dir(fen.wd)
+}
+
+func (fen *Fen) GoRight(app *tview.Application) {
+	if len(fen.middlePane.entries) <= 0 {
+		return
+	}
+
+	fi, err := os.Stat(fen.sel)
 	if err != nil {
 		return
 	}
 
 	if !fi.IsDir() {
-		cmd := exec.Command("nvim", r.sel)
+		cmd := exec.Command("nvim", fen.sel)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -141,50 +158,51 @@ func (r *Ranger) GoRight(app *tview.Application) {
 		return
 	}
 
-	/*	rightFiles, _ := os.ReadDir(r.sel)
+	/*	rightFiles, _ := os.ReadDir(fen.sel)
 		if len(rightFiles) <= 0 {
 			return
 		}*/
 
-	r.wd = r.sel
-	r.sel, err = r.history.GetHistoryEntryForPath(r.wd)
+	fen.wd = fen.sel
+	fen.sel, err = fen.history.GetHistoryEntryForPath(fen.wd, !fen.showHiddenFiles)
+
 	if err != nil {
 		// FIXME
-		r.sel = filepath.Join(r.wd, r.rightPane.GetSelectedEntryFromIndex(0))
+		fen.sel = filepath.Join(fen.wd, fen.rightPane.GetSelectedEntryFromIndex(0))
 	}
 }
 
-func (r *Ranger) GoUp() {
-	if r.middlePane.selectedEntry-1 < 0 {
-		r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(0))
+func (fen *Fen) GoUp() {
+	if fen.middlePane.selectedEntry-1 < 0 {
+		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
 		return
 	}
 
-	r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(r.middlePane.selectedEntry-1))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry-1))
 }
 
-func (r *Ranger) GoDown() {
-	if r.middlePane.selectedEntry+1 >= len(r.middlePane.entries) {
-		r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(len(r.middlePane.entries)-1))
+func (fen *Fen) GoDown() {
+	if fen.middlePane.selectedEntry+1 >= len(fen.middlePane.entries) {
+		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries)-1))
 		return
 	}
 
-	r.sel = filepath.Join(r.wd, r.middlePane.GetSelectedEntryFromIndex(r.middlePane.selectedEntry+1))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry+1))
 }
 
 func main() {
-	var ranger Ranger
-	ranger.Init()
+	var fen Fen
+	fen.Init()
 
 	app := tview.NewApplication()
 
 	flex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(ranger.topPane, 1, 0, false).
+		AddItem(fen.topPane, 1, 0, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-			AddItem(ranger.leftPane, 0, 1, false).
-			AddItem(ranger.middlePane, 0, 2, false).
-			AddItem(ranger.rightPane, 0, 2, false), 0, 1, false).
-		AddItem(ranger.bottomPane, 1, 0, false)
+			AddItem(fen.leftPane, 0, 1, false).
+			AddItem(fen.middlePane, 0, 2, false).
+			AddItem(fen.rightPane, 0, 2, false), 0, 1, false).
+		AddItem(fen.bottomPane, 1, 0, false)
 
 	pages := tview.NewPages().
 		AddPage("flex", flex, true, true)
@@ -194,24 +212,24 @@ func main() {
 
 		switch event.Buttons() {
 		case tcell.WheelLeft:
-			ranger.GoLeft()
+			fen.GoLeft()
 		case tcell.WheelRight:
-			ranger.GoRight(app)
+			fen.GoRight(app)
 		case tcell.WheelUp:
-			ranger.GoUp()
+			fen.GoUp()
 		case tcell.WheelDown:
-			ranger.GoDown()
+			fen.GoDown()
 		default:
 			wasMovementKey = false
 		}
 
 		if wasMovementKey {
 			if !(event.Buttons() == tcell.WheelLeft) {
-				ranger.history.AddToHistory(ranger.sel)
+				fen.history.AddToHistory(fen.sel)
 			}
 
-			ranger.historyMoment = ranger.sel
-			ranger.UpdatePanes()
+			fen.historyMoment = fen.sel
+			fen.UpdatePanes()
 			return nil, action // ?
 		}
 
@@ -230,51 +248,48 @@ func main() {
 
 		wasMovementKey := true
 		if event.Key() == tcell.KeyLeft || event.Rune() == 'h' {
-			ranger.GoLeft()
+			fen.GoLeft()
 		} else if event.Key() == tcell.KeyRight || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
-			ranger.GoRight(app)
+			fen.GoRight(app)
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
-			ranger.GoUp()
+			fen.GoUp()
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
-			ranger.GoDown()
+			fen.GoDown()
 		} else if event.Rune() == ' ' {
-			ranger.ToggleSelection(ranger.sel)
-			ranger.historyMoment = strings.Join(ranger.selected, ", ")
-			ranger.GoDown()
+			fen.ToggleSelection(fen.sel)
+			fen.historyMoment = strings.Join(fen.selected, ", ")
+			fen.GoDown()
 		} else if event.Key() == tcell.KeyHome || event.Rune() == 'g' {
-			//			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(0)
-			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(0))
+			fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
 		} else if event.Key() == tcell.KeyEnd || event.Rune() == 'G' {
-			//			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex(len(ranger.middlePane.entries) - 1)
-			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex(len(ranger.middlePane.entries)-1))
+			fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries)-1))
 		} else if event.Rune() == 'M' {
-			//			ranger.sel = ranger.middlePane.GetSelectedEntryFromIndex((len(ranger.middlePane.entries) - 1) / 2)
-			ranger.sel = filepath.Join(ranger.wd, ranger.middlePane.GetSelectedEntryFromIndex((len(ranger.middlePane.entries)-1)/2))
+			fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex((len(fen.middlePane.entries)-1)/2))
 		} else {
 			wasMovementKey = false
 		}
 
 		if wasMovementKey {
 			if !(event.Key() == tcell.KeyLeft || event.Rune() == 'h') {
-				ranger.history.AddToHistory(ranger.sel)
+				fen.history.AddToHistory(fen.sel)
 			}
 
-			ranger.historyMoment = ranger.sel
-			ranger.UpdatePanes()
+			fen.historyMoment = fen.sel
+			fen.UpdatePanes()
 			return nil
 		}
 
 		if event.Rune() == 'A' {
-			for _, e := range ranger.middlePane.entries {
-				ranger.ToggleSelection(filepath.Join(ranger.wd, e.Name()))
+			for _, e := range fen.middlePane.entries {
+				fen.ToggleSelection(filepath.Join(fen.wd, e.Name()))
 			}
 			return nil
 		} else if event.Rune() == 'D' {
-			ranger.selected = []string{}
-			ranger.yankSelected = []string{}
-			ranger.historyMoment = "Deselected and un-yanked!"
+			fen.selected = []string{}
+			fen.yankSelected = []string{}
+			fen.historyMoment = "Deselected and un-yanked!"
 		} else if event.Rune() == 'a' {
-			fileToRename := ranger.sel
+			fileToRename := fen.sel
 
 			// https://github.com/rivo/tview/wiki/Modal
 			modal := func(p tview.Primitive, width, height int) tview.Primitive {
@@ -297,11 +312,16 @@ func main() {
 					pages.RemovePage("inputfield")
 					return
 				} else if key == tcell.KeyEnter {
-					os.Rename(fileToRename, filepath.Join(filepath.Dir(fileToRename), inputField.GetText()))
-					ranger.history.RemoveFromHistory(fileToRename)
+					newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
+					os.Rename(fileToRename, newPath)
 
-					ranger.UpdatePanes()
-					ranger.historyMoment = ranger.sel
+					fen.RemoveFromSelectedAndYankSelected(fileToRename)
+					fen.history.RemoveFromHistory(fileToRename)
+					fen.history.AddToHistory(newPath)
+					fen.sel = newPath
+
+					fen.UpdatePanes()
+					//fen.historyMoment = fen.sel
 
 					pages.RemovePage("inputfield")
 					return
@@ -314,47 +334,47 @@ func main() {
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'y' {
-			ranger.yankType = "copy"
-			if len(ranger.selected) <= 0 {
-				ranger.yankSelected = []string{ranger.sel}
+			fen.yankType = "copy"
+			if len(fen.selected) <= 0 {
+				fen.yankSelected = []string{fen.sel}
 			} else {
-				ranger.yankSelected = ranger.selected
+				fen.yankSelected = fen.selected
 			}
-			ranger.historyMoment = "Yank!"
+			fen.historyMoment = "Yank!"
 			return nil
 		} else if event.Rune() == 'd' {
-			ranger.yankType = "cut"
-			ranger.yankSelected = ranger.selected
-			ranger.historyMoment = "Cut!"
+			fen.yankType = "cut"
+			fen.yankSelected = fen.selected
+			fen.historyMoment = "Cut!"
 			return nil
 		} else if event.Rune() == 'z' {
-			ranger.showHiddenFiles = !ranger.showHiddenFiles
-			ranger.UpdatePanes()
-			ranger.historyMoment = ranger.sel
+			fen.showHiddenFiles = !fen.showHiddenFiles
+			fen.UpdatePanes()
+			fen.history.AddToHistory(fen.sel)
+//			fen.historyMoment = strings.Join(fen.history.history, ", ") // TODO: remove later
+//			fen.historyMoment = fen.sel
 		} else if event.Rune() == 'p' {
-			if len(ranger.yankSelected) <= 0 {
-				ranger.historyMoment = "Nothing to paste..."
+			if len(fen.yankSelected) <= 0 {
+				fen.historyMoment = "Nothing to paste..."
 				return nil
 			}
 
-			if ranger.yankType == "copy" {
-				for _, e := range ranger.yankSelected {
+			if fen.yankType == "copy" {
+				for _, e := range fen.yankSelected {
 					fi, err := os.Stat(e)
 					if err != nil {
 						continue
 					}
 
-					//					newPath := filepath.Join(ranger.sel, filepath.Base(e))
-					newPath := filepath.Join(ranger.wd, filepath.Base(e))
+					newPath := filepath.Join(fen.wd, filepath.Base(e))
 					if fi.IsDir() {
-						//						newPath := filepath.Join(ranger.sel, filepath.Base(e))
 						err := os.Mkdir(newPath, 0755)
 						if err != nil {
 							// TODO: We need an error log we can scroll through
-							ranger.historyMoment = newPath
+							fen.historyMoment = newPath
 						}
-						//						ranger.historyMoment = ranger.sel
-						ranger.historyMoment = ranger.wd
+						//						fen.historyMoment = fen.sel
+						fen.historyMoment = fen.wd
 
 						err = dirCopy.Copy(e, newPath)
 					} else if fi.Mode().IsRegular() {
@@ -382,11 +402,11 @@ func main() {
 			}
 
 			// Reset selection after paste
-			ranger.yankSelected = []string{}
-			ranger.selected = []string{}
+			fen.yankSelected = []string{}
+			fen.selected = []string{}
 
-			ranger.UpdatePanes()
-			ranger.historyMoment = "Paste! (ranger.sel = " + ranger.sel + ")"
+			fen.UpdatePanes()
+//			fen.historyMoment = "Paste! (fen.sel = " + fen.sel + ")"
 
 			return nil
 		}
@@ -410,11 +430,11 @@ func main() {
 
 			fileToDelete := ""
 
-			if len(ranger.selected) <= 0 {
-				fileToDelete = ranger.sel
+			if len(fen.selected) <= 0 {
+				fileToDelete = fen.sel
 				modal.SetText("Delete " + filepath.Base(fileToDelete) + " ?")
 			} else {
-				modal.SetText("Delete " + strconv.Itoa(len(ranger.selected)) + " selected files?")
+				modal.SetText("Delete " + strconv.Itoa(len(fen.selected)) + " selected files?")
 			}
 
 			modal.
@@ -426,31 +446,32 @@ func main() {
 						return
 					}
 
-					if len(ranger.selected) <= 0 {
+					if len(fen.selected) <= 0 {
 						err := os.RemoveAll(fileToDelete)
 						if err != nil {
 							// TODO: We need an error log we can scroll through
-							ranger.historyMoment = "Failed to delete!"
+							fen.historyMoment = "Failed to delete!"
 							return
 						}
-						ranger.history.RemoveFromHistory(fileToDelete)
-						ranger.historyMoment = "Deleted " + fileToDelete
+						fen.history.RemoveFromHistory(fileToDelete)
+						fen.historyMoment = "Deleted " + fileToDelete
 					} else {
-						for _, filePath := range ranger.selected {
+						for _, filePath := range fen.selected {
 							err := os.RemoveAll(filePath)
 							if err != nil {
 								// TODO: We need an error log we can scroll through
 								continue
 							}
-							ranger.history.RemoveFromHistory(filePath)
+							fen.history.RemoveFromHistory(filePath)
 						}
 
-						ranger.historyMoment = "Deleted " + strings.Join(ranger.selected, ", ")
+						fen.historyMoment = "Deleted " + strings.Join(fen.selected, ", ")
 					}
 
-					ranger.selected = []string{}
+					fen.selected = []string{}
 
-					ranger.UpdatePanes()
+					fen.GoDown()
+					fen.UpdatePanes()
 				})
 
 			pages.AddPage("modal", modal, true, true)

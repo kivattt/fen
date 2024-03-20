@@ -1,4 +1,4 @@
-module github.com/kivattt/kivaranger
+module github.com/kivattt/fen
 
 go 1.21.5
 

@@ -55,6 +55,12 @@ func (fp *FilesPane) SetEntries(path string) {
 		}
 
 		fp.entries = withoutHiddenFiles
+
+		// TODO: Generic bounds checking function?
+		if len(fp.entries) > 0 && fp.selectedEntry >= len(fp.entries) {
+			fp.selectedEntry = len(fp.entries) - 1
+//			fp.SetSelectedEntryFromIndex(len(fp.entries) - 1)
+		}
 	}
 }
 
@@ -66,6 +72,7 @@ func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {
 		}
 	}
 
+	fp.selectedEntry = 0
 	return errors.New("No entry with that name")
 }
 

@@ -12,8 +12,12 @@ type History struct {
 	history []string
 }
 
-func (h *History) GetHistoryEntryForPath(path string) (string, error) {
+func (h *History) GetHistoryEntryForPath(path string, ignoreHiddenFiles bool) (string, error) {
 	for _, e := range h.history {
+		if ignoreHiddenFiles && strings.HasPrefix(filepath.Base(e), ".") {
+			continue
+		}
+
 		sub, err := filepath.Rel(path, e)
 		if err != nil {
 			continue
