@@ -1,5 +1,5 @@
 # fen
-fen is a terminal file manager based on (ranger)[https://github.com/ranger/ranger]
+fen is a terminal file manager based on [ranger](https://github.com/ranger/ranger)
 
 # Running
 ```
