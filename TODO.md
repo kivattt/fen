@@ -1,4 +1,5 @@
 - Confirmation [modal](https://github.com/rivo/tview/blob/master/demos/modal/main.go)
+- Cut support
 - Commands like :mkdir etc.
 - More rules for when "empty" shows up, not at / and not twice at the right
 - Disallow recursive copies or whatever
