@@ -98,7 +98,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	x, y, w, h := fp.GetInnerRect()
 
 	if len(fp.entries) <= 0 {
-		tview.Print(screen, "empty", x, y, w, tview.AlignLeft, tcell.ColorRed)
+		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
 		return
 	}
 
