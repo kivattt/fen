@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 
 	"github.com/rivo/tview"
@@ -36,6 +38,19 @@ func (fen *Fen) Init() error {
 	var err error
 	fen.wd, err = os.Getwd()
 
+	// os.Getwd() will error if the working directory doesn't exist
+	if err != nil {
+		// https://cs.opensource.google/go/go/+/refs/tags/go1.22.1:src/os/getwd.go;l=23
+		if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
+			return err
+		}
+
+		fen.wd = os.Getenv("PWD")
+		if fen.wd == "" {
+			return errors.New("PWD environment variable empty")
+		}
+	}
+
 	fen.topPane = NewBar(&fen.wd)
 
 	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles)
@@ -44,7 +59,16 @@ func (fen *Fen) Init() error {
 
 	fen.bottomPane = NewBar(&fen.historyMoment)
 
-	wdFiles, _ := os.ReadDir(fen.wd)
+	wdFiles, err := os.ReadDir(fen.wd)
+	// If our working directory doesn't exist, go up a parent until it does
+	for err != nil {
+		if fen.wd == "/" || filepath.Dir(fen.wd) == fen.wd {
+			return err
+		}
+
+		fen.wd = filepath.Dir(fen.wd)
+		wdFiles, err = os.ReadDir(fen.wd)
+	}
 
 	if len(wdFiles) > 0 {
 		fen.sel = filepath.Join(fen.wd, wdFiles[0].Name())

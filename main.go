@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -15,7 +16,10 @@ import (
 
 func main() {
 	var fen Fen
-	fen.Init()
+	err := fen.Init()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	app := tview.NewApplication()
 
