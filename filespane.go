@@ -139,7 +139,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		}
 
 		if slices.Contains(*fp.selected, filepath.Join(fp.folder, entry.Name())) {
-			extraStyle = "  " + extraStyle
+			extraStyle = " " + extraStyle
 			color = tcell.ColorYellow
 		}
 
