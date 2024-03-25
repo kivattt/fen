@@ -92,6 +92,10 @@ func (fp *FilesPane) GetSelectedEntryFromIndex(index int) string {
 	return fp.entries[index].Name()
 }
 
+func (fp *FilesPane) GetSelectedPathFromIndex(index int) string {
+	return filepath.Join(fp.folder, fp.GetSelectedEntryFromIndex(index))
+}
+
 func (fp *FilesPane) Draw(screen tcell.Screen) {
 	fp.Box.DrawForSubclass(screen, fp)
 

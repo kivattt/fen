@@ -87,11 +87,11 @@ func main() {
 			fen.historyMoment = strings.Join(fen.selected, ", ")
 			fen.GoDown()
 		} else if event.Key() == tcell.KeyHome || event.Rune() == 'g' {
-			fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
+			fen.GoTop()
 		} else if event.Key() == tcell.KeyEnd || event.Rune() == 'G' {
-			fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries)-1))
+			fen.GoBottom()
 		} else if event.Rune() == 'M' {
-			fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex((len(fen.middlePane.entries)-1)/2))
+			fen.GoMiddle()
 		} else {
 			wasMovementKey = false
 		}
@@ -110,11 +110,14 @@ func main() {
 			for _, e := range fen.middlePane.entries {
 				fen.ToggleSelection(filepath.Join(fen.wd, e.Name()))
 			}
+			fen.DisableSelectingWithV()
 			return nil
 		} else if event.Rune() == 'D' {
 			fen.selected = []string{}
 			fen.yankSelected = []string{}
 			fen.historyMoment = "Deselected and un-yanked!"
+			fen.DisableSelectingWithV()
+			return nil
 		} else if event.Rune() == 'a' {
 			fileToRename := fen.sel
 
@@ -176,8 +179,10 @@ func main() {
 			return nil
 		} else if event.Rune() == 'z' {
 			fen.showHiddenFiles = !fen.showHiddenFiles
+			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
 			fen.UpdatePanes()
 			fen.history.AddToHistory(fen.sel)
+			return nil
 		} else if event.Rune() == 'p' {
 			if len(fen.yankSelected) <= 0 {
 				fen.historyMoment = "Nothing to paste..."
@@ -235,16 +240,9 @@ func main() {
 
 			return nil
 		} else if event.Rune() == 'V' {
-			fen.selectingWithV = !fen.selectingWithV
-
-			if fen.selectingWithV {
-				fen.selectingWithVStartPath = fen.sel
-				fen.EnableSelection(fen.sel)
-				fen.selectedBeforeSelectingWithV = fen.selected
-			} else {
-				fen.selectingWithVStartPath = ""
-				fen.selectedBeforeSelectingWithV = []string{}
-			}
+			fen.ToggleSelectingWithV()
+			fen.UpdatePanes()
+			return nil
 		}
 
 		if event.Key() == tcell.KeyDelete {

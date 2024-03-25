@@ -22,7 +22,8 @@ type Fen struct {
 	yankType     string // "", "copy", "cut"
 
 	selectingWithV bool
-	selectingWithVStartPath string
+	selectingWithVStartIndex int
+	selectingWithVEndIndex int
 	selectedBeforeSelectingWithV []string
 
 	historyMoment string
@@ -39,7 +40,6 @@ type Fen struct {
 func (fen *Fen) Init() error {
 	fen.showHiddenFiles = true
 	fen.selectingWithV = false
-	fen.selectingWithVStartPath = ""
 
 	var err error
 	fen.wd, err = os.Getwd()
@@ -86,6 +86,34 @@ func (fen *Fen) Init() error {
 	return err
 }
 
+func (fen *Fen) ToggleSelectingWithV() {
+	if !fen.selectingWithV {
+		fen.EnableSelectingWithV()
+	} else {
+		fen.DisableSelectingWithV()
+	}
+}
+
+func (fen *Fen) EnableSelectingWithV() {
+	if fen.selectingWithV {
+		return
+	}
+
+	fen.selectingWithV = true
+	fen.selectingWithVStartIndex = fen.middlePane.selectedEntry
+	fen.selectingWithVEndIndex = fen.selectingWithVStartIndex
+	fen.selectedBeforeSelectingWithV = fen.selected
+}
+
+func (fen *Fen) DisableSelectingWithV() {
+	if !fen.selectingWithV {
+		return
+	}
+
+	fen.selectingWithV = false
+	fen.selectedBeforeSelectingWithV = []string{}
+}
+
 func (fen *Fen) UpdatePanes() {
 	fen.leftPane.SetEntries(filepath.Dir(fen.wd))
 	fen.middlePane.SetEntries(fen.wd)
@@ -119,13 +147,14 @@ func (fen *Fen) UpdatePanes() {
 		fen.rightPane.SetSelectedEntryFromIndex(0)
 		//		}
 		//		fen.historyMoment = "BRUH"
-		return
+	} else {
+		//	fen.historyMoment = "BRUH 2.0: " + filepath.Base(h)
+		//	if fen.showHiddenFiles {
+		fen.rightPane.SetSelectedEntryFromString(filepath.Base(h))
+		// }
 	}
 
-	//	fen.historyMoment = "BRUH 2.0: " + filepath.Base(h)
-	//	if fen.showHiddenFiles {
-	fen.rightPane.SetSelectedEntryFromString(filepath.Base(h))
-	// }
+	fen.UpdateSelectingWithV()
 }
 
 func (fen *Fen) RemoveFromSelectedAndYankSelected(path string) {
@@ -163,6 +192,9 @@ func (fen *Fen) GoLeft() {
 
 	fen.sel = fen.wd
 	fen.wd = filepath.Dir(fen.wd)
+
+	fen.selectingWithV = false
+	fen.selectedBeforeSelectingWithV = []string{}
 }
 
 func (fen *Fen) GoRight(app *tview.Application) {
@@ -202,6 +234,10 @@ func (fen *Fen) GoRight(app *tview.Application) {
 		// FIXME
 		fen.sel = filepath.Join(fen.wd, fen.rightPane.GetSelectedEntryFromIndex(0))
 	}
+
+
+	fen.selectingWithV = false
+	fen.selectedBeforeSelectingWithV = []string{}
 }
 
 func (fen *Fen) GoUp() {
@@ -210,14 +246,11 @@ func (fen *Fen) GoUp() {
 		return
 	}
 
-	// Only selectingWithV if we haven't changed working directory
-	if filepath.Dir(fen.selectingWithVStartPath) == filepath.Dir(fen.sel) {
-		if fen.selectingWithV && !slices.Contains(fen.selectedBeforeSelectingWithV, fen.sel) {
-			fen.ToggleSelection(fen.sel)
-		}
-	}
-
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry-1))
+
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = fen.middlePane.selectedEntry - 1 // Strange, but it works
+	}
 }
 
 func (fen *Fen) GoDown() {
@@ -228,10 +261,45 @@ func (fen *Fen) GoDown() {
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry+1))
 
-	// Only selectingWithV if we haven't changed working directory
-	if filepath.Dir(fen.selectingWithVStartPath) == filepath.Dir(fen.sel) {
-		if fen.selectingWithV && !slices.Contains(fen.selectedBeforeSelectingWithV, fen.sel) {
-			fen.ToggleSelection(fen.sel)
-		}
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = fen.middlePane.selectedEntry + 1 // Strange, but it works
+	}
+}
+
+func (fen *Fen) GoTop() {
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
+
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = 0 // Strange, but it works
+	}
+}
+
+func (fen *Fen) GoMiddle() {
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex((len(fen.middlePane.entries)-1)/2))
+
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = (len(fen.middlePane.entries)-1)/2 // Strange, but it works
+	}
+}
+
+func (fen *Fen) GoBottom() {
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries)-1))
+
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = len(fen.middlePane.entries) - 1 // Strange, but it works
+	}
+}
+
+func (fen *Fen) UpdateSelectingWithV() {
+	if !fen.selectingWithV {
+		return
+	}
+
+	minIndex := min(fen.selectingWithVStartIndex, fen.selectingWithVEndIndex)
+	maxIndex := max(fen.selectingWithVStartIndex, fen.selectingWithVEndIndex)
+
+	fen.selected = fen.selectedBeforeSelectingWithV
+	for i := minIndex; i <= maxIndex; i++ {
+		fen.EnableSelection(fen.middlePane.GetSelectedPathFromIndex(i))
 	}
 }
