@@ -19,4 +19,6 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right) \
 `D` to deselect all, and un-yank \
 `a` to rename a file \
 `z` to toggle hidden files \
-`V` to start selecting by moving
+`V` to start selecting by moving \
+`n` to create a new file (touch) \
+`N` to create a new folder (mkdir)

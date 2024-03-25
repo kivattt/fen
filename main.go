@@ -64,7 +64,7 @@ func main() {
 	})
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if pages.HasPage("modal") || pages.HasPage("inputfield") {
+		if pages.HasPage("modal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") {
 			return event
 		}
 
@@ -133,7 +133,7 @@ func main() {
 			}
 
 			inputField := tview.NewInputField().
-				SetLabel("New name: ").
+				SetLabel("Rename: ").
 				SetText(filepath.Base(fileToRename)).
 				SetFieldWidth(45)
 
@@ -161,6 +161,49 @@ func main() {
 			inputField.SetBorder(true)
 
 			pages.AddPage("inputfield", modal(inputField, 58, 3), true, true)
+			app.SetFocus(inputField)
+			return nil
+		} else if event.Rune() == 'n' || event.Rune() == 'N' {
+			modal := func(p tview.Primitive, width, height int) tview.Primitive {
+				return tview.NewFlex().
+					AddItem(nil, 0, 1, false).
+					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+						AddItem(nil, 0, 1, false).
+						AddItem(p, height, 1, true).
+						AddItem(nil, 0, 1, false), width, 1, true).
+					AddItem(nil, 0, 1, false)
+			}
+
+			inputField := tview.NewInputField().
+				SetLabel("Name: ").
+				SetFieldWidth(45)
+
+			if event.Rune() == 'n' {
+				inputField.SetTitle("New file: ")
+			} else if event.Rune() == 'N' {
+				inputField.SetTitle("New folder: ")
+			}
+
+			inputField.SetDoneFunc(func(key tcell.Key) {
+				if key == tcell.KeyEscape {
+					pages.RemovePage("newfilemodal")
+					return
+				} else if key == tcell.KeyEnter {
+					if event.Rune() == 'n' {
+						os.Create(filepath.Join(fen.wd, inputField.GetText()))
+					} else if event.Rune() == 'N' {
+						os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0755)
+					}
+					fen.UpdatePanes()
+
+					pages.RemovePage("newfilemodal")
+					return
+				}
+			})
+
+			inputField.SetBorder(true)
+
+			pages.AddPage("newfilemodal", modal(inputField, 58, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'y' {
