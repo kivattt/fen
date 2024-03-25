@@ -21,6 +21,10 @@ type Fen struct {
 	yankSelected []string
 	yankType     string // "", "copy", "cut"
 
+	selectingWithV bool
+	selectingWithVStartPath string
+	selectedBeforeSelectingWithV []string
+
 	historyMoment string
 
 	showHiddenFiles bool
@@ -34,6 +38,8 @@ type Fen struct {
 
 func (fen *Fen) Init() error {
 	fen.showHiddenFiles = true
+	fen.selectingWithV = false
+	fen.selectingWithVStartPath = ""
 
 	var err error
 	fen.wd, err = os.Getwd()
@@ -141,6 +147,14 @@ func (fen *Fen) ToggleSelection(filePath string) {
 	fen.selected = append(fen.selected, filePath)
 }
 
+func (fen *Fen) EnableSelection(filePath string) {
+	if index := slices.Index(fen.selected, filePath); index != -1 {
+		return
+	}
+
+	fen.selected = append(fen.selected, filePath)
+}
+
 func (fen *Fen) GoLeft() {
 	// Not sure if this is necessary
 	if filepath.Dir(fen.wd) == fen.wd {
@@ -196,6 +210,13 @@ func (fen *Fen) GoUp() {
 		return
 	}
 
+	// Only selectingWithV if we haven't changed working directory
+	if filepath.Dir(fen.selectingWithVStartPath) == filepath.Dir(fen.sel) {
+		if fen.selectingWithV && !slices.Contains(fen.selectedBeforeSelectingWithV, fen.sel) {
+			fen.ToggleSelection(fen.sel)
+		}
+	}
+
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry-1))
 }
 
@@ -206,4 +227,11 @@ func (fen *Fen) GoDown() {
 	}
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry+1))
+
+	// Only selectingWithV if we haven't changed working directory
+	if filepath.Dir(fen.selectingWithVStartPath) == filepath.Dir(fen.sel) {
+		if fen.selectingWithV && !slices.Contains(fen.selectedBeforeSelectingWithV, fen.sel) {
+			fen.ToggleSelection(fen.sel)
+		}
+	}
 }

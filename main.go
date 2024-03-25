@@ -234,6 +234,17 @@ func main() {
 			//			fen.historyMoment = "Paste! (fen.sel = " + fen.sel + ")"
 
 			return nil
+		} else if event.Rune() == 'V' {
+			fen.selectingWithV = !fen.selectingWithV
+
+			if fen.selectingWithV {
+				fen.selectingWithVStartPath = fen.sel
+				fen.EnableSelection(fen.sel)
+				fen.selectedBeforeSelectingWithV = fen.selected
+			} else {
+				fen.selectingWithVStartPath = ""
+				fen.selectedBeforeSelectingWithV = []string{}
+			}
 		}
 
 		if event.Key() == tcell.KeyDelete {

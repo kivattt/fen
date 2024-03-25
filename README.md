@@ -17,4 +17,5 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right) \
 `A` to flip selection in folder (select all files) \
 `D` to deselect all, and un-yank \
 `a` to rename a file \
-`z` to toggle hidden files
+`z` to toggle hidden files \
+`V` to start selecting by moving
