@@ -115,15 +115,12 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		if entry.IsDir() {
 			color = tcell.ColorBlue
-			//color = tcell.ColorDeepSkyBlue
-			//color = tcell.ColorBlue.TrueColor()
-			//color = tcell.Color54
 		} else if entry.Type().IsRegular() {
 			fi, err := os.Stat(entry.Name())
 			if err == nil {
 				// Executable?
 				if fi.Mode() & 0111 != 0 {
-					color = tcell.ColorGreen
+					color = tcell.NewRGBColor(0, 255, 0)
 				} else {
 					color = tcell.ColorWhite
 				}

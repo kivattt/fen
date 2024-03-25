@@ -21,5 +21,5 @@ func (bar *Bar) Draw(screen tcell.Screen) {
 	bar.Box.DrawForSubclass(screen, bar)
 
 	x, y, w, _ := bar.GetInnerRect()
-	tview.Print(screen, *bar.str, x, y, w, tview.AlignLeft, tcell.ColorGreen)
+	tview.Print(screen, *bar.str, x, y, w, tview.AlignLeft, tcell.NewRGBColor(0, 255, 0))
 }
