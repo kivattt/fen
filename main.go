@@ -27,8 +27,8 @@ func main() {
 		AddItem(fen.topPane, 1, 0, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
 			AddItem(fen.leftPane, 0, 1, false).
-			AddItem(fen.middlePane, 0, 2, false).
-			AddItem(fen.rightPane, 0, 2, false), 0, 1, false).
+			AddItem(fen.middlePane, 0, 3, false).
+			AddItem(fen.rightPane, 0, 3, false), 0, 1, false).
 		AddItem(fen.bottomPane, 1, 0, false)
 
 	pages := tview.NewPages().

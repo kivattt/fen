@@ -131,8 +131,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		extraStyle := ""
 		if i == fp.selectedEntry {
-			extraStyle = "[:gray]"
-			color = tcell.ColorBlack
+			extraStyle = "[::r]" // Flip foreground and background
 		}
 
 		if slices.Contains(*fp.selected, filepath.Join(fp.folder, entry.Name())) {
@@ -144,10 +143,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		dimColor := slices.Contains(*fp.yankSelected, filepath.Join(fp.folder, entry.Name()))
 
 		if dimColor {
-			// FIXME: Dim any color, yellow should turn dim aswell as the "no color"
-			tview.Print(screen, "[:bold]"+extraStyle+entry.Name(), x, y+i, w-3, tview.AlignLeft, tcell.ColorDimGray)
-		} else {
-			tview.Print(screen, "[:bold]"+extraStyle+entry.Name(), x, y+i, w-3, tview.AlignLeft, color)
+			r, g, b := color.RGB()
+			dimAmount := 2
+			color = tcell.NewRGBColor(r / int32(dimAmount), g / int32(dimAmount), b / int32(dimAmount))
 		}
+
+		tview.Print(screen, "[:bold]"+extraStyle+" "+entry.Name() + strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)
 	}
 }
