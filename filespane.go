@@ -115,8 +115,19 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		if entry.IsDir() {
 			color = tcell.ColorBlue
+			//color = tcell.ColorDeepSkyBlue
+			//color = tcell.ColorBlue.TrueColor()
+			//color = tcell.Color54
 		} else if entry.Type().IsRegular() {
-			color = tcell.ColorWhite
+			fi, err := os.Stat(entry.Name())
+			if err == nil {
+				// Executable?
+				if fi.Mode() & 0111 != 0 {
+					color = tcell.ColorGreen
+				} else {
+					color = tcell.ColorWhite
+				}
+			}
 		} else {
 			color = tcell.ColorGray
 		}
@@ -137,9 +148,9 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		if dimColor {
 			// FIXME: Dim any color, yellow should turn dim aswell as the "no color"
-			tview.Print(screen, extraStyle+entry.Name(), x, y+i, w-3, tview.AlignLeft, tcell.ColorDimGray)
+			tview.Print(screen, "[:bold]"+extraStyle+entry.Name(), x, y+i, w-3, tview.AlignLeft, tcell.ColorDimGray)
 		} else {
-			tview.Print(screen, extraStyle+entry.Name(), x, y+i, w-3, tview.AlignLeft, color)
+			tview.Print(screen, "[:bold]"+extraStyle+entry.Name(), x, y+i, w-3, tview.AlignLeft, color)
 		}
 	}
 }
