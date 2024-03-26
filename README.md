@@ -25,5 +25,4 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right) \
 `?` Toggle file properties window
 
 # Known issues
-- Doesn't show like, root folder stuff
 - `go test` doesn't work on Windows
