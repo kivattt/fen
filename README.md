@@ -11,14 +11,19 @@ go build
 Arrow keys, hjkl or scrollwheel to navigate (Enter goes right) \
 `Home` or `g` to go to the top \
 `End` or `G` to go to the bottom \
-`M` to go to the middle \
-`q` to quit \
-`Del` to delete file(s) \
-` ` to select files \
-`A` to flip selection in folder (select all files) \
-`D` to deselect all, and un-yank \
-`a` to rename a file \
-`z` to toggle hidden files \
-`V` to start selecting by moving \
-`n` to create a new file (touch) \
-`N` to create a new folder (mkdir)
+`M` Go to the middle \
+`q` Quit \
+`Del` Delete file(s) \
+` ` Select files \
+`A` Flip selection in folder (select all files) \
+`D` Deselect all, and un-yank \
+`a` Rename a file \
+`z` Toggle hidden files \
+`V` Start selecting by moving \
+`n` Create a new file (touch) \
+`N` Create a new folder (mkdir) \
+`?` Toggle file properties window
+
+# Known issues
+- Doesn't show like, root folder stuff
+- `go test` doesn't work on Windows

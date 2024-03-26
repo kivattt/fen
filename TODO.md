@@ -8,3 +8,5 @@
 - Remove being able to delete while mid and right pane are empty? (Going into an empty folder (mid and right pane are empty), then deleting it will set selected entry on the left pane to 0 instead of matching the GoDown() when deleting in middlePane)
 - 'n' is a little too close to 'M', maybe change it?
 - Fix `history_test.go` for Windows paths
+- Fix green color for all executables (the current bitmask check doesn't work for everything)
+- Fix invisibility near root dir

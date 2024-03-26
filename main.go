@@ -34,8 +34,29 @@ func main() {
 	pages := tview.NewPages().
 		AddPage("flex", flex, true, true)
 
+	bottomRight := func(p tview.Primitive, width, height int) tview.Primitive {
+		/*return tview.NewGrid().
+			SetRows(30, 30).
+			SetColumns(30, 30).
+			AddItem(p, 1, 1, 1, 1, 5, 10, false)*/
+
+		// Works, although no auto-resizing
+		return tview.NewFlex().SetDirection(tview.FlexColumn).
+			AddItem(nil, 0, 1, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(p, height, 1, true), width, 1, true)
+	}
+
+	pages.AddPage("fileproperties", bottomRight(fen.fileProperties, 58, 20), true, true)
+
 	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
 		wasMovementKey := true
+
+		// Required to prevent a nil dereference crash
+		if event == nil {
+			return nil, action
+		}
 
 		switch event.Buttons() {
 		case tcell.WheelLeft:
@@ -57,7 +78,7 @@ func main() {
 
 			fen.historyMoment = fen.sel
 			fen.UpdatePanes()
-			return nil, action // ?
+			return nil, action
 		}
 
 		return event, action
@@ -285,6 +306,11 @@ func main() {
 		} else if event.Rune() == 'V' {
 			fen.ToggleSelectingWithV()
 			fen.UpdatePanes()
+			return nil
+		} else if event.Rune() == '?' {
+			fen.fileProperties.visible = !fen.fileProperties.visible
+			fen.UpdatePanes()
+
 			return nil
 		}
 

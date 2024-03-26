@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 
 	"github.com/rivo/tview"
 )
@@ -35,11 +36,14 @@ type Fen struct {
 	middlePane *FilesPane
 	rightPane  *FilesPane
 	bottomPane *Bar
+
+	fileProperties *FileProperties
 }
 
 func (fen *Fen) Init() error {
 	fen.showHiddenFiles = true
 	fen.selectingWithV = false
+	fen.fileProperties = NewFileProperties()
 
 	var err error
 	fen.wd, err = os.Getwd()
@@ -62,6 +66,10 @@ func (fen *Fen) Init() error {
 	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles)
 	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles)
 	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles)
+
+	fen.leftPane.SetBorder(true)
+	fen.middlePane.SetBorder(true)
+	fen.rightPane.SetBorder(true)
 
 	fen.bottomPane = NewBar(&fen.historyMoment)
 
@@ -155,6 +163,18 @@ func (fen *Fen) UpdatePanes() {
 	}
 
 	fen.UpdateSelectingWithV()
+
+	fi, err := os.Stat(fen.sel)
+	if err != nil {
+		return
+	}
+
+	if fen.fileProperties.visible {
+		fen.fileProperties.SetTable(map[string]string{
+			"Name": filepath.Base(fen.sel),
+			"Size": strconv.FormatInt(fi.Size(), 10) + " bytes",
+		})
+	}
 }
 
 func (fen *Fen) RemoveFromSelectedAndYankSelected(path string) {
