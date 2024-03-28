@@ -119,7 +119,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			fi, err := os.Stat(entry.Name())
 			if err == nil {
 				// Executable?
-				if fi.Mode() & 0111 != 0 {
+				if fi.Mode()&0111 != 0 {
 					color = tcell.NewRGBColor(0, 255, 0)
 				} else {
 					color = tcell.ColorWhite
@@ -145,9 +145,9 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		if dimColor {
 			r, g, b := color.RGB()
 			dimAmount := 2
-			color = tcell.NewRGBColor(r / int32(dimAmount), g / int32(dimAmount), b / int32(dimAmount))
+			color = tcell.NewRGBColor(r/int32(dimAmount), g/int32(dimAmount), b/int32(dimAmount))
 		}
 
-		tview.Print(screen, "[:bold]"+extraStyle+" "+entry.Name() + strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)
+		tview.Print(screen, "[:bold]"+extraStyle+" "+entry.Name()+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)
 	}
 }

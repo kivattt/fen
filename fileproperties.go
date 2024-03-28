@@ -9,14 +9,14 @@ import (
 
 type FileProperties struct {
 	*tview.Box
-	table map[string]string
+	table            map[string]string
 	tableKeysOrdered []string
-	visible bool
+	visible          bool
 }
 
 func NewFileProperties() *FileProperties {
 	return &FileProperties{
-		Box: tview.NewBox().SetBorder(true).SetTitle("File properties"),
+		Box:     tview.NewBox().SetBorder(true).SetTitle("File properties"),
 		visible: false,
 	}
 }
@@ -43,7 +43,7 @@ func (fileProperties *FileProperties) Draw(screen tcell.Screen) {
 
 	i := 0
 	for _, key := range fileProperties.tableKeysOrdered {
-		tview.Print(screen, key + " " + fileProperties.table[key], x, y + i, w, tview.AlignLeft, tcell.NewRGBColor(0, 255, 255))
+		tview.Print(screen, key+" "+fileProperties.table[key], x, y+i, w, tview.AlignLeft, tcell.NewRGBColor(0, 255, 255))
 		i++
 	}
 }

@@ -20,9 +20,9 @@ type Fen struct {
 	yankSelected []string
 	yankType     string // "", "copy", "cut"
 
-	selectingWithV bool
-	selectingWithVStartIndex int
-	selectingWithVEndIndex int
+	selectingWithV               bool
+	selectingWithVStartIndex     int
+	selectingWithVEndIndex       int
 	selectedBeforeSelectingWithV []string
 
 	historyMoment string
@@ -239,7 +239,6 @@ func (fen *Fen) GoRight(app *tview.Application) {
 		fen.sel = filepath.Join(fen.wd, fen.rightPane.GetSelectedEntryFromIndex(0))
 	}
 
-
 	fen.selectingWithV = false
 	fen.selectedBeforeSelectingWithV = []string{}
 }
@@ -282,7 +281,7 @@ func (fen *Fen) GoMiddle() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex((len(fen.middlePane.entries)-1)/2))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = (len(fen.middlePane.entries)-1)/2 // Strange, but it works
+		fen.selectingWithVEndIndex = (len(fen.middlePane.entries) - 1) / 2 // Strange, but it works
 	}
 }
 

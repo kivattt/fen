@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"github.com/kivattt/getopt"
+	"github.com/rivo/tview"
 
 	dirCopy "github.com/otiai10/copy"
 )
@@ -89,16 +89,16 @@ func main() {
 
 	bottomRight := func(p tview.Primitive, width, height int) tview.Primitive {
 		/*return tview.NewGrid().
-			SetRows(30, 30).
-			SetColumns(30, 30).
-			AddItem(p, 1, 1, 1, 1, 5, 10, false)*/
+		SetRows(30, 30).
+		SetColumns(30, 30).
+		AddItem(p, 1, 1, 1, 1, 5, 10, false)*/
 
 		// Works, although no auto-resizing
 		return tview.NewFlex().SetDirection(tview.FlexColumn).
 			AddItem(nil, 0, 1, false).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(p, height, 1, true), width, 1, true)
+				AddItem(nil, 0, 1, false).
+				AddItem(p, height, 1, true), width, 1, true)
 	}
 
 	pages.AddPage("fileproperties", bottomRight(fen.fileProperties, 58, 20), true, true)
