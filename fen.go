@@ -1,12 +1,10 @@
 package main
 
 import (
-	"errors"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strconv"
 
@@ -40,26 +38,12 @@ type Fen struct {
 	fileProperties *FileProperties
 }
 
-func (fen *Fen) Init() error {
+func (fen *Fen) Init(workingDirectory string) error {
 	fen.showHiddenFiles = true
 	fen.selectingWithV = false
 	fen.fileProperties = NewFileProperties()
 
-	var err error
-	fen.wd, err = os.Getwd()
-
-	// os.Getwd() will error if the working directory doesn't exist
-	if err != nil {
-		// https://cs.opensource.google/go/go/+/refs/tags/go1.22.1:src/os/getwd.go;l=23
-		if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
-			return err
-		}
-
-		fen.wd = os.Getenv("PWD")
-		if fen.wd == "" {
-			return errors.New("PWD environment variable empty")
-		}
-	}
+	fen.wd = workingDirectory
 
 	fen.topPane = NewBar(&fen.wd)
 

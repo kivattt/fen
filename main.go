@@ -1,22 +1,75 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/kivattt/getopt"
 
 	dirCopy "github.com/otiai10/copy"
 )
 
 func main() {
+	v := flag.Bool("version", false, "output version information and exit")
+	h := flag.Bool("help", false, "display this help and exit")
+
+	getopt.CommandLine.SetOutput(os.Stdout)
+	getopt.CommandLine.Init("fen", flag.ExitOnError)
+	getopt.Aliases(
+		"v", "version",
+		"h", "help",
+	)
+
+	err := getopt.CommandLine.Parse(os.Args[1:])
+	if err != nil {
+		os.Exit(0)
+	}
+
+	if *v {
+		fmt.Println("fen v0.0.0-indev")
+		os.Exit(0)
+	}
+
+	if *h {
+		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTION] [PATH]")
+		fmt.Println("Terminal file manager\n")
+		getopt.PrintDefaults()
+		os.Exit(0)
+	}
+
+	workingDirectory, err := filepath.Abs(getopt.CommandLine.Arg(0))
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	if workingDirectory == "" {
+		workingDirectory, err := os.Getwd()
+
+		// os.Getwd() will error if the working directory doesn't exist
+		if err != nil {
+			// https://cs.opensource.google/go/go/+/refs/tags/go1.22.1:src/os/getwd.go;l=23
+			if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
+				log.Fatalf("Unable to determine current working directory")
+			}
+
+			workingDirectory = os.Getenv("PWD")
+			if workingDirectory == "" {
+				log.Fatalf("PWD environment variable empty")
+			}
+		}
+	}
+
 	var fen Fen
-	err := fen.Init()
+	err = fen.Init(workingDirectory)
 	if err != nil {
 		log.Fatal(err)
 	}
