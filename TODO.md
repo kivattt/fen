@@ -14,3 +14,4 @@
 - Caching stuff (maybe only re-dirlist for left/right)
 - Folder sizes ignoring hidden files when the filespane also ignores hidden files
 - Util function for getting folder/file size string (sensible file size strings like 8.2M, 40B, 1.2G)
+- Fix weird blank separator between filename and entry size when selecting
