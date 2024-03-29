@@ -5,10 +5,11 @@ import (
 	"os"
 	"os/user"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
-func EntrySize(path string) (string, error) {
+func EntrySize(path string, ignoreHiddenFiles bool) (string, error) {
 	stat, err := os.Stat(path)
 	if err != nil {
 		return "", err
@@ -21,6 +22,18 @@ func EntrySize(path string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+
+		if ignoreHiddenFiles {
+			withoutHiddenFiles := []os.DirEntry{}
+			for _, e := range files {
+				if !strings.HasPrefix(e.Name(), ".") {
+					withoutHiddenFiles = append(withoutHiddenFiles, e)
+				}
+			}
+
+			files = withoutHiddenFiles
+		}
+
 		return strconv.Itoa(len(files)), nil
 	}
 }

@@ -13,23 +13,23 @@ import (
 
 type FilesPane struct {
 	*tview.Box
-	selected        *[]string
-	yankSelected    *[]string
-	showHiddenFiles *bool
-	folder          string
-	entries         []os.DirEntry
-	selectedEntry   int
-	showEntrySizes  bool
+	selected            *[]string
+	yankSelected        *[]string
+	dontShowHiddenFiles *bool
+	folder              string
+	entries             []os.DirEntry
+	selectedEntry       int
+	showEntrySizes      bool
 }
 
-func NewFilesPane(selected *[]string, yankSelected *[]string, showHiddenFiles *bool, showEntrySizes bool) *FilesPane {
+func NewFilesPane(selected *[]string, yankSelected *[]string, dontShowHiddenFiles *bool, showEntrySizes bool) *FilesPane {
 	return &FilesPane{
-		Box:             tview.NewBox(),
-		selected:        selected,
-		yankSelected:    yankSelected,
-		showHiddenFiles: showHiddenFiles,
-		selectedEntry:   0,
-		showEntrySizes:  showEntrySizes,
+		Box:                 tview.NewBox(),
+		selected:            selected,
+		yankSelected:        yankSelected,
+		dontShowHiddenFiles: dontShowHiddenFiles,
+		selectedEntry:       0,
+		showEntrySizes:      showEntrySizes,
 	}
 }
 
@@ -48,7 +48,7 @@ func (fp *FilesPane) SetEntries(path string) {
 	fp.folder = path
 	fp.entries, _ = os.ReadDir(fp.folder)
 
-	if !*fp.showHiddenFiles {
+	if *fp.dontShowHiddenFiles {
 		withoutHiddenFiles := []os.DirEntry{}
 		for _, e := range fp.entries {
 			if !strings.HasPrefix(e.Name(), ".") {
@@ -159,7 +159,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			continue
 		}
 
-		entrySizeText, _ := EntrySize(entryFullPath)
+		entrySizeText, _ := EntrySize(entryFullPath, *fp.dontShowHiddenFiles)
 		tview.Print(screen, "[:bold]"+extraStyle+entrySizeText, x, y+i, w-1, tview.AlignRight, color)
 	}
 }

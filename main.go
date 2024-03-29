@@ -296,7 +296,7 @@ func main() {
 			fen.historyMoment = "Cut!"
 			return nil
 		} else if event.Rune() == 'z' {
-			fen.showHiddenFiles = !fen.showHiddenFiles
+			fen.dontShowHiddenFiles = !fen.dontShowHiddenFiles
 			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
 			fen.UpdatePanes()
 			fen.history.AddToHistory(fen.sel)

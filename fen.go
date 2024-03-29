@@ -27,7 +27,7 @@ type Fen struct {
 
 	historyMoment string
 
-	showHiddenFiles bool
+	dontShowHiddenFiles bool
 
 	topPane    *Bar
 	leftPane   *FilesPane
@@ -39,7 +39,7 @@ type Fen struct {
 }
 
 func (fen *Fen) Init(workingDirectory string) error {
-	fen.showHiddenFiles = true
+	fen.dontShowHiddenFiles = false
 	fen.selectingWithV = false
 	fen.fileProperties = NewFileProperties()
 
@@ -47,9 +47,9 @@ func (fen *Fen) Init(workingDirectory string) error {
 
 	fen.topPane = NewBar(&fen.wd)
 
-	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles, false)
-	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles, true)
-	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles, false)
+	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, false)
+	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, true)
+	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, false)
 
 	/*	fen.leftPane.SetBorder(true)
 		fen.middlePane.SetBorder(true)
@@ -136,15 +136,15 @@ func (fen *Fen) UpdatePanes() {
 	// DEBUG
 	//	fen.historyMoment = strings.Join(fen.history.history, ", ")
 
-	h, err := fen.history.GetHistoryEntryForPath(fen.sel, !fen.showHiddenFiles)
+	h, err := fen.history.GetHistoryEntryForPath(fen.sel, fen.dontShowHiddenFiles)
 	if err != nil {
-		//		if fen.showHiddenFiles {
+		//		if !fen.dontShowHiddenFiles {
 		fen.rightPane.SetSelectedEntryFromIndex(0)
 		//		}
 		//		fen.historyMoment = "BRUH"
 	} else {
 		//	fen.historyMoment = "BRUH 2.0: " + filepath.Base(h)
-		//	if fen.showHiddenFiles {
+		//	if !fen.dontShowHiddenFiles {
 		fen.rightPane.SetSelectedEntryFromString(filepath.Base(h))
 		// }
 	}
@@ -235,7 +235,7 @@ func (fen *Fen) GoRight(app *tview.Application) {
 		}*/
 
 	fen.wd = fen.sel
-	fen.sel, err = fen.history.GetHistoryEntryForPath(fen.wd, !fen.showHiddenFiles)
+	fen.sel, err = fen.history.GetHistoryEntryForPath(fen.wd, fen.dontShowHiddenFiles)
 
 	if err != nil {
 		// FIXME
