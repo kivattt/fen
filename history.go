@@ -63,11 +63,11 @@ func (h *History) AddToHistory(path string) {
 
 		// Found in the history, but we need to move it to the front again
 		h.history = append(h.history[:index], h.history[index+1:]...)
-		h.history = slices.Concat([]string{path}, h.history)
+		h.history = append([]string{path}, h.history...)
 		return
 	}
 
-	h.history = slices.Concat([]string{path}, h.history)
+	h.history = append([]string{path}, h.history...)
 }
 
 func (h *History) RemoveFromHistory(path string) {

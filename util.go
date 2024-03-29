@@ -52,8 +52,19 @@ func FileUserAndGroupName(path string) (string, string, error) {
 	uid := int(syscallStat.Uid)
 	gid := int(syscallStat.Gid)
 
-	username, _ := user.LookupId(strconv.Itoa(uid))
-	groupname, _ := user.LookupGroupId(strconv.Itoa(gid))
+	username, usernameErr := user.LookupId(strconv.Itoa(uid))
+	groupname, groupnameErr := user.LookupGroupId(strconv.Itoa(gid))
 
-	return username.Username, groupname.Name, nil
+	usernameStr := ""
+	groupnameStr := ""
+
+	if usernameErr == nil {
+		usernameStr = username.Username
+	}
+
+	if groupnameErr == nil {
+		groupnameStr = groupname.Name
+	}
+
+	return usernameStr, groupnameStr, nil
 }

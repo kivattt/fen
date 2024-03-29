@@ -1,6 +1,6 @@
 module github.com/kivattt/fen
 
-go 1.22.1
+go 1.21.5
 
 require (
 	github.com/gdamore/tcell/v2 v2.7.4
