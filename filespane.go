@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -159,20 +158,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			continue
 		}
 
-		entrySizeText := ""
-		if statErr != nil {
-			continue
-		}
-
-		if !stat.IsDir() {
-			entrySizeText = strconv.FormatInt(stat.Size(), 10) + " B"
-		} else {
-			files, err := os.ReadDir(entryFullPath)
-			if err == nil {
-				entrySizeText = strconv.Itoa(len(files))
-			}
-		}
-
+		entrySizeText, _ := EntrySize(entryFullPath)
 		tview.Print(screen, "[:bold]"+extraStyle+entrySizeText, x, y+i, w-1, tview.AlignRight, color)
 	}
 }
