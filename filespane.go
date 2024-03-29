@@ -133,13 +133,14 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			color = tcell.ColorGray
 		}
 
+		spaceForSelected := ""
 		extraStyle := ""
 		if i == fp.selectedEntry {
 			extraStyle = "[::r]" // Flip foreground and background
 		}
 
 		if slices.Contains(*fp.selected, entryFullPath) {
-			extraStyle = " " + extraStyle
+			spaceForSelected = " "
 			color = tcell.ColorYellow
 		}
 
@@ -152,7 +153,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			color = tcell.NewRGBColor(r/int32(dimAmount), g/int32(dimAmount), b/int32(dimAmount))
 		}
 
-		tview.Print(screen, "[:bold]"+extraStyle+" "+entry.Name()+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)
+		tview.Print(screen, "[:bold]"+spaceForSelected+extraStyle+" "+entry.Name()+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)
 
 		if !fp.showEntrySizes {
 			continue
