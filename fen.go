@@ -116,7 +116,10 @@ func (fen *Fen) UpdatePanes() {
 		fen.leftPane.entries = []os.DirEntry{}
 	}
 
-	fen.historyMoment = "Set selected entry from string: " + filepath.Base(fen.sel)
+	//	fen.historyMoment = "Set selected entry from string: " + filepath.Base(fen.sel)
+	username, groupname, _ := FileUserAndGroupName(fen.sel)
+	fen.historyMoment = "Owner:" + username + " Group:" + groupname
+
 	fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel))
 
 	// FIXME: Generic bounds checking across all panes in this function
