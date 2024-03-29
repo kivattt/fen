@@ -426,7 +426,11 @@ func main() {
 
 					fen.selected = []string{}
 
+					// FIXME: CURSED
+					// We need to update the middlePane entries for GoDown() and GoUp() to work properly, atleast when deleting the bottom entry
+					fen.middlePane.SetEntries(fen.wd)
 					fen.GoDown()
+					fen.GoUp()
 					fen.UpdatePanes()
 				})
 
