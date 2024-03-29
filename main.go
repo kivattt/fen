@@ -41,7 +41,8 @@ func main() {
 
 	if *h {
 		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTION] [PATH]")
-		fmt.Println("Terminal file manager\n")
+		fmt.Println("Terminal file manager")
+		fmt.Println()
 		getopt.PrintDefaults()
 		os.Exit(0)
 	}
