@@ -47,13 +47,13 @@ func (fen *Fen) Init(workingDirectory string) error {
 
 	fen.topPane = NewBar(&fen.wd)
 
-	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles)
-	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles)
-	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles)
+	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles, false)
+	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles, true)
+	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.showHiddenFiles, false)
 
-	fen.leftPane.SetBorder(true)
-	fen.middlePane.SetBorder(true)
-	fen.rightPane.SetBorder(true)
+	/*	fen.leftPane.SetBorder(true)
+		fen.middlePane.SetBorder(true)
+		fen.rightPane.SetBorder(true)*/
 
 	fen.bottomPane = NewBar(&fen.historyMoment)
 

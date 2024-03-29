@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -19,15 +20,17 @@ type FilesPane struct {
 	folder          string
 	entries         []os.DirEntry
 	selectedEntry   int
+	showEntrySizes  bool
 }
 
-func NewFilesPane(selected *[]string, yankSelected *[]string, showHiddenFiles *bool) *FilesPane {
+func NewFilesPane(selected *[]string, yankSelected *[]string, showHiddenFiles *bool, showEntrySizes bool) *FilesPane {
 	return &FilesPane{
 		Box:             tview.NewBox(),
 		selected:        selected,
 		yankSelected:    yankSelected,
 		showHiddenFiles: showHiddenFiles,
 		selectedEntry:   0,
+		showEntrySizes:  showEntrySizes,
 	}
 }
 
@@ -111,15 +114,17 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			break
 		}
 
+		entryFullPath := filepath.Join(fp.folder, entry.Name())
+		stat, statErr := os.Stat(entryFullPath)
+
 		color := tcell.ColorWhite
 
 		if entry.IsDir() {
 			color = tcell.ColorBlue
 		} else if entry.Type().IsRegular() {
-			fi, err := os.Stat(entry.Name())
-			if err == nil {
+			if statErr == nil {
 				// Executable?
-				if fi.Mode()&0111 != 0 {
+				if stat.Mode()&0111 != 0 {
 					color = tcell.NewRGBColor(0, 255, 0)
 				} else {
 					color = tcell.ColorWhite
@@ -134,13 +139,13 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			extraStyle = "[::r]" // Flip foreground and background
 		}
 
-		if slices.Contains(*fp.selected, filepath.Join(fp.folder, entry.Name())) {
+		if slices.Contains(*fp.selected, entryFullPath) {
 			extraStyle = " " + extraStyle
 			color = tcell.ColorYellow
 		}
 
 		// Dim the entry if its in yankSelected
-		dimColor := slices.Contains(*fp.yankSelected, filepath.Join(fp.folder, entry.Name()))
+		dimColor := slices.Contains(*fp.yankSelected, entryFullPath)
 
 		if dimColor {
 			r, g, b := color.RGB()
@@ -149,5 +154,25 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		}
 
 		tview.Print(screen, "[:bold]"+extraStyle+" "+entry.Name()+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)
+
+		if !fp.showEntrySizes {
+			continue
+		}
+
+		entrySizeText := ""
+		if statErr != nil {
+			continue
+		}
+
+		if !stat.IsDir() {
+			entrySizeText = strconv.FormatInt(stat.Size(), 10) + " B"
+		} else {
+			files, err := os.ReadDir(entryFullPath)
+			if err == nil {
+				entrySizeText = strconv.Itoa(len(files))
+			}
+		}
+
+		tview.Print(screen, "[:bold]"+extraStyle+entrySizeText, x, y+i, w-1, tview.AlignRight, color)
 	}
 }

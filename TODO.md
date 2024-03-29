@@ -10,3 +10,4 @@
 - Fix `history_test.go` for Windows paths
 - Fix green color for all executables (the current bitmask check doesn't work for everything)
 - Fix invisibility near root dir
+- Caching stuff (maybe only re-dirlist for left/right)
