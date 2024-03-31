@@ -1,9 +1,7 @@
 package main
 
 import (
-	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -215,17 +213,7 @@ func (fen *Fen) GoRight(app *tview.Application) {
 	}
 
 	if !fi.IsDir() {
-		cmd := exec.Command("nvim", fen.sel)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		app.Suspend(func() {
-			if err := cmd.Run(); err != nil {
-				log.Fatal(err)
-			}
-		})
-
+		OpenFile(fen.sel, app)
 		return
 	}
 
