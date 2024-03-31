@@ -9,9 +9,12 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/rivo/tview"
 )
+
+// TODO: Maybe make these file functions take a fs.FileInfo from a previously done os.Stat()
 
 func EntrySize(path string, ignoreHiddenFiles bool) (string, error) {
 	stat, err := os.Stat(path)
@@ -71,6 +74,35 @@ func FileUserAndGroupName(path string) (string, string, error) {
 	}
 
 	return usernameStr, groupnameStr, nil
+}
+
+func FilePermissionsString(path string) (string, error) {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return "", err
+	}
+
+	var ret strings.Builder
+
+	permissionChars := "xwr"
+	for i := 8; i >= 0; i-- {
+		if stat.Mode()>>i&1 == 1 {
+			ret.WriteByte(permissionChars[i%3])
+		} else {
+			ret.WriteByte('-')
+		}
+	}
+
+	return ret.String(), nil
+}
+
+func FileLastModifiedString(path string) (string, error) {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return "", err
+	}
+
+	return stat.ModTime().Format(time.UnixDate), nil
 }
 
 func OpenFile(path string, app *tview.Application) {

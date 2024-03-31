@@ -116,7 +116,9 @@ func (fen *Fen) UpdatePanes() {
 
 	//	fen.historyMoment = "Set selected entry from string: " + filepath.Base(fen.sel)
 	username, groupname, _ := FileUserAndGroupName(fen.sel)
-	fen.historyMoment = username + ":" + groupname
+	filePermissions, _ := FilePermissionsString(fen.sel)
+	fileLastModified, _ := FileLastModifiedString(fen.sel)
+	fen.historyMoment = "[aqua:]" + filePermissions + " [green:]" + username + ":" + groupname + " [white:]" + fileLastModified
 
 	fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel))
 
