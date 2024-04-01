@@ -159,7 +159,10 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			continue
 		}
 
-		entrySizeText, _ := EntrySize(entryFullPath, *fp.dontShowHiddenFiles)
+		entrySizeText, err := EntrySize(entryFullPath, *fp.dontShowHiddenFiles)
+		if err != nil {
+			entrySizeText = "?"
+		}
 		tview.Print(screen, "[:bold]"+extraStyle+entrySizeText, x, y+i, w-1, tview.AlignRight, color)
 	}
 }
