@@ -126,7 +126,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				if stat.Mode()&0111 != 0 {
 					color = tcell.NewRGBColor(0, 255, 0)
 				} else {
-					color = tcell.ColorWhite
+					color = FileColor(entry.Name())
 				}
 			}
 		} else {

@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -121,6 +122,67 @@ func FileLastModifiedString(path string) (string, error) {
 	return stat.ModTime().Format(time.UnixDate), nil
 }
 
+func HasSuffixFromList(str string, list []string) bool {
+	for _, e := range list {
+		if strings.HasSuffix(str, e) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func FileColor(path string) tcell.Color {
+	imageTypes := []string{
+		".png",
+		".jpg",
+		".jpeg",
+		".jfif",
+		".flif",
+		".tiff",
+		".gif",
+		".webp",
+		".bmp",
+	}
+
+	videoTypes := []string{
+		".mp4",
+		".webm",
+		".mkv",
+		".mov",
+		".avi",
+		".flv",
+	}
+
+	archiveTypes := []string{
+		".zip",
+		".jar",
+
+		// https://en.wikipedia.org/wiki/Tar_(computing)
+		".tar.bz2", ".tb2", ".tbz", ".tbz2", ".tz2",
+		".tar.gz", ".taz", ".tgz",
+		".tar.lz",
+		".tar.lzma", ".tlz",
+		".tar.lzo",
+		".tar.xz", ".tZ", ".taZ",
+		".tar.zst", ".tzst",
+	}
+
+	if HasSuffixFromList(path, imageTypes) {
+		return tcell.ColorYellow
+	}
+
+	if HasSuffixFromList(path, videoTypes) {
+		return tcell.ColorPurple
+	}
+
+	if HasSuffixFromList(path, archiveTypes) {
+		return tcell.ColorRed
+	}
+
+	return tcell.ColorDefault
+}
+
 func OpenFile(path string, app *tview.Application) {
 	suffixProgramMap := map[string]string{
 		".mp4":  "mpv",
@@ -138,7 +200,8 @@ func OpenFile(path string, app *tview.Application) {
 		".flif": "feh",
 		".tiff": "feh",
 		".gif":  "feh",
-		".webp": "feh",*/
+		".webp": "feh",
+		".bmp": "feh",*/
 	}
 
 	programFallBacks := []string{"nvim", "vim", "vi", "nano"}
