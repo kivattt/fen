@@ -43,7 +43,8 @@ func (fen *Fen) Init(workingDirectory string) error {
 
 	fen.wd = workingDirectory
 
-	fen.topPane = NewBar(&fen.wd)
+	fen.topPane = NewBar(&fen.sel)
+	fen.topPane.isTopBar = true
 
 	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, false)
 	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, true)

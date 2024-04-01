@@ -103,7 +103,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 	x, y, w, h := fp.GetInnerRect()
 
-	if len(fp.entries) <= 0 {
+	if len(fp.entries) <= 0 && fp.folder != "/" {
 		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
 		return
 	}

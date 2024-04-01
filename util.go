@@ -14,6 +14,22 @@ import (
 	"github.com/rivo/tview"
 )
 
+func PathWithEndSeparator(path string) string {
+	if strings.HasSuffix(path, string(os.PathSeparator)) {
+		return path
+	}
+
+	return path + string(os.PathSeparator)
+}
+
+func PathWithoutEndSeparator(path string) string {
+	if strings.HasSuffix(path, string(os.PathSeparator)) {
+		return path[:len(path)-1] // os.PathSeparator is a rune, so always 1 character long
+	}
+
+	return path
+}
+
 // TODO: Maybe make these file functions take a fs.FileInfo from a previously done os.Stat()
 
 func EntrySize(path string, ignoreHiddenFiles bool) (string, error) {
