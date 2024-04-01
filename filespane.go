@@ -108,7 +108,16 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		return
 	}
 
-	for i, entry := range fp.entries {
+	scrollOffset := 0
+	if fp.selectedEntry > h/2 {
+		scrollOffset = fp.selectedEntry - h/2
+	}
+
+	if scrollOffset >= len(fp.entries) {
+		scrollOffset = max(0, len(fp.entries)-1)
+	}
+
+	for i, entry := range fp.entries[scrollOffset:] {
 		if i >= h {
 			break
 		}
@@ -135,7 +144,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		spaceForSelected := ""
 		extraStyle := ""
-		if i == fp.selectedEntry {
+		if i+scrollOffset == fp.selectedEntry {
 			extraStyle = "[::r]" // Flip foreground and background
 		}
 

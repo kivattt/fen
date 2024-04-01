@@ -444,6 +444,6 @@ func main() {
 	})
 
 	if err := app.SetRoot(pages, true).EnableMouse(true).Run(); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
