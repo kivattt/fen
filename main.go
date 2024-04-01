@@ -130,7 +130,7 @@ func main() {
 				fen.history.AddToHistory(fen.sel)
 			}
 
-			fen.historyMoment = fen.sel
+			fen.bottomBarText = fen.sel
 			fen.UpdatePanes()
 			return nil, action
 		}
@@ -159,7 +159,7 @@ func main() {
 			fen.GoDown()
 		} else if event.Rune() == ' ' {
 			fen.ToggleSelection(fen.sel)
-			fen.historyMoment = strings.Join(fen.selected, ", ")
+			fen.bottomBarText = strings.Join(fen.selected, ", ")
 			fen.GoDown()
 		} else if event.Key() == tcell.KeyHome || event.Rune() == 'g' {
 			fen.GoTop()
@@ -176,7 +176,7 @@ func main() {
 				fen.history.AddToHistory(fen.sel)
 			}
 
-			fen.historyMoment = fen.sel
+			fen.bottomBarText = fen.sel
 			fen.UpdatePanes()
 			return nil
 		}
@@ -190,7 +190,7 @@ func main() {
 		} else if event.Rune() == 'D' {
 			fen.selected = []string{}
 			fen.yankSelected = []string{}
-			fen.historyMoment = "Deselected and un-yanked!"
+			fen.bottomBarText = "Deselected and un-yanked!"
 			fen.DisableSelectingWithV()
 			return nil
 		} else if event.Rune() == 'a' {
@@ -226,7 +226,7 @@ func main() {
 					fen.sel = newPath
 
 					fen.UpdatePanes()
-					//fen.historyMoment = fen.sel
+					//fen.bottomBarText = fen.sel
 
 					pages.RemovePage("inputfield")
 					return
@@ -288,12 +288,12 @@ func main() {
 			} else {
 				fen.yankSelected = fen.selected
 			}
-			fen.historyMoment = "Yank!"
+			fen.bottomBarText = "Yank!"
 			return nil
 		} else if event.Rune() == 'd' {
 			fen.yankType = "cut"
 			fen.yankSelected = fen.selected
-			fen.historyMoment = "Cut!"
+			fen.bottomBarText = "Cut!"
 			return nil
 		} else if event.Rune() == 'z' {
 			fen.dontShowHiddenFiles = !fen.dontShowHiddenFiles
@@ -303,7 +303,7 @@ func main() {
 			return nil
 		} else if event.Rune() == 'p' {
 			if len(fen.yankSelected) <= 0 {
-				fen.historyMoment = "Nothing to paste..."
+				fen.bottomBarText = "Nothing to paste..."
 				return nil
 			}
 
@@ -319,10 +319,10 @@ func main() {
 						err := os.Mkdir(newPath, 0755)
 						if err != nil {
 							// TODO: We need an error log we can scroll through
-							fen.historyMoment = newPath
+							fen.bottomBarText = newPath
 						}
-						//						fen.historyMoment = fen.sel
-						fen.historyMoment = fen.wd
+						//						fen.bottomBarText = fen.sel
+						fen.bottomBarText = fen.wd
 
 						err = dirCopy.Copy(e, newPath)
 					} else if fi.Mode().IsRegular() {
@@ -354,7 +354,7 @@ func main() {
 			fen.selected = []string{}
 
 			fen.UpdatePanes()
-			//			fen.historyMoment = "Paste! (fen.sel = " + fen.sel + ")"
+			//			fen.bottomBarText = "Paste! (fen.sel = " + fen.sel + ")"
 
 			return nil
 		} else if event.Rune() == 'V' {
@@ -407,11 +407,11 @@ func main() {
 						err := os.RemoveAll(fileToDelete)
 						if err != nil {
 							// TODO: We need an error log we can scroll through
-							fen.historyMoment = "Failed to delete!"
+							fen.bottomBarText = "Failed to delete!"
 							return
 						}
 						fen.history.RemoveFromHistory(fileToDelete)
-						fen.historyMoment = "Deleted " + fileToDelete
+						fen.bottomBarText = "Deleted " + fileToDelete
 					} else {
 						for _, filePath := range fen.selected {
 							err := os.RemoveAll(filePath)
@@ -422,7 +422,7 @@ func main() {
 							fen.history.RemoveFromHistory(filePath)
 						}
 
-						fen.historyMoment = "Deleted " + strings.Join(fen.selected, ", ")
+						fen.bottomBarText = "Deleted " + strings.Join(fen.selected, ", ")
 					}
 
 					fen.selected = []string{}

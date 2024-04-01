@@ -23,7 +23,7 @@ type Fen struct {
 	selectingWithVEndIndex       int
 	selectedBeforeSelectingWithV []string
 
-	historyMoment string
+	bottomBarText string
 
 	dontShowHiddenFiles bool
 
@@ -53,7 +53,7 @@ func (fen *Fen) Init(workingDirectory string) error {
 		fen.middlePane.SetBorder(true)
 		fen.rightPane.SetBorder(true)*/
 
-	fen.bottomPane = NewBar(&fen.historyMoment)
+	fen.bottomPane = NewBar(&fen.bottomBarText)
 
 	wdFiles, err := os.ReadDir(fen.wd)
 	// If our working directory doesn't exist, go up a parent until it does
@@ -114,11 +114,11 @@ func (fen *Fen) UpdatePanes() {
 		fen.leftPane.entries = []os.DirEntry{}
 	}
 
-	//	fen.historyMoment = "Set selected entry from string: " + filepath.Base(fen.sel)
+	//	fen.bottomBarText = "Set selected entry from string: " + filepath.Base(fen.sel)
 	username, groupname, _ := FileUserAndGroupName(fen.sel)
 	filePermissions, _ := FilePermissionsString(fen.sel)
 	fileLastModified, _ := FileLastModifiedString(fen.sel)
-	fen.historyMoment = "[aqua:]" + filePermissions + " [green:]" + username + ":" + groupname + " [white:]" + fileLastModified
+	fen.bottomBarText = "[aqua:]" + filePermissions + " [green:]" + username + ":" + groupname + " [white:]" + fileLastModified
 
 	fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel))
 
@@ -134,16 +134,16 @@ func (fen *Fen) UpdatePanes() {
 	fen.rightPane.SetEntries(fen.sel)
 
 	// DEBUG
-	//	fen.historyMoment = strings.Join(fen.history.history, ", ")
+	//	fen.bottomBarText = strings.Join(fen.history.history, ", ")
 
 	h, err := fen.history.GetHistoryEntryForPath(fen.sel, fen.dontShowHiddenFiles)
 	if err != nil {
 		//		if !fen.dontShowHiddenFiles {
 		fen.rightPane.SetSelectedEntryFromIndex(0)
 		//		}
-		//		fen.historyMoment = "BRUH"
+		//		fen.bottomBarText = "BRUH"
 	} else {
-		//	fen.historyMoment = "BRUH 2.0: " + filepath.Base(h)
+		//	fen.bottomBarText = "BRUH 2.0: " + filepath.Base(h)
 		//	if !fen.dontShowHiddenFiles {
 		fen.rightPane.SetSelectedEntryFromString(filepath.Base(h))
 		// }
