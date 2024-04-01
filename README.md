@@ -2,7 +2,12 @@
 fen is a terminal file manager based on [ranger](https://github.com/ranger/ranger)\
 **Don't use this program! It's a work-in-progress and you could end up accidentally deleting files**
 
-# Running
+# Try it out now!
+```
+go run github.com/kivattt/fen@latest
+```
+
+# Building
 ```
 go build
 ./kivaranger

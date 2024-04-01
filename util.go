@@ -169,7 +169,7 @@ func FileColor(path string) tcell.Color {
 	}
 
 	if HasSuffixFromList(path, imageTypes) {
-		return tcell.ColorYellow
+		return tcell.ColorOlive
 	}
 
 	if HasSuffixFromList(path, videoTypes) {
