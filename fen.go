@@ -287,6 +287,24 @@ func (fen *Fen) GoBottom() {
 	}
 }
 
+func (fen *Fen) PageUp() {
+	_, _, _, height := fen.middlePane.Box.GetInnerRect()
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(max(0, fen.middlePane.selectedEntry - height)))
+
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = max(0, fen.middlePane.selectedEntry - height) // Strange, but it works
+	}
+}
+
+func (fen *Fen) PageDown() {
+	_, _, _, height := fen.middlePane.Box.GetInnerRect()
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntry + height)))
+
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntry + height) // Strange, but it works
+	}
+}
+
 func (fen *Fen) UpdateSelectingWithV() {
 	if !fen.selectingWithV {
 		return

@@ -167,6 +167,10 @@ func main() {
 			fen.GoBottom()
 		} else if event.Rune() == 'M' {
 			fen.GoMiddle()
+		} else if event.Key() == tcell.KeyPgUp {
+			fen.PageUp()
+		} else if event.Key() == tcell.KeyPgDn {
+			fen.PageDown()
 		} else {
 			wasMovementKey = false
 		}
