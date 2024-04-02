@@ -157,6 +157,7 @@ func FileColor(path string) tcell.Color {
 	archiveTypes := []string{
 		".zip",
 		".jar",
+		".kra",
 
 		// https://en.wikipedia.org/wiki/Tar_(computing)
 		".tar.bz2", ".tb2", ".tbz", ".tbz2", ".tz2",
