@@ -157,9 +157,12 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		dimColor := slices.Contains(*fp.yankSelected, entryFullPath)
 
 		if dimColor {
-			r, g, b := color.RGB()
-			dimAmount := 2
-			color = tcell.NewRGBColor(r/int32(dimAmount), g/int32(dimAmount), b/int32(dimAmount))
+			// Kinda cursed to have to add on to this extraStyle variable
+			if extraStyle == "" {
+				extraStyle = "[::d]"
+			} else {
+				extraStyle = "[::rd]"
+			}
 		}
 
 		tview.Print(screen, spaceForSelected+extraStyle+" "+entry.Name()+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)
