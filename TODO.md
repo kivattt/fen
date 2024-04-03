@@ -13,3 +13,5 @@
 - Fix invisibility near root dir
 - Caching stuff (maybe only re-dirlist for left/right)
 - Util function for getting folder/file size string (sensible file size strings like 8.2M, 40B, 1.2G)
+- Custom themes by changing `tview.Styles`
+- Maybe do dimming of colors with the dim text styling in tview where its like `"[dim:]"` or something

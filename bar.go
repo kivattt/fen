@@ -16,7 +16,7 @@ type Bar struct {
 
 func NewBar(str *string) *Bar {
 	return &Bar{
-		Box: tview.NewBox(),
+		Box: tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
 		str: str,
 	}
 }

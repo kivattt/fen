@@ -24,7 +24,7 @@ type FilesPane struct {
 
 func NewFilesPane(selected *[]string, yankSelected *[]string, dontShowHiddenFiles *bool, showEntrySizes bool) *FilesPane {
 	return &FilesPane{
-		Box:                 tview.NewBox(),
+		Box:                 tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
 		selected:            selected,
 		yankSelected:        yankSelected,
 		dontShowHiddenFiles: dontShowHiddenFiles,
@@ -104,7 +104,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	x, y, w, h := fp.GetInnerRect()
 
 	if len(fp.entries) <= 0 && fp.folder != "/" {
-		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
+		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorWhite)
 		return
 	}
 

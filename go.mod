@@ -6,7 +6,7 @@ require (
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/kivattt/getopt v0.0.0-20240327140735-6c39468cff24
 	github.com/otiai10/copy v1.14.0
-	github.com/rivo/tview v0.0.0-20240307173318-e804876934a1
+	github.com/rivo/tview v0.0.0-20240402201323-fec4f00cf099
 )
 
 require (
