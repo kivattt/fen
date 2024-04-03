@@ -1,11 +1,11 @@
 - Confirmation [modal](https://github.com/rivo/tview/blob/master/demos/modal/main.go)
 - Cut support
-- Actual scrolling, so large folders don't end up outside the screen
+- Better scrolling
 - Commands like :mkdir etc.
-- More rules for when "empty" shows up, not at / and not twice at the right
+- Don't show "empty" twice on the right, aka when fen.sel is a file
 - Disallow recursive copies or whatever
 - Add an underscore for duplicate pasting
-- Vim/ranger stuff like `5<space>` selecting 5 files, or `5j` going down 5
+- (Maybe...) Vim/ranger stuff like `5<space>` selecting 5 files, or `5j` going down 5
 - Remove being able to delete while mid and right pane are empty? (Going into an empty folder (mid and right pane are empty), then deleting it will set selected entry on the left pane to 0 instead of matching the GoDown() when deleting in middlePane)
 - 'n' is a little too close to 'M', maybe change it?
 - Fix `history_test.go` for Windows paths
@@ -15,3 +15,5 @@
 - Util function for getting folder/file size string (sensible file size strings like 8.2M, 40B, 1.2G)
 - Custom themes by changing `tview.Styles`
 - Maybe do dimming of colors with the dim text styling in tview where its like `"[dim:]"` or something
+- Different colors in modals
+- Fix building on Windows (syscall.Stat\_t) breaks
