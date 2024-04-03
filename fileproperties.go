@@ -16,7 +16,7 @@ type FileProperties struct {
 
 func NewFileProperties() *FileProperties {
 	return &FileProperties{
-		Box:     tview.NewBox().SetBorder(true).SetTitle("File properties"),
+		Box:     tview.NewBox().SetBorder(true).SetTitle("File properties").SetBackgroundColor(tcell.ColorDefault),
 		visible: false,
 	}
 }
