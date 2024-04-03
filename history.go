@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	//	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -42,7 +42,8 @@ func (h *History) GetHistoryEntryForPath(path string, ignoreHiddenFiles bool) (s
 			}
 
 			e = e[len(path)+1:]
-			nextSlashIdx := strings.Index(e, "/")
+//			nextSlashIdx := strings.Index(e, "/")
+			nextSlashIdx := strings.Index(e, string(os.PathSeparator))
 			if nextSlashIdx == -1 {
 				return filepath.Join(path, e), nil
 			}
