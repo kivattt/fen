@@ -121,11 +121,11 @@ func (fen *Fen) UpdatePanes() {
 	username, groupname, err := FileUserAndGroupName(fen.sel)
 	fileOwners := "[green:]"
 	if err == nil {
-		fileOwners += " " + username + ":" + groupname + " "
+		fileOwners += " " + username + ":" + groupname
 	}
 	filePermissions, _ := FilePermissionsString(fen.sel)
 	fileLastModified, _ := FileLastModifiedString(fen.sel)
-	fen.bottomBarText = "[aqua:]" + filePermissions + fileOwners + "[white:]" + fileLastModified
+	fen.bottomBarText = "[aqua:]" + filePermissions + fileOwners + " [white:]" + fileLastModified
 
 	fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel))
 
