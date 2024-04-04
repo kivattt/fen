@@ -25,7 +25,7 @@ func (fileProperties *FileProperties) SetTable(table map[string]string) {
 	fileProperties.table = table
 
 	fileProperties.tableKeysOrdered = []string{}
-	for k, _ := range fileProperties.table {
+	for k := range fileProperties.table {
 		fileProperties.tableKeysOrdered = append(fileProperties.tableKeysOrdered, k)
 	}
 

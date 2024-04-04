@@ -23,7 +23,8 @@ func NewBar(str *string) *Bar {
 
 func (bar *Bar) Draw(screen tcell.Screen) {
 	if !bar.isTopBar {
-		bar.Box.SetBackgroundColor(tcell.ColorBlack)
+		//		bar.Box.SetBackgroundColor(tcell.ColorBlack)
+		bar.Box.SetBackgroundColor(tcell.ColorGray)
 	}
 	bar.Box.DrawForSubclass(screen, bar)
 

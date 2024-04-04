@@ -59,7 +59,7 @@ func (fen *Fen) Init(workingDirectory string) error {
 	wdFiles, err := os.ReadDir(fen.wd)
 	// If our working directory doesn't exist, go up a parent until it does
 	for err != nil {
-//		if fen.wd == "/" || filepath.Dir(fen.wd) == fen.wd {
+		//		if fen.wd == "/" || filepath.Dir(fen.wd) == fen.wd {
 		if filepath.Dir(fen.wd) == fen.wd {
 			return err
 		}
@@ -110,7 +110,7 @@ func (fen *Fen) UpdatePanes() {
 	fen.leftPane.SetEntries(filepath.Dir(fen.wd))
 	fen.middlePane.SetEntries(fen.wd)
 
-//	if fen.wd != "/" {
+	//	if fen.wd != "/" {
 	if fen.wd != filepath.Dir(fen.wd) {
 		fen.leftPane.SetSelectedEntryFromString(filepath.Base(fen.wd))
 	} else {
@@ -291,19 +291,19 @@ func (fen *Fen) GoBottom() {
 
 func (fen *Fen) PageUp() {
 	_, _, _, height := fen.middlePane.Box.GetInnerRect()
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(max(0, fen.middlePane.selectedEntry - height)))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(max(0, fen.middlePane.selectedEntry-height)))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = max(0, fen.middlePane.selectedEntry - height) // Strange, but it works
+		fen.selectingWithVEndIndex = max(0, fen.middlePane.selectedEntry-height) // Strange, but it works
 	}
 }
 
 func (fen *Fen) PageDown() {
 	_, _, _, height := fen.middlePane.Box.GetInnerRect()
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntry + height)))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntry+height)))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntry + height) // Strange, but it works
+		fen.selectingWithVEndIndex = min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntry+height) // Strange, but it works
 	}
 }
 
