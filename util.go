@@ -135,16 +135,50 @@ func FileColor(path string) tcell.Color {
 		".tar.zst", ".tzst",
 	}
 
+	audioTypes := []string{
+		".wav",
+		".flac",
+		".mp3",
+		".ogg",
+		".m4a",
+	}
+
+	codeTypes := []string{
+		".go",
+		".cpp",
+		".cxx",
+		".hpp",
+		".hxx",
+		".h",
+		".c",
+		".cc",
+		".py",
+		".sh",
+		".bash",
+		".js",
+		".jsx",
+		".ts",
+		".tsx",
+		".rs",
+		".lua",
+		".vim",
+		".java",
+	}
+
 	if HasSuffixFromList(path, imageTypes) {
 		return tcell.ColorOlive
 	}
 
-	if HasSuffixFromList(path, videoTypes) {
+	if HasSuffixFromList(path, videoTypes) || HasSuffixFromList(path, codeTypes) {
 		return tcell.ColorPurple
 	}
 
 	if HasSuffixFromList(path, archiveTypes) {
 		return tcell.ColorRed
+	}
+
+	if HasSuffixFromList(path, audioTypes) {
+		return tcell.ColorPink
 	}
 
 	return tcell.ColorDefault

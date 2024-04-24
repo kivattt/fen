@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -19,8 +20,17 @@ import (
 )
 
 func main() {
+	user, err := user.Current()
+	if err != nil {
+		log.Fatal("Failed to get current user, error: " + err.Error())
+	}
+	// FIXME: Actually go through the choices if one previous fails
+	configFilenamePrecedence := []string{filepath.Join(user.HomeDir, "/.config/fen/fenrc"), "/etc/fen/fenrc"}
+
 	v := flag.Bool("version", false, "output version information and exit")
 	h := flag.Bool("help", false, "display this help and exit")
+	noWrite := flag.Bool("no-write", false, "safe mode, no file write operations will be performed")
+	configFilename := flag.String("config", configFilenamePrecedence[0], "use configuration file")
 
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)
@@ -29,7 +39,7 @@ func main() {
 		"h", "help",
 	)
 
-	err := getopt.CommandLine.Parse(os.Args[1:])
+	err = getopt.CommandLine.Parse(os.Args[1:])
 	if err != nil {
 		os.Exit(0)
 	}
@@ -70,6 +80,9 @@ func main() {
 	}
 
 	var fen Fen
+	err = fen.ReadConfig(*configFilename)
+	fen.noWrite = fen.noWrite || *noWrite // Command-line flag is higher priority than config
+
 	err = fen.Init(workingDirectory)
 	if err != nil {
 		log.Fatal(err)
@@ -139,7 +152,7 @@ func main() {
 	})
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if pages.HasPage("modal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") {
 			return event
 		}
 
@@ -167,6 +180,10 @@ func main() {
 			fen.GoBottom()
 		} else if event.Rune() == 'M' {
 			fen.GoMiddle()
+		} else if event.Rune() == 'H' {
+			fen.GoTopScreen()
+		} else if event.Rune() == 'L' {
+			fen.GoBottomScreen()
 		} else if event.Key() == tcell.KeyPgUp {
 			fen.PageUp()
 		} else if event.Key() == tcell.KeyPgDn {
@@ -185,7 +202,37 @@ func main() {
 			return nil
 		}
 
-		if event.Rune() == 'A' {
+		if event.Rune() == '/' {
+			flex.RemoveItem(fen.bottomPane)
+			inputField := tview.NewInputField().
+				SetLabel("/").
+				SetPlaceholder("<search>")
+
+			inputField.SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
+				return lastChar != '/' // FIXME: Hack to prevent the slash appearing in the search inputfield by just disallowing them
+			})
+
+			inputField.
+				SetDoneFunc(func(key tcell.Key) {
+					pages.RemovePage("searchbox")
+					flex.AddItem(fen.bottomPane, 1, 0, false)
+					err := fen.GoSearchFirstMatch(inputField.GetText())
+					if err != nil {
+						// FIXME: We need a log window or something
+						fen.bottomBarText = "Nothing found"
+					} else {
+						// Same code as the wasMovementKey check
+						fen.history.AddToHistory(fen.sel)
+						fen.bottomBarText = fen.sel
+						fen.UpdatePanes()
+					}
+				})
+
+			pages.AddPage("searchbox", inputField, true, true)
+			/*flex.AddItem(inputField, 1, 0, false)
+			app.SetFocus(inputField)
+			app.SetInputCapture(nil)*/
+		} else if event.Rune() == 'A' {
 			for _, e := range fen.middlePane.entries {
 				fen.ToggleSelection(filepath.Join(fen.wd, e.Name()))
 			}
@@ -221,16 +268,18 @@ func main() {
 					pages.RemovePage("inputfield")
 					return
 				} else if key == tcell.KeyEnter {
-					newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
-					os.Rename(fileToRename, newPath)
+					if !fen.noWrite {
+						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
+						os.Rename(fileToRename, newPath)
 
-					fen.RemoveFromSelectedAndYankSelected(fileToRename)
-					fen.history.RemoveFromHistory(fileToRename)
-					fen.history.AddToHistory(newPath)
-					fen.sel = newPath
+						fen.RemoveFromSelectedAndYankSelected(fileToRename)
+						fen.history.RemoveFromHistory(fileToRename)
+						fen.history.AddToHistory(newPath)
+						fen.sel = newPath
 
-					fen.UpdatePanes()
-					//fen.bottomBarText = fen.sel
+						fen.UpdatePanes()
+						//fen.bottomBarText = fen.sel
+					}
 
 					pages.RemovePage("inputfield")
 					return
@@ -238,6 +287,8 @@ func main() {
 			})
 
 			inputField.SetBorder(true)
+			inputField.SetBorderColor(tcell.ColorDefault)
+			inputField.SetTitleColor(tcell.ColorDefault)
 
 			pages.AddPage("inputfield", modal(inputField, 58, 3), true, true)
 			app.SetFocus(inputField)
@@ -257,6 +308,9 @@ func main() {
 				SetLabel("Name: ").
 				SetFieldWidth(45)
 
+			inputField.SetBorderColor(tcell.ColorDefault)
+			inputField.SetTitleColor(tcell.ColorDefault)
+
 			if event.Rune() == 'n' {
 				inputField.SetTitle("New file: ")
 			} else if event.Rune() == 'N' {
@@ -268,12 +322,14 @@ func main() {
 					pages.RemovePage("newfilemodal")
 					return
 				} else if key == tcell.KeyEnter {
-					if event.Rune() == 'n' {
-						os.Create(filepath.Join(fen.wd, inputField.GetText()))
-					} else if event.Rune() == 'N' {
-						os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0755)
+					if !fen.noWrite {
+						if event.Rune() == 'n' {
+							os.Create(filepath.Join(fen.wd, inputField.GetText()))
+						} else if event.Rune() == 'N' {
+							os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0755)
+						}
+						fen.UpdatePanes()
 					}
-					fen.UpdatePanes()
 
 					pages.RemovePage("newfilemodal")
 					return
@@ -307,8 +363,12 @@ func main() {
 			return nil
 		} else if event.Rune() == 'p' {
 			if len(fen.yankSelected) <= 0 {
-				fen.bottomBarText = "Nothing to paste..."
+				fen.bottomBarText = "Nothing to paste..." // TODO: We need a log we can scroll through
 				return nil
+			}
+
+			if fen.noWrite {
+				return nil // TODO: Need a msg showing nothing was done in a log (we can scroll through)
 			}
 
 			if fen.yankType == "copy" {
@@ -374,6 +434,12 @@ func main() {
 
 		if event.Key() == tcell.KeyDelete {
 			modal := tview.NewModal()
+			modal.SetBorderColor(tcell.ColorDefault)
+			modal.SetTitleColor(tcell.ColorDefault)
+			modal.SetTextColor(tcell.ColorDefault)
+			modal.SetButtonTextColor(tcell.ColorDefault)
+			modal.SetButtonBackgroundColor(tcell.ColorBlack)
+
 			modal.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
 				switch e.Rune() {
 				case 'h':
@@ -402,8 +468,12 @@ func main() {
 				AddButtons([]string{"Yes", "No"}).
 				SetFocus(1). // Default is "No"
 				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-					pages.RemovePage("modal")
+					pages.RemovePage("deletemodal")
 					if buttonLabel != "Yes" {
+						return
+					}
+
+					if fen.noWrite {
 						return
 					}
 
@@ -439,7 +509,7 @@ func main() {
 					fen.UpdatePanes()
 				})
 
-			pages.AddPage("modal", modal, true, true)
+			pages.AddPage("deletemodal", modal, true, true)
 			app.SetFocus(modal)
 			return nil
 		}

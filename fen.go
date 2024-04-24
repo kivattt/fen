@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/rivo/tview"
 )
@@ -26,6 +29,8 @@ type Fen struct {
 	bottomBarText string
 
 	dontShowHiddenFiles bool
+	guiBorders          bool
+	noWrite             bool
 
 	topPane    *Bar
 	leftPane   *FilesPane
@@ -43,18 +48,20 @@ func (fen *Fen) Init(workingDirectory string) error {
 
 	fen.wd = workingDirectory
 
-	fen.topPane = NewBar(&fen.sel)
+	fen.topPane = NewBar(&fen.sel, &fen.noWrite)
 	fen.topPane.isTopBar = true
 
 	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, false)
 	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, true)
 	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, false)
 
-	/*	fen.leftPane.SetBorder(true)
+	if fen.guiBorders {
+		fen.leftPane.SetBorder(true)
 		fen.middlePane.SetBorder(true)
-		fen.rightPane.SetBorder(true)*/
+		fen.rightPane.SetBorder(true)
+	}
 
-	fen.bottomPane = NewBar(&fen.bottomBarText)
+	fen.bottomPane = NewBar(&fen.bottomBarText, &fen.noWrite)
 
 	wdFiles, err := os.ReadDir(fen.wd)
 	// If our working directory doesn't exist, go up a parent until it does
@@ -76,6 +83,45 @@ func (fen *Fen) Init(workingDirectory string) error {
 	fen.UpdatePanes()
 
 	return err
+}
+
+func (fen *Fen) ReadConfig(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	lineNumber := 0
+	for scanner.Scan() {
+		lineNumber++
+
+		line := strings.Trim(scanner.Text(), " \t")
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		separatorIndex := strings.Index(line, ":")
+		if separatorIndex == -1 {
+			continue
+		}
+
+		key := line[:separatorIndex]
+		value := strings.ToLower(strings.Trim(line[separatorIndex+1:], " \t"))
+
+		if !(value == "yes" || value == "no") {
+			return errors.New("Boolean flag '" + key + "' was not \"yes\" or \"no\", but \"" + value + "\"")
+		}
+
+		if key == "gui-borders" {
+			fen.guiBorders = value == "yes"
+		} else if key == "no-write" {
+			fen.noWrite = value == "yes"
+		}
+	}
+
+	return nil
 }
 
 func (fen *Fen) ToggleSelectingWithV() {
@@ -119,9 +165,9 @@ func (fen *Fen) UpdatePanes() {
 
 	//	fen.bottomBarText = "Set selected entry from string: " + filepath.Base(fen.sel)
 	username, groupname, err := FileUserAndGroupName(fen.sel)
-	fileOwners := "[green:]"
+	fileOwners := ""
 	if err == nil {
-		fileOwners += " " + username + ":" + groupname
+		fileOwners = " " + UsernameWithColor(username) + ":" + GroupnameWithColor(groupname)
 	}
 	filePermissions, _ := FilePermissionsString(fen.sel)
 	fileLastModified, _ := FileLastModifiedString(fen.sel)
@@ -293,6 +339,22 @@ func (fen *Fen) GoBottom() {
 	}
 }
 
+func (fen *Fen) GoTopScreen() {
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.GetTopScreenEntryIndex()))
+
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = fen.middlePane.GetTopScreenEntryIndex() // Strange, but it works
+	}
+}
+
+func (fen *Fen) GoBottomScreen() {
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.GetBottomScreenEntryIndex()))
+
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = fen.middlePane.GetBottomScreenEntryIndex() // Strange, but it works
+	}
+}
+
 func (fen *Fen) PageUp() {
 	_, _, _, height := fen.middlePane.Box.GetInnerRect()
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(max(0, fen.middlePane.selectedEntry-height)))
@@ -309,6 +371,22 @@ func (fen *Fen) PageDown() {
 	if fen.selectingWithV {
 		fen.selectingWithVEndIndex = min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntry+height) // Strange, but it works
 	}
+}
+
+func (fen *Fen) GoSearchFirstMatch(searchTerm string) error {
+	for _, e := range fen.middlePane.entries {
+		if strings.Contains(strings.ToLower(e.Name()), strings.ToLower(searchTerm)) {
+			//			fen.middlePane.SetSelectedEntryFromString(e.Name())
+			fen.sel = filepath.Join(fen.wd, e.Name())
+			fen.selectingWithVEndIndex = fen.middlePane.GetSelectedIndexFromEntry(e.Name())
+			/*			if fen.selectingWithV {
+						fen.selectingWithVEndIndex = fen.middlePane.
+					}*/
+			return nil
+		}
+	}
+
+	return errors.New("Nothing found")
 }
 
 func (fen *Fen) UpdateSelectingWithV() {

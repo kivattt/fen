@@ -16,4 +16,4 @@
 - Custom themes by changing `tview.Styles`
 - Maybe do dimming of colors with the dim text styling in tview where its like `"[dim:]"` or something
 - Different colors in modals
-- Fix building on Windows (syscall.Stat\_t) breaks
+- `H` and `L` controls feel weird because the screen scrolls in a specific way instead of just setting the cursor to the bottom of the screen like the behaviour in vim

@@ -98,6 +98,42 @@ func (fp *FilesPane) GetSelectedPathFromIndex(index int) string {
 	return filepath.Join(fp.folder, fp.GetSelectedEntryFromIndex(index))
 }
 
+// Returns -1 if nothing was found
+func (fp *FilesPane) GetSelectedIndexFromEntry(entryName string) int {
+	for i, entry := range fp.entries {
+		if entry.Name() == entryName {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// Used as scroll offset aswell
+func (fp *FilesPane) GetTopScreenEntryIndex() int {
+	_, _, _, h := fp.GetInnerRect()
+	topScreenEntryIndex := 0
+	if fp.selectedEntry > h/2 {
+		topScreenEntryIndex = fp.selectedEntry - h/2
+	}
+
+	if topScreenEntryIndex >= len(fp.entries) {
+		topScreenEntryIndex = max(0, len(fp.entries)-1)
+	}
+
+	return topScreenEntryIndex
+}
+
+func (fp *FilesPane) GetBottomScreenEntryIndex() int {
+	_, _, _, h := fp.GetInnerRect()
+	bottomScreenEntryIndex := fp.GetTopScreenEntryIndex() + h - 1
+	if bottomScreenEntryIndex >= len(fp.entries) {
+		bottomScreenEntryIndex = max(0, len(fp.entries)-1)
+	}
+
+	return bottomScreenEntryIndex
+}
+
 func (fp *FilesPane) Draw(screen tcell.Screen) {
 	fp.Box.DrawForSubclass(screen, fp)
 
@@ -105,18 +141,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 	//	if len(fp.entries) <= 0 && fp.folder != "/" {
 	if len(fp.entries) <= 0 && fp.folder != filepath.Dir(fp.folder) {
-		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorWhite)
+		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
 		return
 	}
 
-	scrollOffset := 0
-	if fp.selectedEntry > h/2 {
-		scrollOffset = fp.selectedEntry - h/2
-	}
-
-	if scrollOffset >= len(fp.entries) {
-		scrollOffset = max(0, len(fp.entries)-1)
-	}
+	scrollOffset := fp.GetTopScreenEntryIndex()
 
 	for i, entry := range fp.entries[scrollOffset:] {
 		if i >= h {
@@ -176,6 +205,6 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		if err != nil {
 			entrySizeText = "?"
 		}
-		tview.Print(screen, extraStyle+entrySizeText, x, y+i, w-1, tview.AlignRight, color)
+		tview.Print(screen, extraStyle+entrySizeText+" ", x, y+i, w-1, tview.AlignRight, color)
 	}
 }

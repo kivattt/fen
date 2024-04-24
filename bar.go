@@ -12,19 +12,22 @@ type Bar struct {
 	*tview.Box
 	str      *string
 	isTopBar bool // For making the filepath base a different color
+	noWrite  *bool
 }
 
-func NewBar(str *string) *Bar {
+func NewBar(str *string, noWrite *bool) *Bar {
 	return &Bar{
-		Box: tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
-		str: str,
+		Box:     tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
+		str:     str,
+		noWrite: noWrite,
 	}
 }
 
 func (bar *Bar) Draw(screen tcell.Screen) {
 	if !bar.isTopBar {
-		//		bar.Box.SetBackgroundColor(tcell.ColorBlack)
-		bar.Box.SetBackgroundColor(tcell.ColorGray)
+		bar.Box.SetBackgroundColor(tcell.ColorBlack)
+		//				bar.Box.SetBackgroundColor(tcell.ColorGray)
+		//		bar.Box.SetBackgroundColor(tcell.ColorWhite)
 	}
 	bar.Box.DrawForSubclass(screen, bar)
 
@@ -36,7 +39,12 @@ func (bar *Bar) Draw(screen tcell.Screen) {
 		if user.Uid == "0" {
 			usernameColor = "[red:]"
 		}
-		text = usernameColor + user.Username + " [blue:]" + PathWithEndSeparator(filepath.Dir(text)) + "[white:]" + PathWithoutEndSeparator(filepath.Base(text))
+		text = "[::b]" + usernameColor + user.Username + " [blue::B]" + PathWithEndSeparator(filepath.Dir(text)) + "[white::b]" + PathWithoutEndSeparator(filepath.Base(text))
 	}
-	tview.Print(screen, text, x, y, w, tview.AlignLeft, tcell.ColorBlue)
+
+	noWriteEnabledText := ""
+	if !bar.isTopBar && *bar.noWrite {
+		noWriteEnabledText = " [red:]NO-WRITE ENABLED!"
+	}
+	tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
 }
