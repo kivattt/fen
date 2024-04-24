@@ -21,6 +21,7 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right) \
 `L` Go to the bottom of the screen \
 `q` Quit \
 `Del` Delete file(s) \
+`/` Search file \
 ` ` Select files \
 `A` Flip selection in folder (select all files) \
 `D` Deselect all, and un-yank \
