@@ -1,9 +1,11 @@
 # fen
 fen is a terminal file manager based on [ranger](https://github.com/ranger/ranger)
 
+![showcase](https://github.com/kivattt/fen/assets/49201105/bb633b84-750d-4965-aa0b-792f2f3635d5)
+
 # Try it out now!
 ```
-go run github.com/kivattt/fen@latest --no-write
+go run github.com/kivattt/fen@latest
 ```
 
 # Building
