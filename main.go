@@ -82,6 +82,9 @@ func main() {
 	var fen Fen
 	err = fen.ReadConfig(*configFilename)
 	fen.noWrite = fen.noWrite || *noWrite // Command-line flag is higher priority than config
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	err = fen.Init(workingDirectory)
 	if err != nil {

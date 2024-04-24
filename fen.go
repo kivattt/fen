@@ -88,7 +88,9 @@ func (fen *Fen) Init(workingDirectory string) error {
 func (fen *Fen) ReadConfig(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
-		return err
+		// We don't want to close if there is no config file
+		// This should really be checked by the caller...
+		return nil
 	}
 	defer file.Close()
 
