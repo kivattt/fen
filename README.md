@@ -9,10 +9,12 @@ go run github.com/kivattt/fen@latest --no-write
 # Building
 ```
 go build
-./kivaranger
+./fen
 ```
 
-Arrow keys, hjkl or scrollwheel to navigate (Enter goes right) \
+# Controls
+Arrow keys, hjkl or scrollwheel to navigate (Enter goes right)
+
 `Home` or `g` to go to the top \
 `End` or `G` to go to the bottom \
 `M` Go to the middle \
