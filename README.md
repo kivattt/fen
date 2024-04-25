@@ -15,7 +15,7 @@ go build
 ```
 
 # Controls
-Arrow keys, hjkl or scrollwheel to navigate (Enter goes right)
+Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
 
 `Home` or `g` to go to the top \
 `End` or `G` to go to the bottom \
