@@ -169,7 +169,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				}
 			}
 		} else {
-			color = tcell.ColorGray
+			color = tcell.ColorDarkGray
 		}
 
 		spaceForSelected := ""
