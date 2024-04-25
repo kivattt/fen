@@ -17,3 +17,4 @@
 - Maybe do dimming of colors with the dim text styling in tview where its like `"[dim:]"` or something
 - Different colors in modals
 - `H` and `L` controls feel weird because the screen scrolls in a specific way instead of just setting the cursor to the bottom of the screen like the behaviour in vim
+- Jump to file/folder created on n/N
