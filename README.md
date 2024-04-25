@@ -24,6 +24,9 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `L` Go to the bottom of the screen \
 `q` Quit \
 `Del` Delete file(s) \
+`y` Copy file(s) \
+`d` Cut file(s) \
+`p` Paste file(s) \
 `/` Search file \
 ` ` Select files \
 `A` Flip selection in folder (select all files) \

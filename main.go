@@ -360,7 +360,11 @@ func main() {
 			return nil
 		} else if event.Rune() == 'd' {
 			fen.yankType = "cut"
-			fen.yankSelected = fen.selected
+			if len(fen.selected) <= 0 {
+				fen.yankSelected = []string{fen.sel}
+			} else {
+				fen.yankSelected = fen.selected
+			}
 			fen.bottomBarText = "Cut!"
 			return nil
 		} else if event.Rune() == 'z' {
@@ -397,6 +401,10 @@ func main() {
 						fen.bottomBarText = fen.wd
 
 						err = dirCopy.Copy(e, newPath)
+						if err != nil {
+							// TODO: We need an error log we can scroll through
+							continue
+						}
 					} else if fi.Mode().IsRegular() {
 						source, err := os.Open(e)
 						if err != nil {
@@ -419,6 +427,23 @@ func main() {
 						}
 					}
 				}
+			} else if fen.yankType == "cut" {
+				for _, e := range fen.yankSelected {
+					// Just to make sure the file exists?
+					_, err := os.Stat(e)
+					if err != nil {
+						continue
+					}
+
+					newPath := filepath.Join(fen.wd, filepath.Base(e))
+					err = os.Rename(e, newPath)
+					if err != nil {
+						// TODO: We need an error log we can scroll through
+						continue
+					}
+				}
+			} else {
+				panic("yankType was not \"copy\" or \"cut\"")
 			}
 
 			// Reset selection after paste
