@@ -219,6 +219,11 @@ func main() {
 				SetDoneFunc(func(key tcell.Key) {
 					pages.RemovePage("searchbox")
 					flex.AddItem(fen.bottomPane, 1, 0, false)
+
+					if key == tcell.KeyEscape {
+						return
+					}
+
 					err := fen.GoSearchFirstMatch(inputField.GetText())
 					if err != nil {
 						// FIXME: We need a log window or something
