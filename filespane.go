@@ -163,7 +163,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			if statErr == nil {
 				// Executable?
 				if stat.Mode()&0111 != 0 {
-					color = tcell.NewRGBColor(0, 255, 0)
+					color = tcell.NewRGBColor(0, 255, 0) // Green
 				} else {
 					color = FileColor(entry.Name())
 				}

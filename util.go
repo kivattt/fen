@@ -120,6 +120,14 @@ func FileColor(path string) tcell.Color {
 		".flv",
 	}
 
+	audioTypes := []string{
+		".wav",
+		".flac",
+		".mp3",
+		".ogg",
+		".m4a",
+	}
+
 	archiveTypes := []string{
 		".zip",
 		".jar",
@@ -133,14 +141,6 @@ func FileColor(path string) tcell.Color {
 		".tar.lzo",
 		".tar.xz", ".tZ", ".taZ",
 		".tar.zst", ".tzst",
-	}
-
-	audioTypes := []string{
-		".wav",
-		".flac",
-		".mp3",
-		".ogg",
-		".m4a",
 	}
 
 	codeTypes := []string{
@@ -165,20 +165,39 @@ func FileColor(path string) tcell.Color {
 		".java",
 	}
 
-	if HasSuffixFromList(path, imageTypes) {
-		return tcell.ColorOlive
+	documentTypes := []string {
+		".md",
+		".pdf",
+		".epub",
+		".docx",
+		".doc",
+		".odg",
+		".fodg",
+		".otg",
 	}
 
-	if HasSuffixFromList(path, videoTypes) || HasSuffixFromList(path, codeTypes) {
-		return tcell.ColorPurple
+	if HasSuffixFromList(path, imageTypes) {
+		return tcell.ColorYellow
+	}
+
+	if HasSuffixFromList(path, videoTypes) {
+		return tcell.ColorHotPink
 	}
 
 	if HasSuffixFromList(path, archiveTypes) {
 		return tcell.ColorRed
 	}
 
+	if HasSuffixFromList(path, codeTypes) {
+		return tcell.ColorAqua
+	}
+
 	if HasSuffixFromList(path, audioTypes) {
-		return tcell.ColorPink
+		return tcell.ColorPurple
+	}
+
+	if HasSuffixFromList(path, documentTypes) {
+		return tcell.ColorGray
 	}
 
 	return tcell.ColorDefault
