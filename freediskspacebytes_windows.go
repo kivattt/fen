@@ -3,12 +3,16 @@
 
 package main
 
-import "golang.org/x/sys/windows"
+import (
+	"path/filepath"
+
+	"golang.org/x/sys/windows"
+)
 
 func FreeDiskSpaceBytes(path string) (uint64, error) {
 	var freeBytes uint64
 	var totalBytes uint64
 	var totalFreeBytes uint64
-	err := windows.GetDiskFreeSpaceEx(windows.StringToUTF16Ptr(path), &freeBytes, &totalBytes, &totalFreeBytes)
+	err := windows.GetDiskFreeSpaceEx(windows.StringToUTF16Ptr(filepath.Dir(path)), &freeBytes, &totalBytes, &totalFreeBytes)
 	return freeBytes, err
 }
