@@ -212,6 +212,6 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		if err != nil {
 			entrySizeText = "?"
 		}
-		tview.Print(screen, " "+extraStyle+entrySizeText+" ", x, y+i, w-1, tview.AlignRight, color)
+		tview.Print(screen, extraStyle+entrySizeText+" ", x, y+i, w-1, tview.AlignRight, color)
 	}
 }
