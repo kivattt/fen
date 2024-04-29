@@ -2,11 +2,11 @@
 fen is a terminal file manager inspired by [ranger](https://github.com/ranger/ranger)\
 Works for Linux & Windows
 
-<img src="screenshots/showcase.gif" alt="Showing deleting and creating new files" width="30%">
 <p float="left">
 <img src="screenshots/linux.png" alt="A screenshot of fen running on Linux, in the process of renaming a file" width="48%">
 <img src="screenshots/windows.png" alt="A screenshot of fen running on Windows, showing the file properties window" width="48%">
 </p>
+<img src="screenshots/showcase.gif" alt="Showing deleting and creating new files" width="80%">
 
 # Try it out now!
 ```
