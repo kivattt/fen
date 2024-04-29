@@ -46,7 +46,7 @@ func (bar *Bar) Draw(screen tcell.Screen) {
 
 	noWriteEnabledText := ""
 	if !bar.isTopBar && *bar.noWrite {
-		noWriteEnabledText = " [red:]NO-WRITE ENABLED!"
+		noWriteEnabledText = " [red::r]no-write"
 	}
 	tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
 
