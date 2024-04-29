@@ -19,6 +19,8 @@ import (
 	dirCopy "github.com/otiai10/copy"
 )
 
+const version = "v0.0.0-indev"
+
 func main() {
 	user, err := user.Current()
 	if err != nil {
@@ -45,7 +47,7 @@ func main() {
 	}
 
 	if *v {
-		fmt.Println("fen v0.0.0-indev")
+		fmt.Println("fen " + version)
 		os.Exit(0)
 	}
 
