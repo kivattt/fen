@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -245,10 +244,6 @@ func OpenFile(path string, app *tview.Application) {
 			if err == nil {
 				break
 			}
-		}
-
-		if err != nil {
-			log.Fatal(err)
 		}
 	})
 }
