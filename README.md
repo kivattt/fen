@@ -2,7 +2,7 @@
 fen is a terminal file manager inspired by [ranger](https://github.com/ranger/ranger)\
 Works for Linux & Windows
 
-![showcase](https://github.com/kivattt/fen/assets/49201105/bb633b84-750d-4965-aa0b-792f2f3635d5)
+<img src="screenshots/showcase.gif" alt="Showing deleting and creating new files" height="60%">
 
 <p float="left">
 <img src="screenshots/linux.png" alt="A screenshot of fen running on Linux, in the process of renaming a file" width="48%">
