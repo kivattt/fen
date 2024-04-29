@@ -66,7 +66,6 @@ func (fen *Fen) Init(workingDirectory string) error {
 	wdFiles, err := os.ReadDir(fen.wd)
 	// If our working directory doesn't exist, go up a parent until it does
 	for err != nil {
-		//		if fen.wd == "/" || filepath.Dir(fen.wd) == fen.wd {
 		if filepath.Dir(fen.wd) == fen.wd {
 			return err
 		}
@@ -88,7 +87,7 @@ func (fen *Fen) Init(workingDirectory string) error {
 func (fen *Fen) ReadConfig(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
-		// We don't want to close if there is no config file
+		// We don't want to exit if there is no config file
 		// This should really be checked by the caller...
 		return nil
 	}
@@ -158,14 +157,12 @@ func (fen *Fen) UpdatePanes() {
 	fen.leftPane.SetEntries(filepath.Dir(fen.wd))
 	fen.middlePane.SetEntries(fen.wd)
 
-	//	if fen.wd != "/" {
 	if fen.wd != filepath.Dir(fen.wd) {
 		fen.leftPane.SetSelectedEntryFromString(filepath.Base(fen.wd))
 	} else {
 		fen.leftPane.entries = []os.DirEntry{}
 	}
 
-	//	fen.bottomBarText = "Set selected entry from string: " + filepath.Base(fen.sel)
 	username, groupname, err := FileUserAndGroupName(fen.sel)
 	fileOwners := ""
 	if err == nil {
@@ -188,20 +185,11 @@ func (fen *Fen) UpdatePanes() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry))
 	fen.rightPane.SetEntries(fen.sel)
 
-	// DEBUG
-	//	fen.bottomBarText = strings.Join(fen.history.history, ", ")
-
 	h, err := fen.history.GetHistoryEntryForPath(fen.sel, fen.dontShowHiddenFiles)
 	if err != nil {
-		//		if !fen.dontShowHiddenFiles {
 		fen.rightPane.SetSelectedEntryFromIndex(0)
-		//		}
-		//		fen.bottomBarText = "BRUH"
 	} else {
-		//	fen.bottomBarText = "BRUH 2.0: " + filepath.Base(h)
-		//	if !fen.dontShowHiddenFiles {
 		fen.rightPane.SetSelectedEntryFromString(filepath.Base(h))
-		// }
 	}
 
 	fen.UpdateSelectingWithV()
@@ -378,12 +366,8 @@ func (fen *Fen) PageDown() {
 func (fen *Fen) GoSearchFirstMatch(searchTerm string) error {
 	for _, e := range fen.middlePane.entries {
 		if strings.Contains(strings.ToLower(e.Name()), strings.ToLower(searchTerm)) {
-			//			fen.middlePane.SetSelectedEntryFromString(e.Name())
 			fen.sel = filepath.Join(fen.wd, e.Name())
 			fen.selectingWithVEndIndex = fen.middlePane.GetSelectedIndexFromEntry(e.Name())
-			/*			if fen.selectingWithV {
-						fen.selectingWithVEndIndex = fen.middlePane.
-					}*/
 			return nil
 		}
 	}
