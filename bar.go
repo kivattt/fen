@@ -52,6 +52,12 @@ func (bar *Bar) Draw(screen tcell.Screen) {
 	tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
 
 	if !bar.isTopBar {
-		tview.Print(screen, strconv.FormatUint(FreeDiskSpaceBytes(*bar.selectedPath), 10)+" B free", x, y, w, tview.AlignRight, tcell.ColorDefault)
+		freeBytes, err := FreeDiskSpaceBytes(*bar.selectedPath)
+		freeBytesStr := strconv.FormatUint(freeBytes, 10)
+		if err != nil {
+			freeBytesStr = "?"
+		}
+		freeBytesStr += " B free"
+		tview.Print(screen, freeBytesStr, x, y, w, tview.AlignRight, tcell.ColorDefault)
 	}
 }

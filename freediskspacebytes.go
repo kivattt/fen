@@ -7,8 +7,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func FreeDiskSpaceBytes(path string) uint64 {
+func FreeDiskSpaceBytes(path string) (uint64, error) {
 	var stat unix.Statfs_t
 	unix.Statfs(path, &stat)
-	return stat.Bavail * uint64(stat.Bsize)
+	return stat.Bavail * uint64(stat.Bsize), nil
 }
