@@ -157,13 +157,16 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		color := tcell.ColorWhite
 
+		bold := false
 		if entry.IsDir() {
 			color = tcell.ColorBlue
+			bold = true
 		} else if entry.Type().IsRegular() {
 			if statErr == nil {
 				// Executable?
 				if stat.Mode()&0111 != 0 {
 					color = tcell.NewRGBColor(0, 255, 0) // Green
+					bold = true
 				} else {
 					color = FileColor(entry.Name())
 				}
@@ -193,6 +196,10 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			} else {
 				extraStyle = "[::rd]"
 			}
+		}
+
+		if bold {
+			extraStyle += "[::b]"
 		}
 
 		tview.Print(screen, spaceForSelected+extraStyle+" "+entry.Name()+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)

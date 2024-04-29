@@ -165,7 +165,7 @@ func FileColor(path string) tcell.Color {
 		".java",
 	}
 
-	documentTypes := []string {
+	documentTypes := []string{
 		".md",
 		".pdf",
 		".epub",

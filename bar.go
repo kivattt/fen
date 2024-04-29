@@ -3,6 +3,7 @@ package main
 import (
 	"os/user"
 	"path/filepath"
+	"strconv"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -10,16 +11,18 @@ import (
 
 type Bar struct {
 	*tview.Box
-	str      *string
-	isTopBar bool // For making the filepath base a different color
-	noWrite  *bool
+	str          *string
+	selectedPath *string
+	isTopBar     bool // For making the filepath base a different color
+	noWrite      *bool
 }
 
-func NewBar(str *string, noWrite *bool) *Bar {
+func NewBar(str *string, selectedPath *string, noWrite *bool) *Bar {
 	return &Bar{
-		Box:     tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
-		str:     str,
-		noWrite: noWrite,
+		Box:          tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
+		str:          str,
+		selectedPath: selectedPath,
+		noWrite:      noWrite,
 	}
 }
 
@@ -47,4 +50,8 @@ func (bar *Bar) Draw(screen tcell.Screen) {
 		noWriteEnabledText = " [red:]NO-WRITE ENABLED!"
 	}
 	tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
+
+	if !bar.isTopBar {
+		tview.Print(screen, strconv.FormatUint(FreeDiskSpaceBytes(*bar.selectedPath), 10)+" B free", x, y, w, tview.AlignRight, tcell.ColorDefault)
+	}
 }

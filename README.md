@@ -53,3 +53,4 @@ You can specify a different config file with the `--config` flag
 
 # Known issues
 - `go test` doesn't work on Windows
+- The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal

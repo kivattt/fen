@@ -37,6 +37,10 @@ func (fileProperties *FileProperties) Draw(screen tcell.Screen) {
 		return
 	}
 
+	// Always draw 1 line higher to not overlap with the bottom bar
+	rX, rY, rW, rH := fileProperties.GetRect()
+	fileProperties.Box.SetRect(rX, rY, rW, rH-1)
+
 	fileProperties.Box.DrawForSubclass(screen, fileProperties)
 
 	x, y, w, _ := fileProperties.GetInnerRect()

@@ -1,3 +1,7 @@
+## TODOs, vaguely sorted by priority
+
+- Show disk space left
+- Show folders first in filespanes
 - Confirmation [modal](https://github.com/rivo/tview/blob/master/demos/modal/main.go)
 - Cut support
 - Better scrolling

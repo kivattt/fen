@@ -48,7 +48,7 @@ func (fen *Fen) Init(workingDirectory string) error {
 
 	fen.wd = workingDirectory
 
-	fen.topPane = NewBar(&fen.sel, &fen.noWrite)
+	fen.topPane = NewBar(&fen.sel, &fen.sel, &fen.noWrite)
 	fen.topPane.isTopBar = true
 
 	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, false)
@@ -61,7 +61,7 @@ func (fen *Fen) Init(workingDirectory string) error {
 		fen.rightPane.SetBorder(true)
 	}
 
-	fen.bottomPane = NewBar(&fen.bottomBarText, &fen.noWrite)
+	fen.bottomPane = NewBar(&fen.bottomBarText, &fen.sel, &fen.noWrite)
 
 	wdFiles, err := os.ReadDir(fen.wd)
 	// If our working directory doesn't exist, go up a parent until it does
