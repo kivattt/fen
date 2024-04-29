@@ -1,10 +1,10 @@
 # fen
 fen is a terminal file manager inspired by [ranger](https://github.com/ranger/ranger)\
-Works for Linux, Mac OS, FreeBSD and Windows
+Works for Linux, macOS, FreeBSD and Windows
 
 <p float="left">
 <img src="screenshots/linux.png" alt="fen running on Linux, in the process of renaming a file" width="48%">
-<img src="screenshots/macos.png" alt="fen running on Mac OS, showing the no-write feature" width="50%">
+<img src="screenshots/macos.png" alt="fen running on macOS, showing the no-write feature" width="50%">
 <img src="screenshots/freebsd.png" alt="fen running on FreeBSD, showing the root file system" width="50%">
 <img src="screenshots/windows.png" alt="fen running on Windows, showing the file properties window" width="48%">
 </p>
