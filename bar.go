@@ -3,7 +3,6 @@ package main
 import (
 	"os/user"
 	"path/filepath"
-	"strconv"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -53,11 +52,12 @@ func (bar *Bar) Draw(screen tcell.Screen) {
 
 	if !bar.isTopBar {
 		freeBytes, err := FreeDiskSpaceBytes(*bar.selectedPath)
-		freeBytesStr := strconv.FormatUint(freeBytes, 10)
+		freeBytesStr := BytesToHumanReadableUnitString(freeBytes, 3)
 		if err != nil {
 			freeBytesStr = "?"
 		}
-		freeBytesStr += " B free"
+
+		freeBytesStr += " free"
 		tview.Print(screen, freeBytesStr, x, y, w, tview.AlignRight, tcell.ColorDefault)
 	}
 }

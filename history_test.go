@@ -1,9 +1,6 @@
 package main
 
-import (
-	//	"fmt"
-	"testing"
-)
+import "testing"
 
 func TestGetHistoryEntryForPath(t *testing.T) {
 	var h History

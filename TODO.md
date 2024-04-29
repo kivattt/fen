@@ -3,12 +3,12 @@
 - Show disk space left
 - Show folders first in filespanes
 - Confirmation [modal](https://github.com/rivo/tview/blob/master/demos/modal/main.go)
-- Cut support
 - Better scrolling
 - Commands like :mkdir etc.
 - Don't show "empty" twice on the right, aka when fen.sel is a file
 - Disallow recursive copies or whatever
 - Add an underscore for duplicate pasting
+- Copying from the terminal is annoying because of tview somehow
 - (Maybe...) Vim/ranger stuff like `5<space>` selecting 5 files, or `5j` going down 5
 - Remove being able to delete while mid and right pane are empty? (Going into an empty folder (mid and right pane are empty), then deleting it will set selected entry on the left pane to 0 instead of matching the GoDown() when deleting in middlePane)
 - 'n' is a little too close to 'M', maybe change it?

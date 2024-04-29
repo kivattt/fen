@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"os"
 	"os/exec"
 	"strconv"
@@ -10,6 +11,51 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+func trimLastDecimals(numberString string, maxDecimals int) string {
+	dotIndex := strings.Index(numberString, ".")
+	if dotIndex == -1 {
+		return numberString
+	}
+
+	return numberString[:min(len(numberString), dotIndex+maxDecimals+1)]
+}
+
+// https://en.wikipedia.org/wiki/Byte#Multiple-byte_units
+func BytesToHumanReadableUnitString(bytes uint64, maxDecimals int) string {
+	unitValues := []float64{
+		math.Pow(10, 3),
+		math.Pow(10, 6),
+		math.Pow(10, 9),
+		math.Pow(10, 12),
+		math.Pow(10, 15),
+		math.Pow(10, 18), // Largest unit that fits in 64 bits
+	}
+
+	unitStrings := []string{
+		"kB",
+		"MB",
+		"GB",
+		"TB",
+		"PB",
+		"EB",
+	}
+
+	if bytes < uint64(unitValues[0]) {
+		return strconv.FormatUint(bytes, 10) + " B"
+	}
+
+	for i, v := range unitValues {
+		if bytes >= uint64(v) {
+			continue
+		}
+
+		lastIndex := max(0, i-1)
+		return trimLastDecimals(strconv.FormatFloat(float64(bytes)/unitValues[lastIndex], 'f', -1, 64), maxDecimals) + " " + unitStrings[lastIndex]
+	}
+
+	return trimLastDecimals(strconv.FormatFloat(float64(bytes)/unitValues[len(unitValues)-1], 'f', -1, 64), maxDecimals) + " " + unitStrings[len(unitStrings)-1]
+}
 
 func PathWithEndSeparator(path string) string {
 	if strings.HasSuffix(path, string(os.PathSeparator)) {
@@ -36,7 +82,7 @@ func EntrySize(path string, ignoreHiddenFiles bool) (string, error) {
 	}
 
 	if !stat.IsDir() {
-		return strconv.FormatInt(stat.Size(), 10) + " B", nil
+		return BytesToHumanReadableUnitString(uint64(stat.Size()), 2), nil
 	} else {
 		files, err := os.ReadDir(path)
 		if err != nil {
