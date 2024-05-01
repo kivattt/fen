@@ -275,7 +275,12 @@ func OpenFile(path string, app *tview.Application) {
 		".bmp": "feh",*/
 	}
 
-	programFallBacks := []string{"nvim", "vim", "vi", "nano"}
+	programFallBacks := []string{"vim", "vi", "nano"}
+
+	editor := os.Getenv("EDITOR")
+	if editor != "" {
+		programFallBacks = append([]string{editor}, programFallBacks...)
+	}
 
 	for key, value := range suffixProgramMap {
 		if strings.HasSuffix(path, key) {
@@ -285,14 +290,13 @@ func OpenFile(path string, app *tview.Application) {
 	}
 
 	app.Suspend(func() {
-		var err error
 		for _, program := range programFallBacks {
 			cmd := exec.Command(program, path)
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 
-			err = cmd.Run()
+			err := cmd.Run()
 			if err == nil {
 				break
 			}
