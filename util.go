@@ -12,7 +12,12 @@ import (
 	"github.com/rivo/tview"
 )
 
+// Trims the last decimals up to maxDecimals, does nothing if maxDecimals is less than 0, e.g -1
 func trimLastDecimals(numberString string, maxDecimals int) string {
+	if maxDecimals < 0 {
+		return numberString
+	}
+
 	dotIndex := strings.Index(numberString, ".")
 	if dotIndex == -1 {
 		return numberString
@@ -21,6 +26,7 @@ func trimLastDecimals(numberString string, maxDecimals int) string {
 	return numberString[:min(len(numberString), dotIndex+maxDecimals+1)]
 }
 
+// If maxDecimals is less than 0, e.g -1, we show the exact size down to the byte
 // https://en.wikipedia.org/wiki/Byte#Multiple-byte_units
 func BytesToHumanReadableUnitString(bytes uint64, maxDecimals int) string {
 	unitValues := []float64{

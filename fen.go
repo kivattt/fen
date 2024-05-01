@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/rivo/tview"
@@ -194,16 +193,8 @@ func (fen *Fen) UpdatePanes() {
 
 	fen.UpdateSelectingWithV()
 
-	fi, err := os.Stat(fen.sel)
-	if err != nil {
-		return
-	}
-
 	if fen.fileProperties.visible {
-		fen.fileProperties.SetTable(map[string]string{
-			"Name": filepath.Base(fen.sel),
-			"Size": strconv.FormatInt(fi.Size(), 10) + " bytes",
-		})
+		fen.fileProperties.UpdateTable(fen.sel)
 	}
 }
 

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"sort"
+	"strconv"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -21,8 +24,20 @@ func NewFileProperties() *FileProperties {
 	}
 }
 
-func (fileProperties *FileProperties) SetTable(table map[string]string) {
-	fileProperties.table = table
+func (fileProperties *FileProperties) UpdateTable(path string) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return
+	}
+
+	fileProperties.table = map[string]string{
+		"Name": filepath.Base(path),
+	}
+
+	if fi.Mode().IsRegular() {
+		fileProperties.table["Size"] = BytesToHumanReadableUnitString(uint64(fi.Size()), -1)
+		fileProperties.table["Size (bytes)"] = strconv.FormatInt(fi.Size(), 10) + " B"
+	}
 
 	fileProperties.tableKeysOrdered = []string{}
 	for k := range fileProperties.table {
@@ -47,7 +62,7 @@ func (fileProperties *FileProperties) Draw(screen tcell.Screen) {
 
 	i := 0
 	for _, key := range fileProperties.tableKeysOrdered {
-		tview.Print(screen, key+" "+fileProperties.table[key], x, y+i, w, tview.AlignLeft, tcell.NewRGBColor(0, 255, 255))
+		tview.Print(screen, key+": "+fileProperties.table[key], x, y+i, w, tview.AlignLeft, tcell.NewRGBColor(0, 255, 255))
 		i++
 	}
 }

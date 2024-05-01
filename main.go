@@ -120,7 +120,7 @@ func main() {
 				AddItem(p, height, 1, true), width, 1, true)
 	}
 
-	pages.AddPage("fileproperties", bottomRight(fen.fileProperties, 58, 20), true, true)
+	pages.AddPage("fileproperties", bottomRight(fen.fileProperties, 64, 20), true, true)
 
 	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
 		wasMovementKey := true
@@ -369,7 +369,7 @@ func main() {
 			}
 			fen.bottomBarText = "Cut!"
 			return nil
-		} else if event.Rune() == 'z' {
+		} else if event.Rune() == 'z' || event.Key() == tcell.KeyBackspace {
 			fen.dontShowHiddenFiles = !fen.dontShowHiddenFiles
 			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
 			fen.UpdatePanes()

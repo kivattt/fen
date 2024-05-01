@@ -1,4 +1,7 @@
 # fen
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/kivattt/fen)](https://goreportcard.com/report/github.com/kivattt/fen)
+
 fen is a terminal file manager inspired by [ranger](https://github.com/ranger/ranger)\
 Works for Linux, macOS, FreeBSD and Windows
 
@@ -40,7 +43,7 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `A` Flip selection in folder (select all files) \
 `D` Deselect all, and un-yank \
 `a` Rename a file \
-`z` Toggle hidden files \
+`z or Backspace` Toggle hidden files \
 `V` Start selecting by moving \
 `n` Create a new file (touch) \
 `N` Create a new folder (mkdir) \

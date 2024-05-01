@@ -139,7 +139,6 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 	x, y, w, h := fp.GetInnerRect()
 
-	//	if len(fp.entries) <= 0 && fp.folder != "/" {
 	if len(fp.entries) <= 0 && fp.folder != filepath.Dir(fp.folder) {
 		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
 		return
@@ -212,6 +211,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		if err != nil {
 			entrySizeText = "?"
 		}
-		tview.Print(screen, extraStyle+entrySizeText+" ", x, y+i, w-1, tview.AlignRight, color)
+
+		tview.Print(screen, extraStyle+" "+entrySizeText+" ", x, y+i, w-1, tview.AlignRight, color)
 	}
 }
