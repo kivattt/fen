@@ -1,5 +1,6 @@
 ## TODOs, vaguely sorted by priority
 
+- Allow opening images with 'feh', fix it not breaking fen
 - Show folders first in filespanes
 - Confirmation [modal](https://github.com/rivo/tview/blob/master/demos/modal/main.go)
 - Better scrolling
