@@ -1,5 +1,6 @@
 ## TODOs, vaguely sorted by priority
 
+- Fix filenames being able to "inject" text formatting strings like `[::r]`
 - Allow opening images with 'feh', fix it not breaking fen
 - Show folders first in filespanes
 - Confirmation [modal](https://github.com/rivo/tview/blob/master/demos/modal/main.go)
