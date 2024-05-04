@@ -3,12 +3,11 @@
 - Fix filenames being able to "inject" text formatting strings like `[::r]`
 - Allow opening images with 'feh', fix it not breaking fen
 - Show folders first in filespanes
-- Confirmation [modal](https://github.com/rivo/tview/blob/master/demos/modal/main.go)
 - Better scrolling
 - Commands like :mkdir etc.
 - Don't show "empty" twice on the right, aka when fen.sel is a file
 - Disallow recursive copies or whatever
-- Add an underscore for duplicate pasting
+- Add an underscore for duplicate pasting (maybe a modal question for overwrite/new name?)
 - Copying from the terminal is annoying because of tview somehow
 - (Maybe...) Vim/ranger stuff like `5<space>` selecting 5 files, or `5j` going down 5
 - Remove being able to delete while mid and right pane are empty? (Going into an empty folder (mid and right pane are empty), then deleting it will set selected entry on the left pane to 0 instead of matching the GoDown() when deleting in middlePane)
