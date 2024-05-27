@@ -50,15 +50,7 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `?` Toggle file properties window
 
 # Configuration
-fen looks for a config file at `~/.config/fen/fenrc.json`. Here is an example config file:
-```
-# Borders around the filepanes
-ui-borders: yes
-
-# A "safe mode", no file write operations will be performed when set to yes
-no-write: no
-```
-(These 2 are the only options so far)
+fen looks for a config file at `~/.config/fen/fenrc.json`. You can find a complete example config in the `fenrc.json` file
 
 You can specify a different config file with the `--config` flag
 
