@@ -27,7 +27,7 @@ func main() {
 		log.Fatal("Failed to get current user, error: " + err.Error())
 	}
 	// FIXME: Actually go through the choices if one previous fails
-	configFilenamePrecedence := []string{filepath.Join(user.HomeDir, "/.config/fen/fenrc"), "/etc/fen/fenrc"}
+	configFilenamePrecedence := []string{filepath.Join(user.HomeDir, "/.config/fen/fenrc.json"), "/etc/fen/fenrc.json"}
 
 	v := flag.Bool("version", false, "output version information and exit")
 	h := flag.Bool("help", false, "display this help and exit")
@@ -83,7 +83,7 @@ func main() {
 
 	var fen Fen
 	err = fen.ReadConfig(*configFilename)
-	fen.noWrite = fen.noWrite || *noWrite // Command-line flag is higher priority than config
+	fen.config.NoWrite = fen.config.NoWrite || *noWrite // Command-line flag is higher priority than config
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -278,7 +278,7 @@ func main() {
 					pages.RemovePage("inputfield")
 					return
 				} else if key == tcell.KeyEnter {
-					if !fen.noWrite {
+					if !fen.config.NoWrite {
 						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
 						os.Rename(fileToRename, newPath)
 
@@ -332,7 +332,7 @@ func main() {
 					pages.RemovePage("newfilemodal")
 					return
 				} else if key == tcell.KeyEnter {
-					if !fen.noWrite {
+					if !fen.config.NoWrite {
 						if event.Rune() == 'n' {
 							os.Create(filepath.Join(fen.wd, inputField.GetText()))
 						} else if event.Rune() == 'N' {
@@ -381,7 +381,7 @@ func main() {
 				return nil
 			}
 
-			if fen.noWrite {
+			if fen.config.NoWrite {
 				return nil // TODO: Need a msg showing nothing was done in a log (we can scroll through)
 			}
 
@@ -508,7 +508,7 @@ func main() {
 						return
 					}
 
-					if fen.noWrite {
+					if fen.config.NoWrite {
 						return
 					}
 

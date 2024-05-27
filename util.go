@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -254,44 +255,36 @@ func FileColor(path string) tcell.Color {
 	return tcell.ColorDefault
 }
 
-func OpenFile(path string, app *tview.Application) {
-	suffixProgramMap := map[string]string{
-		".mp4":  "mpv",
-		".mp3":  "mpv",
-		".wav":  "mpv",
-		".flac": "mpv",
-		".mov":  "mpv",
-		".webm": "mpv",
+func OpenFile(fen *Fen, app *tview.Application) {
+	matched := false
+	var programsToUse []string
+	for _, programMatch := range fen.config.OpenWith {
+		for _, match := range programMatch.Match {
+			matched, _ = filepath.Match(match, filepath.Base(fen.sel))
+			if matched {
+				break
+			}
+		}
 
-		// feh breaks terminal on close
-		/*".png":  "feh",
-		".jpg":  "feh",
-		".jpeg": "feh",
-		".jfif": "feh",
-		".flif": "feh",
-		".tiff": "feh",
-		".gif":  "feh",
-		".webp": "feh",
-		".bmp": "feh",*/
-	}
-
-	programFallBacks := []string{"vim", "vi", "nano"}
-
-	editor := os.Getenv("EDITOR")
-	if editor != "" {
-		programFallBacks = append([]string{editor}, programFallBacks...)
-	}
-
-	for key, value := range suffixProgramMap {
-		if strings.HasSuffix(path, key) {
-			programFallBacks = append([]string{value}, programFallBacks...)
+		if matched {
+			programsToUse = programMatch.Programs
 			break
 		}
 	}
 
+	programsAndFallbacks := []string{"vim", "vi", "nano"}
+	editor := os.Getenv("EDITOR")
+	if editor != "" {
+		programsAndFallbacks = append([]string{editor}, programsAndFallbacks...)
+	}
+
+	if matched {
+		programsAndFallbacks = append(programsToUse, programsAndFallbacks...)
+	}
+
 	app.Suspend(func() {
-		for _, program := range programFallBacks {
-			cmd := exec.Command(program, path)
+		for _, program := range programsAndFallbacks {
+			cmd := exec.Command(program, fen.sel)
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
