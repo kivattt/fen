@@ -276,6 +276,10 @@ func OpenFile(fen *Fen, app *tview.Application) {
 	var programsAndFallbacks []string
 	if runtime.GOOS == "darwin" { // macOS
 		programsAndFallbacks = []string{"open"}
+		editor := os.Getenv("EDITOR")
+		if editor != "" {
+			programsAndFallbacks = append(programsAndFallbacks, editor)
+		}
 	} else if runtime.GOOS == "windows" {
 		// TODO: Use the rundll32.exe FileProtocolHandler thing
 		programsAndFallbacks = []string{"notepad"}
