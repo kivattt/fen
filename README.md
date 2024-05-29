@@ -12,8 +12,6 @@ Works for Linux, macOS, FreeBSD and Windows
 <img src="screenshots/windows.png" alt="fen running on Windows, showing the file properties window" width="48%">
 </p>
 
-<img src="screenshots/showcase.gif" alt="Showing deleting and creating new files" width="90%">
-
 # Try it out now!
 ```
 go run github.com/kivattt/fen@latest
@@ -50,17 +48,12 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `?` Toggle file properties window
 
 # Configuration
-fen looks for a config file at `~/.config/fen/fenrc`. Here is an example config file:
-```
-# Borders around the filepanes
-gui-borders: yes
+Linux/FreeBSD: `~/.config/fen/fenrc.json` or `$XDG_CONFIG_HOME/fen/fenrc.json` if `$XDG_CONFIG_HOME` set \
+macOS: `$HOME/Library/Application Support/fen/fenrc.json` \
+Windows: `%AppData%\Roaming\fen\fenrc.json`
 
-# A "safe mode", no file write operations will be performed when set to yes
-no-write: no
-```
-(These 2 are the only options so far)
-
-You can specify a different config file with the `--config` flag
+You can find a complete example config in the `fenrc.json` file \
+You can specify a different config file path with the `--config` flag
 
 # Known issues
 - `go test` doesn't work on Windows

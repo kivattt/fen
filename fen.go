@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -28,8 +28,8 @@ type Fen struct {
 	bottomBarText string
 
 	dontShowHiddenFiles bool
-	guiBorders          bool
-	noWrite             bool
+
+	config Config
 
 	topPane    *Bar
 	leftPane   *FilesPane
@@ -40,6 +40,17 @@ type Fen struct {
 	fileProperties *FileProperties
 }
 
+type Config struct {
+	UiBorders bool `json:"ui-borders"`
+	NoWrite bool `json:"no-write"`
+	OpenWith []FileMatchWithProgram `json:"open-with"`
+}
+
+type FileMatchWithProgram struct {
+	Programs []string `json:"programs"`
+	Match []string `json:"match"`
+}
+
 func (fen *Fen) Init(workingDirectory string) error {
 	fen.dontShowHiddenFiles = false
 	fen.selectingWithV = false
@@ -47,20 +58,20 @@ func (fen *Fen) Init(workingDirectory string) error {
 
 	fen.wd = workingDirectory
 
-	fen.topPane = NewBar(&fen.sel, &fen.sel, &fen.noWrite)
+	fen.topPane = NewBar(&fen.sel, &fen.sel, &fen.config.NoWrite)
 	fen.topPane.isTopBar = true
 
 	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, false)
 	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, true)
 	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, false)
 
-	if fen.guiBorders {
+	if fen.config.UiBorders {
 		fen.leftPane.SetBorder(true)
 		fen.middlePane.SetBorder(true)
 		fen.rightPane.SetBorder(true)
 	}
 
-	fen.bottomPane = NewBar(&fen.bottomBarText, &fen.sel, &fen.noWrite)
+	fen.bottomPane = NewBar(&fen.bottomBarText, &fen.sel, &fen.config.NoWrite)
 
 	wdFiles, err := os.ReadDir(fen.wd)
 	// If our working directory doesn't exist, go up a parent until it does
@@ -84,41 +95,16 @@ func (fen *Fen) Init(workingDirectory string) error {
 }
 
 func (fen *Fen) ReadConfig(path string) error {
-	file, err := os.Open(path)
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		// We don't want to exit if there is no config file
 		// This should really be checked by the caller...
 		return nil
 	}
-	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
-	lineNumber := 0
-	for scanner.Scan() {
-		lineNumber++
-
-		line := strings.Trim(scanner.Text(), " \t")
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		separatorIndex := strings.Index(line, ":")
-		if separatorIndex == -1 {
-			continue
-		}
-
-		key := line[:separatorIndex]
-		value := strings.ToLower(strings.Trim(line[separatorIndex+1:], " \t"))
-
-		if !(value == "yes" || value == "no") {
-			return errors.New("Boolean flag '" + key + "' was not \"yes\" or \"no\", but \"" + value + "\"")
-		}
-
-		if key == "gui-borders" {
-			fen.guiBorders = value == "yes"
-		} else if key == "no-write" {
-			fen.noWrite = value == "yes"
-		}
+	err = json.Unmarshal(bytes, &fen.config)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -249,7 +235,7 @@ func (fen *Fen) GoRight(app *tview.Application) {
 	}
 
 	if !fi.IsDir() {
-		OpenFile(fen.sel, app)
+		OpenFile(fen, app)
 		return
 	}
 

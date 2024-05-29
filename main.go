@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -22,17 +21,16 @@ import (
 const version = "v0.0.0-indev"
 
 func main() {
-	user, err := user.Current()
-	if err != nil {
-		log.Fatal("Failed to get current user, error: " + err.Error())
+	userConfigDir, err := os.UserConfigDir()
+	configFilenamePath := ""
+	if err == nil {
+		configFilenamePath = filepath.Join(userConfigDir, "fen/fenrc.json")
 	}
-	// FIXME: Actually go through the choices if one previous fails
-	configFilenamePrecedence := []string{filepath.Join(user.HomeDir, "/.config/fen/fenrc"), "/etc/fen/fenrc"}
 
 	v := flag.Bool("version", false, "output version information and exit")
 	h := flag.Bool("help", false, "display this help and exit")
 	noWrite := flag.Bool("no-write", false, "safe mode, no file write operations will be performed")
-	configFilename := flag.String("config", configFilenamePrecedence[0], "use configuration file")
+	configFilename := flag.String("config", configFilenamePath, "use configuration file")
 
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)
@@ -83,8 +81,9 @@ func main() {
 
 	var fen Fen
 	err = fen.ReadConfig(*configFilename)
-	fen.noWrite = fen.noWrite || *noWrite // Command-line flag is higher priority than config
+	fen.config.NoWrite = fen.config.NoWrite || *noWrite // Command-line flag is higher priority than config
 	if err != nil {
+		fmt.Println("Invalid config " + *configFilename)
 		log.Fatal(err)
 	}
 
@@ -278,7 +277,7 @@ func main() {
 					pages.RemovePage("inputfield")
 					return
 				} else if key == tcell.KeyEnter {
-					if !fen.noWrite {
+					if !fen.config.NoWrite {
 						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
 						os.Rename(fileToRename, newPath)
 
@@ -332,7 +331,7 @@ func main() {
 					pages.RemovePage("newfilemodal")
 					return
 				} else if key == tcell.KeyEnter {
-					if !fen.noWrite {
+					if !fen.config.NoWrite {
 						if event.Rune() == 'n' {
 							os.Create(filepath.Join(fen.wd, inputField.GetText()))
 						} else if event.Rune() == 'N' {
@@ -381,7 +380,7 @@ func main() {
 				return nil
 			}
 
-			if fen.noWrite {
+			if fen.config.NoWrite {
 				return nil // TODO: Need a msg showing nothing was done in a log (we can scroll through)
 			}
 
@@ -508,7 +507,7 @@ func main() {
 						return
 					}
 
-					if fen.noWrite {
+					if fen.config.NoWrite {
 						return
 					}
 
