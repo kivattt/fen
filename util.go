@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -272,10 +273,19 @@ func OpenFile(fen *Fen, app *tview.Application) {
 		}
 	}
 
-	programsAndFallbacks := []string{"vim", "vi", "nano"}
-	editor := os.Getenv("EDITOR")
-	if editor != "" {
-		programsAndFallbacks = append([]string{editor}, programsAndFallbacks...)
+	var programsAndFallbacks []string
+	if runtime.GOOS == "darwin" { // macOS
+		programsAndFallbacks = []string{"open"}
+	} else if runtime.GOOS == "windows" {
+		// TODO: Use the rundll32.exe FileProtocolHandler thing
+		programsAndFallbacks = []string{"notepad"}
+	} else {
+		programsAndFallbacks = []string{"xdg-open"}
+		editor := os.Getenv("EDITOR")
+		if editor != "" {
+			programsAndFallbacks = append(programsAndFallbacks, editor)
+		}
+		programsAndFallbacks = append(programsAndFallbacks, "vim", "vi", "nano")
 	}
 
 	if matched {
