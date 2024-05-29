@@ -52,7 +52,7 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 # Configuration
 Linux/FreeBSD: `~/.config/fen/fenrc.json`, `$XDG_CONFIG_HOME/fen/fenrc.json` if `$XDG_CONFIG_HOME` set \
 macOS: `$HOME/Library/Application Support/fen/fenrc.json` \
-Windows: `%AppData%\fen\fenrc.json`
+Windows: `%AppData%\Roaming\fen\fenrc.json`
 
 You can find a complete example config in the `fenrc.json` file \
 You can specify a different config file path with the `--config` flag
