@@ -100,13 +100,11 @@ func (fen *Fen) ReadConfig(path string) error {
 	if err != nil {
 		// We don't want to exit if there is no config file
 		// This should really be checked by the caller...
-		fmt.Println("failed to read config..")
 		return nil
 	}
 
 	err = json.Unmarshal(bytes, &fen.config)
 	if err != nil {
-		fmt.Println("failed to unmarshal..")
 		return err
 	}
 
