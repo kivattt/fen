@@ -258,7 +258,7 @@ func FileColor(path string) tcell.Color {
 
 func OpenFile(fen *Fen, app *tview.Application) {
 	matched := false
-	var programsToUse []string
+	var programsAndFallbacks []string
 	for _, programMatch := range fen.config.OpenWith {
 		for _, match := range programMatch.Match {
 			matched, _ = filepath.Match(match, filepath.Base(fen.sel))
@@ -268,33 +268,25 @@ func OpenFile(fen *Fen, app *tview.Application) {
 		}
 
 		if matched {
-			programsToUse = programMatch.Programs
+			programsAndFallbacks = programMatch.Programs
 			break
 		}
 	}
 
-	var programsAndFallbacks []string
 	if runtime.GOOS == "darwin" { // macOS
-		programsAndFallbacks = []string{"open"}
-		editor := os.Getenv("EDITOR")
-		if editor != "" {
-			programsAndFallbacks = append(programsAndFallbacks, editor)
-		}
+		programsAndFallbacks = append(programsAndFallbacks, "open")
 	} else if runtime.GOOS == "windows" {
 		// TODO: Use the rundll32.exe FileProtocolHandler thing
-		programsAndFallbacks = []string{"notepad"}
+		programsAndFallbacks = append(programsAndFallbacks, "notepad")
 	} else {
-		programsAndFallbacks = []string{"xdg-open"}
-		editor := os.Getenv("EDITOR")
-		if editor != "" {
-			programsAndFallbacks = append(programsAndFallbacks, editor)
-		}
-		programsAndFallbacks = append(programsAndFallbacks, "vim", "vi", "nano")
+		programsAndFallbacks = append(programsAndFallbacks, "xdg-open")
 	}
 
-	if matched {
-		programsAndFallbacks = append(programsToUse, programsAndFallbacks...)
+	editor := os.Getenv("EDITOR")
+	if editor != "" {
+		programsAndFallbacks = append(programsAndFallbacks, editor)
 	}
+	programsAndFallbacks = append(programsAndFallbacks, "vim", "vi", "nano")
 
 	app.Suspend(func() {
 		for _, program := range programsAndFallbacks {
