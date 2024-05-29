@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -22,17 +21,16 @@ import (
 const version = "v0.0.0-indev"
 
 func main() {
-	user, err := user.Current()
-	if err != nil {
-		log.Fatal("Failed to get current user, error: " + err.Error())
+	userConfigDir, err := os.UserConfigDir()
+	configFilenamePath := ""
+	if err == nil {
+		configFilenamePath = filepath.Join(userConfigDir, "fen/fenrc.json")
 	}
-	// FIXME: Actually go through the choices if one previous fails
-	configFilenamePrecedence := []string{filepath.Join(user.HomeDir, "/.config/fen/fenrc.json"), "/etc/fen/fenrc.json"}
 
 	v := flag.Bool("version", false, "output version information and exit")
 	h := flag.Bool("help", false, "display this help and exit")
 	noWrite := flag.Bool("no-write", false, "safe mode, no file write operations will be performed")
-	configFilename := flag.String("config", configFilenamePrecedence[0], "use configuration file")
+	configFilename := flag.String("config", configFilenamePath, "use configuration file")
 
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)

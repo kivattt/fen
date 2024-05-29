@@ -50,9 +50,12 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `?` Toggle file properties window
 
 # Configuration
-fen looks for a config file at `~/.config/fen/fenrc.json`. You can find a complete example config in the `fenrc.json` file
+Linux/FreeBSD: `~/.config/fen/fenrc.json`, unless `$XDG_CONFIG_HOME` is set: `$XDG_CONFIG_HOME/fen/fenrc.json` \
+macOS: `$HOME/Library/Application Support/fen/fenrc.json` \
+Windows: `%AppData%\fen\fenrc.json`
 
-You can specify a different config file with the `--config` flag
+You can find a complete example config in the `fenrc.json` file \
+You can specify a different config file path with the `--config` flag
 
 # Known issues
 - `go test` doesn't work on Windows
