@@ -12,8 +12,6 @@ Works for Linux, macOS, FreeBSD and Windows
 <img src="screenshots/windows.png" alt="fen running on Windows, showing the file properties window" width="48%">
 </p>
 
-<img src="screenshots/showcase.gif" alt="Showing deleting and creating new files" width="90%">
-
 # Try it out now!
 ```
 go run github.com/kivattt/fen@latest
