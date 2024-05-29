@@ -31,6 +31,7 @@ func main() {
 	h := flag.Bool("help", false, "display this help and exit")
 	noWrite := flag.Bool("no-write", false, "safe mode, no file write operations will be performed")
 	configFilename := flag.String("config", configFilenamePath, "use configuration file")
+	fmt.Println(*configFilename)
 
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)
