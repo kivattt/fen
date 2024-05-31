@@ -29,6 +29,7 @@ func main() {
 
 	v := flag.Bool("version", false, "output version information and exit")
 	h := flag.Bool("help", false, "display this help and exit")
+	noMouse := flag.Bool("no-mouse", false, "ignore mouse events")
 	noWrite := flag.Bool("no-write", false, "safe mode, no file write operations will be performed")
 
 	configFilename := flag.String("config", configFilenamePath, "use configuration file")
@@ -82,7 +83,9 @@ func main() {
 
 	var fen Fen
 	err = fen.ReadConfig(*configFilename)
+	fen.config.NoMouse = fen.config.NoMouse || *noMouse
 	fen.config.NoWrite = fen.config.NoWrite || *noWrite // Command-line flag is higher priority than config
+
 	if !fen.config.NoWrite {
 		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
 	}
@@ -558,7 +561,7 @@ func main() {
 		return event
 	})
 
-	if err := app.SetRoot(pages, true).EnableMouse(true).Run(); err != nil {
+	if err := app.SetRoot(pages, true).EnableMouse(!fen.config.NoMouse).Run(); err != nil {
 		log.Fatal(err)
 	}
 }

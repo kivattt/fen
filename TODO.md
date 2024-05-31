@@ -1,6 +1,7 @@
 ## TODOs, vaguely sorted by priority
 
 - Opening multiple selected files
+- Fix selecting text with mouse when noMouse = false
 - Allow opening images with 'feh', fix it not breaking fen
 - Show folders first in filespanes
 - Better scrolling

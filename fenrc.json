@@ -1,22 +1,25 @@
 {
 	"ui-borders": false,
+	"no-mouse": false,
 	"no-write": false,
 
 	"open-with": [
 		{
-			"programs": ["xdg-open", "feh"],
-			"match": ["*.png", "*.jpg", "*.jpeg", "*.jfif", "*.flif", "*.tiff", "*.gif", "*.webp", "*.bmp"]
-		},
-		{
-			"programs": ["mpv"],
+			"programs": ["mpv", "vlc"],
 			"match": [
 				"*.mp4", "*.webm", "*.mkv", "*.mov", "*.avi", "*.flv",
 				"*.wav", "*.flac", "*.mp3", "*.ogg", "*.m4a"
 			]
 		},
 		{
-			"programs": ["xdg-open", "nano"],
+			"programs": ["feh"],
+			"match": ["*.png", "*.jpg", "*.jpeg", "*.jfif", "*.flif", "*.tiff", "*.gif", "*.webp", "*.bmp"]
+		},
+		{
+			"programs": ["nvim", "vim", "vi"],
 			"match": [
+				"*.json",
+
 				"*.zip", "*.jar", "*.kra",
 				"*.tar.bz2", "*.tb2", "*.tbz", "*.tbz2", "*.tz2",
 				"*.tar.gz", "*.taz", "*.tgz",

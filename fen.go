@@ -42,6 +42,7 @@ type Fen struct {
 
 type Config struct {
 	UiBorders bool `json:"ui-borders"`
+	NoMouse bool `json:"no-mouse"`
 	NoWrite bool `json:"no-write"`
 	OpenWith []FileMatchWithProgram `json:"open-with"`
 }
