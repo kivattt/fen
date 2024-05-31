@@ -270,7 +270,7 @@ func main() {
 			inputField := tview.NewInputField().
 				SetLabel("Rename: ").
 				SetText(filepath.Base(fileToRename)).
-				SetFieldWidth(45)
+				SetFieldWidth(49)
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEscape {
@@ -298,8 +298,10 @@ func main() {
 			inputField.SetBorder(true)
 			inputField.SetBorderColor(tcell.ColorDefault)
 			inputField.SetTitleColor(tcell.ColorDefault)
+			inputField.SetFieldBackgroundColor(tcell.ColorGray)
+			inputField.SetFieldTextColor(tcell.ColorBlack)
 
-			pages.AddPage("inputfield", modal(inputField, 58, 3), true, true)
+			pages.AddPage("inputfield", modal(inputField, 60, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'n' || event.Rune() == 'N' {
@@ -314,16 +316,16 @@ func main() {
 			}
 
 			inputField := tview.NewInputField().
-				SetLabel("Name: ").
 				SetFieldWidth(45)
 
 			inputField.SetBorderColor(tcell.ColorDefault)
 			inputField.SetTitleColor(tcell.ColorDefault)
 
 			if event.Rune() == 'n' {
-				inputField.SetTitle("New file: ")
+				inputField.SetLabel("New file: ")
+				inputField.SetFieldWidth(47) // TODO: Maybe there's an auto-size for tview inputfield based on label length?
 			} else if event.Rune() == 'N' {
-				inputField.SetTitle("New folder: ")
+				inputField.SetLabel("New folder: ")
 			}
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
@@ -346,8 +348,12 @@ func main() {
 			})
 
 			inputField.SetBorder(true)
+			inputField.SetBorderColor(tcell.ColorDefault)
+			inputField.SetTitleColor(tcell.ColorDefault)
+			inputField.SetFieldBackgroundColor(tcell.ColorGray)
+			inputField.SetFieldTextColor(tcell.ColorBlack)
 
-			pages.AddPage("newfilemodal", modal(inputField, 58, 3), true, true)
+			pages.AddPage("newfilemodal", modal(inputField, 60, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'y' {
@@ -468,11 +474,6 @@ func main() {
 
 		if event.Key() == tcell.KeyDelete {
 			modal := tview.NewModal()
-			modal.SetBorderColor(tcell.ColorDefault)
-			modal.SetTitleColor(tcell.ColorDefault)
-			modal.SetTextColor(tcell.ColorDefault)
-			modal.SetButtonTextColor(tcell.ColorDefault)
-			modal.SetButtonBackgroundColor(tcell.ColorBlack)
 
 			modal.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
 				switch e.Rune() {
@@ -542,6 +543,12 @@ func main() {
 					fen.GoUp()
 					fen.UpdatePanes()
 				})
+
+			modal.SetBorder(true)
+
+			modal.Box.SetBackgroundColor(tcell.ColorBlack) // This sets the border background color
+			modal.SetBackgroundColor(tcell.ColorBlack)
+			modal.SetButtonBackgroundColor(tcell.ColorGray)
 
 			pages.AddPage("deletemodal", modal, true, true)
 			app.SetFocus(modal)
