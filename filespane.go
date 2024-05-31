@@ -201,7 +201,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			extraStyle += "[::b]"
 		}
 
-		tview.Print(screen, spaceForSelected+extraStyle+" "+entry.Name()+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)
+		tview.Print(screen, spaceForSelected+extraStyle+" "+tview.Escape(entry.Name())+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)
 
 		if !fp.showEntrySizes {
 			continue

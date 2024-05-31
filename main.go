@@ -493,9 +493,9 @@ func main() {
 
 			if len(fen.selected) <= 0 {
 				fileToDelete = fen.sel
-				modal.SetText("Delete " + filepath.Base(fileToDelete) + " ?")
+				modal.SetText("Delete " + tview.Escape(filepath.Base(fileToDelete)) + " ?")
 			} else {
-				modal.SetText("Delete " + strconv.Itoa(len(fen.selected)) + " selected files?")
+				modal.SetText("Delete " + tview.Escape(strconv.Itoa(len(fen.selected))) + " selected files?")
 			}
 
 			modal.

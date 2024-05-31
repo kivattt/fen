@@ -1,6 +1,5 @@
 ## TODOs, vaguely sorted by priority
 
-- Fix filenames being able to "inject" text formatting strings like `[::r]`
 - Opening multiple selected files
 - Allow opening images with 'feh', fix it not breaking fen
 - Show folders first in filespanes

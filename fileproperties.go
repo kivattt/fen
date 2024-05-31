@@ -62,7 +62,7 @@ func (fileProperties *FileProperties) Draw(screen tcell.Screen) {
 
 	i := 0
 	for _, key := range fileProperties.tableKeysOrdered {
-		tview.Print(screen, key+": "+fileProperties.table[key], x, y+i, w, tview.AlignLeft, tcell.NewRGBColor(0, 255, 255))
+		tview.Print(screen, tview.Escape(key+": "+fileProperties.table[key]), x, y+i, w, tview.AlignLeft, tcell.NewRGBColor(0, 255, 255))
 		i++
 	}
 }
