@@ -296,7 +296,6 @@ func main() {
 			})
 
 			inputField.SetBorder(true)
-			inputField.SetBorderColor(tcell.ColorDefault)
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
@@ -317,9 +316,6 @@ func main() {
 
 			inputField := tview.NewInputField().
 				SetFieldWidth(45)
-
-			inputField.SetBorderColor(tcell.ColorDefault)
-			inputField.SetTitleColor(tcell.ColorDefault)
 
 			if event.Rune() == 'n' {
 				inputField.SetLabel("New file: ")
@@ -348,7 +344,6 @@ func main() {
 			})
 
 			inputField.SetBorder(true)
-			inputField.SetBorderColor(tcell.ColorDefault)
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
