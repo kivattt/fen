@@ -26,11 +26,11 @@ func main() {
 	if err == nil {
 		configFilenamePath = filepath.Join(userConfigDir, "fen/fenrc.json")
 	}
-	os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
 
 	v := flag.Bool("version", false, "output version information and exit")
 	h := flag.Bool("help", false, "display this help and exit")
 	noWrite := flag.Bool("no-write", false, "safe mode, no file write operations will be performed")
+
 	configFilename := flag.String("config", configFilenamePath, "use configuration file")
 
 	getopt.CommandLine.SetOutput(os.Stdout)
@@ -83,6 +83,10 @@ func main() {
 	var fen Fen
 	err = fen.ReadConfig(*configFilename)
 	fen.config.NoWrite = fen.config.NoWrite || *noWrite // Command-line flag is higher priority than config
+	if !fen.config.NoWrite {
+		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
+	}
+
 	if err != nil {
 		fmt.Println("Invalid config " + *configFilename)
 		log.Fatal(err)
