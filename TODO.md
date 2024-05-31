@@ -6,6 +6,7 @@
 - Better scrolling
 - Commands like :mkdir etc.
 - Don't show "empty" twice on the right, aka when fen.sel is a file
+- File previews
 - Disallow recursive copies or whatever
 - Add an underscore for duplicate pasting (maybe a modal question for overwrite/new name?)
 - Copying from the terminal is annoying because of tview somehow
