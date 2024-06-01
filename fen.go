@@ -340,6 +340,10 @@ func (fen *Fen) PageDown() {
 }
 
 func (fen *Fen) GoSearchFirstMatch(searchTerm string) error {
+	if searchTerm == "" {
+		return errors.New("Empty search term")
+	}
+
 	for _, e := range fen.middlePane.entries {
 		if strings.Contains(strings.ToLower(e.Name()), strings.ToLower(searchTerm)) {
 			fen.sel = filepath.Join(fen.wd, e.Name())

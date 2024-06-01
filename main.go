@@ -272,10 +272,20 @@ func main() {
 		}
 
 		if event.Rune() == '/' {
-			flex.RemoveItem(fen.bottomPane)
+			modal := func(p tview.Primitive, width, height int) tview.Primitive {
+				return tview.NewFlex().
+					AddItem(nil, 0, 1, false).
+					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+						AddItem(nil, 0, 1, false).
+						AddItem(p, height, 1, true).
+						AddItem(nil, 0, 1, false), width, 1, true).
+					AddItem(nil, 0, 1, false)
+			}
+
 			inputField := tview.NewInputField().
-				SetLabel("/").
-				SetPlaceholder("<search>")
+				SetLabel(" Search: ").
+				SetPlaceholder("case-insensitive").
+				SetFieldWidth(48)
 
 			inputField.SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
 				return lastChar != '/' // FIXME: Hack to prevent the slash appearing in the search inputfield by just disallowing them
@@ -284,7 +294,6 @@ func main() {
 			inputField.
 				SetDoneFunc(func(key tcell.Key) {
 					pages.RemovePage("searchbox")
-					flex.AddItem(fen.bottomPane, 1, 0, false)
 
 					if key == tcell.KeyEscape {
 						return
@@ -297,15 +306,18 @@ func main() {
 					} else {
 						// Same code as the wasMovementKey check
 						fen.history.AddToHistory(fen.sel)
-						fen.bottomBarText = fen.sel
 						fen.UpdatePanes()
 					}
 				})
 
-			pages.AddPage("searchbox", inputField, true, true)
-			/*flex.AddItem(inputField, 1, 0, false)
-			app.SetFocus(inputField)
-			app.SetInputCapture(nil)*/
+			inputField.SetBorder(true)
+			inputField.SetTitleColor(tcell.ColorDefault)
+			inputField.SetFieldBackgroundColor(tcell.ColorGray)
+			inputField.SetFieldTextColor(tcell.ColorBlack)
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
+			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
+
+			pages.AddPage("searchbox", modal(inputField, 60, 3), true, true)
 		} else if event.Rune() == 'A' {
 			for _, e := range fen.middlePane.entries {
 				fen.ToggleSelection(filepath.Join(fen.wd, e.Name()))
