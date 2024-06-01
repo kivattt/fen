@@ -224,17 +224,21 @@ func main() {
 			programsList := NewOpenWithList(&programs, &descriptions)
 
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
+			inputFieldHeight := 2
 			if len(programs) > 0 {
 				inputField.SetPlaceholder(programs[0])
+			} else {
+				inputFieldHeight = 1
 			}
 
+
 			flex := tview.NewFlex().
-				AddItem(inputField, 2, 1, true).SetDirection(tview.FlexRow).
+				AddItem(inputField, inputFieldHeight, 1, true).SetDirection(tview.FlexRow).
 				AddItem(programsList, len(programs), 1, false)
 
 			flex.SetBorder(true)
 
-			pages.AddPage("openwith", modal(flex, 60, 2+2+len(programs)), true, true)
+			pages.AddPage("openwith", modal(flex, 60, inputFieldHeight+2+len(programs)), true, true)
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
 			fen.GoUp()
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
