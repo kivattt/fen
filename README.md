@@ -26,7 +26,7 @@ go build
 # Controls
 Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
 
-`Ctrl + Space` Open file with specific program
+`Ctrl + Space` Open file with specific program \
 `Home` or `g` to go to the top \
 `End` or `G` to go to the bottom \
 `M` Go to the middle \
