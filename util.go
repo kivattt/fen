@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"os/exec"
@@ -354,6 +355,12 @@ func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
 }
 
 func OpenFile(fen *Fen, app *tview.Application, openWith string) {
+	if fen.config.PrintPathOnOpen && openWith == "" {
+		app.Stop()
+		fmt.Println(fen.sel)
+		return
+	}
+
 	programsAndFallbacks, _ := ProgramsAndDescriptionsForFile(fen)
 	if openWith != "" {
 		programsAndFallbacks = append([]string{openWith}, programsAndFallbacks...)

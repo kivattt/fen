@@ -44,6 +44,7 @@ type Config struct {
 	NoWrite             bool                   `json:"no-write"`
 	DontShowHiddenFiles bool                   `json:"dont-show-hidden-files"`
 	FoldersNotFirst     bool                   `json:"folders-not-first"`
+	PrintPathOnOpen     bool                   `json:"print-path-on-open"`
 	OpenWith            []FileMatchWithProgram `json:"open-with"`
 }
 

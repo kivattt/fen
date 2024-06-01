@@ -32,6 +32,7 @@ func main() {
 	noMouse := flag.Bool("no-mouse", false, "ignore mouse events")
 	noWrite := flag.Bool("no-write", false, "safe mode, no file write operations will be performed")
 	dontShowHiddenFiles := flag.Bool("dont-show-hidden-files", false, "")
+	printPathOnOpen := flag.Bool("print-path-on-open", false, "output file path and exit on open file")
 
 	configFilename := flag.String("config", configFilenamePath, "use configuration file")
 
@@ -87,6 +88,7 @@ func main() {
 	fen.config.NoMouse = fen.config.NoMouse || *noMouse
 	fen.config.NoWrite = fen.config.NoWrite || *noWrite // Command-line flag is higher priority than config
 	fen.config.DontShowHiddenFiles = fen.config.DontShowHiddenFiles || *dontShowHiddenFiles
+	fen.config.PrintPathOnOpen = fen.config.PrintPathOnOpen || *printPathOnOpen
 
 	if !fen.config.NoWrite {
 		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
@@ -204,16 +206,6 @@ func main() {
 				SetLabel(" Open with: ").
 				SetFieldWidth(45)
 
-			inputField.SetDoneFunc(func(key tcell.Key) {
-				pages.RemovePage("openwith")
-
-				if key == tcell.KeyEscape {
-					return
-				}
-
-				fen.GoRight(app, inputField.GetText())
-			})
-
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
@@ -230,6 +222,22 @@ func main() {
 			} else {
 				inputFieldHeight = 1
 			}
+
+			inputField.SetDoneFunc(func(key tcell.Key) {
+				pages.RemovePage("openwith")
+
+				if key == tcell.KeyEscape {
+					return
+				}
+
+				programNameToUse := inputField.GetText()
+				if programNameToUse == "" {
+					if len(programs) > 0 {
+						programNameToUse = programs[0]
+					}
+				}
+				fen.GoRight(app, programNameToUse)
+			})
 
 			flex := tview.NewFlex().
 				AddItem(inputField, inputFieldHeight, 1, true).SetDirection(tview.FlexRow).

@@ -2,8 +2,9 @@
 	"ui-borders": false,
 	"no-mouse": false,
 	"no-write": false,
-	"dont-show-hidden-files": false,
+	"dont-show-hidden-files": true,
 	"folders-not-first": false,
+	"print-path-on-open": false,
 
 	"open-with": [
 		{
