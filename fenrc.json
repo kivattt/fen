@@ -3,6 +3,7 @@
 	"no-mouse": false,
 	"no-write": false,
 	"dont-show-hidden-files": false,
+	"folders-not-first": false,
 
 	"open-with": [
 		{

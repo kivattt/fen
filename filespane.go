@@ -33,7 +33,7 @@ func NewFilesPane(selected *[]string, yankSelected *[]string, dontShowHiddenFile
 	}
 }
 
-func (fp *FilesPane) SetEntries(path string) {
+func (fp *FilesPane) SetEntries(path string, foldersNotFirst bool) {
 	fi, err := os.Stat(path)
 	if err != nil {
 		fp.entries = []os.DirEntry{}
@@ -63,6 +63,10 @@ func (fp *FilesPane) SetEntries(path string) {
 			fp.selectedEntry = len(fp.entries) - 1
 			//			fp.SetSelectedEntryFromIndex(len(fp.entries) - 1)
 		}
+	}
+
+	if !foldersNotFirst {
+		fp.entries = FoldersAtBeginning(fp.entries)
 	}
 }
 

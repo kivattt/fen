@@ -373,3 +373,21 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 		}
 	})
 }
+
+func FoldersAtBeginning(dirEntries []os.DirEntry) []os.DirEntry {
+	var folders []os.DirEntry
+	var files []os.DirEntry
+	for _, entry := range dirEntries {
+		if entry.IsDir() {
+			folders = append(folders, entry)
+		} else {
+			files = append(files, entry)
+		}
+	}
+
+	if len(folders)+len(files) != len(dirEntries) {
+		panic("FoldersAtBeginning failed!")
+	}
+
+	return append(folders, files...)
+}

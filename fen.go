@@ -43,6 +43,7 @@ type Config struct {
 	NoMouse             bool                   `json:"no-mouse"`
 	NoWrite             bool                   `json:"no-write"`
 	DontShowHiddenFiles bool                   `json:"dont-show-hidden-files"`
+	FoldersNotFirst     bool                   `json:"folders-not-first"`
 	OpenWith            []FileMatchWithProgram `json:"open-with"`
 }
 
@@ -138,8 +139,8 @@ func (fen *Fen) DisableSelectingWithV() {
 }
 
 func (fen *Fen) UpdatePanes() {
-	fen.leftPane.SetEntries(filepath.Dir(fen.wd))
-	fen.middlePane.SetEntries(fen.wd)
+	fen.leftPane.SetEntries(filepath.Dir(fen.wd), fen.config.FoldersNotFirst)
+	fen.middlePane.SetEntries(fen.wd, fen.config.FoldersNotFirst)
 
 	if fen.wd != filepath.Dir(fen.wd) {
 		fen.leftPane.SetSelectedEntryFromString(filepath.Base(fen.wd))
@@ -167,7 +168,7 @@ func (fen *Fen) UpdatePanes() {
 	}
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry))
-	fen.rightPane.SetEntries(fen.sel)
+	fen.rightPane.SetEntries(fen.sel, fen.config.FoldersNotFirst)
 
 	h, err := fen.history.GetHistoryEntryForPath(fen.sel, fen.config.DontShowHiddenFiles)
 	if err != nil {

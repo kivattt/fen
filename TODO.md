@@ -1,14 +1,13 @@
 ## TODOs, vaguely sorted by priority
 
 - Opening multiple selected files
-- Make the '/' search a modal
 - Fix selecting text with mouse when noMouse = false
 - Allow opening images with 'feh', fix it not breaking fen
-- Show folders first in filespanes
 - Make the "open with" modal a selectable list with tab/shift+tab controls aswell as arrow keys, would replace inputfield placeholder and reset input text to blank
 - Better scrolling
 - Configurable keybindings
 - Commands like :mkdir etc.
+- Fix some hidden file toggle bugs?
 - Don't show "empty" twice on the right, aka when fen.sel is a file
 - File previews
 - Disallow recursive copies or whatever

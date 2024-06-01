@@ -231,7 +231,6 @@ func main() {
 				inputFieldHeight = 1
 			}
 
-
 			flex := tview.NewFlex().
 				AddItem(inputField, inputFieldHeight, 1, true).SetDirection(tview.FlexRow).
 				AddItem(programsList, len(programs), 1, false)
@@ -617,7 +616,7 @@ func main() {
 
 					// FIXME: CURSED
 					// We need to update the middlePane entries for GoDown() and GoUp() to work properly, atleast when deleting the bottom entry
-					fen.middlePane.SetEntries(fen.wd)
+					fen.middlePane.SetEntries(fen.wd, fen.config.FoldersNotFirst)
 					fen.GoDown()
 					fen.GoUp()
 					fen.UpdatePanes()
