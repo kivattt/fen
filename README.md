@@ -26,6 +26,7 @@ go build
 # Controls
 Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
 
+`Ctrl + Space` Open file with specific program
 `Home` or `g` to go to the top \
 `End` or `G` to go to the bottom \
 `M` Go to the middle \
@@ -56,5 +57,6 @@ You can find a complete example config in the `fenrc.json` file \
 You can specify a different config file path with the `--config` flag
 
 # Known issues
+- Setting a boolean command-line flag to false, e.g. `--no-write=false` has no effect, and the configuration file value will be prioritized. You can disable loading the config file by giving a bogus filename: `--config=aaaaa`
 - `go test` doesn't work on Windows
 - The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal

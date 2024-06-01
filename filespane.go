@@ -152,56 +152,24 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		}
 
 		entryFullPath := filepath.Join(fp.folder, entry.Name())
-		stat, statErr := os.Stat(entryFullPath)
-
-		color := tcell.ColorWhite
-
-		bold := false
-		if entry.IsDir() {
-			color = tcell.ColorBlue
-			bold = true
-		} else if entry.Type().IsRegular() {
-			if statErr == nil {
-				// Executable?
-				if stat.Mode()&0111 != 0 {
-					color = tcell.NewRGBColor(0, 255, 0) // Green
-					bold = true
-				} else {
-					color = FileColor(entry.Name())
-				}
-			}
-		} else {
-			color = tcell.ColorDarkGray
-		}
+		style := FileColor(entryFullPath)
 
 		spaceForSelected := ""
-		extraStyle := ""
 		if i+scrollOffset == fp.selectedEntry {
-			extraStyle = "[::r]" // Flip foreground and background
+			style = style.Reverse(true)
 		}
 
 		if slices.Contains(*fp.selected, entryFullPath) {
 			spaceForSelected = " "
-			color = tcell.ColorYellow
+			style = style.Foreground(tcell.ColorYellow)
 		}
 
 		// Dim the entry if its in yankSelected
-		dimColor := slices.Contains(*fp.yankSelected, entryFullPath)
-
-		if dimColor {
-			// Kinda cursed to have to add on to this extraStyle variable
-			if extraStyle == "" {
-				extraStyle = "[::d]"
-			} else {
-				extraStyle = "[::rd]"
-			}
+		if slices.Contains(*fp.yankSelected, entryFullPath) {
+			style = style.Dim(true)
 		}
 
-		if bold {
-			extraStyle += "[::b]"
-		}
-
-		tview.Print(screen, spaceForSelected+extraStyle+" "+tview.Escape(entry.Name())+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, color)
+		tview.Print(screen, spaceForSelected+StyleToStyleTagString(style)+" "+tview.Escape(entry.Name())+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, tcell.ColorDefault)
 
 		if !fp.showEntrySizes {
 			continue
@@ -212,6 +180,6 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			entrySizeText = "?"
 		}
 
-		tview.Print(screen, extraStyle+" "+tview.Escape(entrySizeText)+" ", x, y+i, w-1, tview.AlignRight, color)
+		tview.Print(screen, StyleToStyleTagString(style)+" "+tview.Escape(entrySizeText)+" ", x, y+i, w-1, tview.AlignRight, tcell.ColorDefault)
 	}
 }

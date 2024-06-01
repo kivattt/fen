@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -151,7 +152,27 @@ func HasSuffixFromList(str string, list []string) bool {
 	return false
 }
 
-func FileColor(path string) tcell.Color {
+func StyleToStyleTagString(style tcell.Style) string {
+	foreground, background, attributeMask := style.Decompose()
+	// https://pkg.go.dev/github.com/gdamore/tcell/v2#AttrMask
+	attributeStyleTagNameLookup := "blrudis"
+	attributesString := ""
+	if attributeMask != 0 {
+		for i := 0; i < len(attributeStyleTagNameLookup); i++ {
+			if attributeMask&(1<<i) != 0 {
+				attributesString += string(attributeStyleTagNameLookup[i])
+			}
+		}
+	}
+
+	if attributesString == "" {
+		return "[" + foreground.String() + ":" + background.String() + "]"
+	}
+
+	return "[" + foreground.String() + ":" + background.String() + ":" + attributesString + "]"
+}
+
+func FileColor(path string) tcell.Style {
 	imageTypes := []string{
 		".png",
 		".jpg",
@@ -227,38 +248,56 @@ func FileColor(path string) tcell.Color {
 		".odg",
 		".fodg",
 		".otg",
+		".txt",
+	}
+
+	var ret tcell.Style
+
+	stat, err := os.Stat(path)
+	if err == nil {
+		if stat.IsDir() {
+			return ret.Foreground(tcell.ColorBlue).Bold(true)
+		} else if stat.Mode().IsRegular() {
+			if stat.Mode()&0111 != 0 {
+				return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
+			}
+		} else {
+			return ret.Foreground(tcell.ColorDarkGray)
+		}
 	}
 
 	if HasSuffixFromList(path, imageTypes) {
-		return tcell.ColorYellow
+		return ret.Foreground(tcell.ColorYellow)
 	}
 
 	if HasSuffixFromList(path, videoTypes) {
-		return tcell.ColorHotPink
+		return ret.Foreground(tcell.ColorHotPink)
 	}
 
 	if HasSuffixFromList(path, archiveTypes) {
-		return tcell.ColorRed
+		return ret.Foreground(tcell.ColorRed)
 	}
 
 	if HasSuffixFromList(path, codeTypes) {
-		return tcell.ColorAqua
+		return ret.Foreground(tcell.ColorAqua)
 	}
 
 	if HasSuffixFromList(path, audioTypes) {
-		return tcell.ColorPurple
+		return ret.Foreground(tcell.ColorPurple)
 	}
 
 	if HasSuffixFromList(path, documentTypes) {
-		return tcell.ColorGray
+		return ret.Foreground(tcell.ColorGray)
 	}
 
-	return tcell.ColorDefault
+	return ret.Foreground(tcell.ColorDefault)
 }
 
-func OpenFile(fen *Fen, app *tview.Application) {
+// We could maybe cache this to a certain extent
+func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
 	matched := false
-	var programsAndFallbacks []string
+	var programs []string
+	var descriptions []string
 	for _, programMatch := range fen.config.OpenWith {
 		for _, match := range programMatch.Match {
 			matched, _ = filepath.Match(match, filepath.Base(fen.sel))
@@ -268,25 +307,57 @@ func OpenFile(fen *Fen, app *tview.Application) {
 		}
 
 		if matched {
-			programsAndFallbacks = programMatch.Programs
+			for _, program := range programMatch.Programs {
+				programs = append(programs, program)
+				descriptions = append(descriptions, "User config")
+			}
 			break
 		}
 	}
 
 	if runtime.GOOS == "darwin" { // macOS
-		programsAndFallbacks = append(programsAndFallbacks, "open")
+		programs = append(programs, "open")
+		descriptions = append(descriptions, "macOS")
 	} else if runtime.GOOS == "windows" {
 		// TODO: Use the rundll32.exe FileProtocolHandler thing
-		programsAndFallbacks = append(programsAndFallbacks, "notepad")
+		programs = append(programs, "notepad")
+		descriptions = append(descriptions, "Windows")
 	} else {
-		programsAndFallbacks = append(programsAndFallbacks, "xdg-open")
+		programs = append(programs, "xdg-open")
+		descriptions = append(descriptions, "Linux")
 	}
 
 	editor := os.Getenv("EDITOR")
 	if editor != "" {
-		programsAndFallbacks = append(programsAndFallbacks, editor)
+		programs = append(programs, editor)
+		descriptions = append(descriptions, "$EDITOR")
 	}
-	programsAndFallbacks = append(programsAndFallbacks, "vim", "vi", "nano")
+	programs = append(programs, "vim", "vi", "nano")
+	for i := 0; i < 3; i++ {
+		descriptions = append(descriptions, "Default fallback")
+	}
+
+	// Remove duplicate programs
+	i := 0
+	for j, program := range programs {
+		if !slices.Contains(programs[:i], program) {
+			programs[i] = program
+			descriptions[i] = descriptions[j]
+			i++
+		}
+	}
+
+	programs = programs[:i]
+	descriptions = descriptions[:i]
+
+	return programs, descriptions
+}
+
+func OpenFile(fen *Fen, app *tview.Application, openWith string) {
+	programsAndFallbacks, _ := ProgramsAndDescriptionsForFile(fen)
+	if openWith != "" {
+		programsAndFallbacks = append([]string{openWith}, programsAndFallbacks...)
+	}
 
 	app.Suspend(func() {
 		for _, program := range programsAndFallbacks {

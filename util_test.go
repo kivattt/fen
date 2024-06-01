@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/gdamore/tcell/v2"
+)
 
 func TestBytesToHumanReadableUnitString(t *testing.T) {
 	expectedResults := map[uint64]string{
@@ -35,6 +39,26 @@ func TestTrimLastDecimals(t *testing.T) {
 
 	for input, expected := range expectedResults {
 		got := trimLastDecimals(input, 3)
+		if got != expected {
+			t.Fatalf("Expected " + expected + ", but got " + got)
+		}
+	}
+}
+
+func TestStyleToStyleTagString(t *testing.T) {
+	// https://pkg.go.dev/github.com/gdamore/tcell/v2#AttrMask
+	expectedResults := map[tcell.Style]string{
+		tcell.StyleDefault: "[default:default]",
+		tcell.StyleDefault.Dim(true).Foreground(tcell.ColorYellow):  "[yellow:default:d]",
+		tcell.StyleDefault.Foreground(tcell.ColorYellow).Dim(true):  "[yellow:default:d]",
+		tcell.StyleDefault.Background(tcell.ColorBlue):              "[default:blue]",
+		tcell.StyleDefault.Foreground(tcell.NewRGBColor(0, 255, 0)): "[#00FF00:default]",
+		tcell.StyleDefault.Attributes(0):                            "[default:default]",
+		tcell.StyleDefault.Attributes(0b01111111):                   "[default:default:blrudis]",
+	}
+
+	for input, expected := range expectedResults {
+		got := StyleToStyleTagString(input)
 		if got != expected {
 			t.Fatalf("Expected " + expected + ", but got " + got)
 		}

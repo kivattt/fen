@@ -31,6 +31,7 @@ func main() {
 	h := flag.Bool("help", false, "display this help and exit")
 	noMouse := flag.Bool("no-mouse", false, "ignore mouse events")
 	noWrite := flag.Bool("no-write", false, "safe mode, no file write operations will be performed")
+	dontShowHiddenFiles := flag.Bool("dont-show-hidden-files", false, "")
 
 	configFilename := flag.String("config", configFilenamePath, "use configuration file")
 
@@ -85,6 +86,7 @@ func main() {
 	err = fen.ReadConfig(*configFilename)
 	fen.config.NoMouse = fen.config.NoMouse || *noMouse
 	fen.config.NoWrite = fen.config.NoWrite || *noWrite // Command-line flag is higher priority than config
+	fen.config.DontShowHiddenFiles = fen.config.DontShowHiddenFiles || *dontShowHiddenFiles
 
 	if !fen.config.NoWrite {
 		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
@@ -141,7 +143,7 @@ func main() {
 		case tcell.WheelLeft:
 			fen.GoLeft()
 		case tcell.WheelRight:
-			fen.GoRight(app)
+			fen.GoRight(app, "")
 		case tcell.WheelUp:
 			fen.GoUp()
 		case tcell.WheelDown:
@@ -164,7 +166,7 @@ func main() {
 	})
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") {
 			return event
 		}
 
@@ -177,7 +179,62 @@ func main() {
 		if event.Key() == tcell.KeyLeft || event.Rune() == 'h' {
 			fen.GoLeft()
 		} else if event.Key() == tcell.KeyRight || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
-			fen.GoRight(app)
+			fen.GoRight(app, "")
+		} else if event.Key() == tcell.KeyCtrlSpace {
+			fi, err := os.Stat(fen.sel)
+			if err != nil {
+				return nil
+			}
+
+			if fi.IsDir() {
+				return nil
+			}
+
+			modal := func(p tview.Primitive, width, height int) tview.Primitive {
+				return tview.NewFlex().
+					AddItem(nil, 0, 1, false).
+					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+						AddItem(nil, 0, 1, false).
+						AddItem(p, height, 1, true).
+						AddItem(nil, 0, 1, false), width, 1, true).
+					AddItem(nil, 0, 1, false)
+			}
+
+			inputField := tview.NewInputField().
+				SetLabel(" Open with: ").
+				SetFieldWidth(45)
+
+			inputField.SetDoneFunc(func(key tcell.Key) {
+				pages.RemovePage("openwith")
+
+				if key == tcell.KeyEscape {
+					return
+				}
+
+				fen.GoRight(app, inputField.GetText())
+			})
+
+			inputField.SetTitleColor(tcell.ColorDefault)
+			inputField.SetFieldBackgroundColor(tcell.ColorGray)
+			inputField.SetFieldTextColor(tcell.ColorBlack)
+
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
+
+			programs, descriptions := ProgramsAndDescriptionsForFile(&fen)
+			programsList := NewOpenWithList(&programs, &descriptions)
+
+			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
+			if len(programs) > 0 {
+				inputField.SetPlaceholder(programs[0])
+			}
+
+			flex := tview.NewFlex().
+				AddItem(inputField, 2, 1, true).SetDirection(tview.FlexRow).
+				AddItem(programsList, len(programs), 1, false)
+
+			flex.SetBorder(true)
+
+			pages.AddPage("openwith", modal(flex, 60, 2 + 2 + len(programs)), true, true)
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
 			fen.GoUp()
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
@@ -276,9 +333,9 @@ func main() {
 			}
 
 			inputField := tview.NewInputField().
-				SetLabel("Rename: ").
+				SetLabel(" Rename: ").
 				SetText(filepath.Base(fileToRename)).
-				SetFieldWidth(49)
+				SetFieldWidth(48)
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEscape {
@@ -307,6 +364,7 @@ func main() {
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 
 			pages.AddPage("inputfield", modal(inputField, 60, 3), true, true)
 			app.SetFocus(inputField)
@@ -323,13 +381,13 @@ func main() {
 			}
 
 			inputField := tview.NewInputField().
-				SetFieldWidth(45)
+				SetFieldWidth(44)
 
 			if event.Rune() == 'n' {
-				inputField.SetLabel("New file: ")
-				inputField.SetFieldWidth(47) // TODO: Maybe there's an auto-size for tview inputfield based on label length?
+				inputField.SetLabel(" New file: ")
+				inputField.SetFieldWidth(46) // TODO: Maybe there's an auto-size for tview inputfield based on label length?
 			} else if event.Rune() == 'N' {
-				inputField.SetLabel("New folder: ")
+				inputField.SetLabel(" New folder: ")
 			}
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
@@ -355,6 +413,7 @@ func main() {
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 
 			pages.AddPage("newfilemodal", modal(inputField, 60, 3), true, true)
 			app.SetFocus(inputField)
@@ -378,7 +437,7 @@ func main() {
 			fen.bottomBarText = "Cut!"
 			return nil
 		} else if event.Rune() == 'z' || event.Key() == tcell.KeyBackspace {
-			fen.dontShowHiddenFiles = !fen.dontShowHiddenFiles
+			fen.config.DontShowHiddenFiles = !fen.config.DontShowHiddenFiles
 			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
 			fen.UpdatePanes()
 			fen.history.AddToHistory(fen.sel)
@@ -497,9 +556,10 @@ func main() {
 
 			if len(fen.selected) <= 0 {
 				fileToDelete = fen.sel
-				modal.SetText("Delete " + tview.Escape(filepath.Base(fileToDelete)) + " ?")
+				// When the text wraps, color styling gets reset on line breaks. I have not found a good solution yet
+				modal.SetText("[red::d]Delete[-:-:-:-] " + StyleToStyleTagString(FileColor(fileToDelete)) + tview.Escape(filepath.Base(fileToDelete)) + "[-:-:-:-] ?")
 			} else {
-				modal.SetText("Delete " + tview.Escape(strconv.Itoa(len(fen.selected))) + " selected files?")
+				modal.SetText("[red::d]Delete[-:-:-:-] " + tview.Escape(strconv.Itoa(len(fen.selected))) + " selected files?")
 			}
 
 			modal.

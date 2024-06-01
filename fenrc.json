@@ -2,6 +2,7 @@
 	"ui-borders": false,
 	"no-mouse": false,
 	"no-write": false,
+	"dont-show-hidden-files": false,
 
 	"open-with": [
 		{
@@ -12,13 +13,15 @@
 			]
 		},
 		{
-			"programs": ["feh"],
+			"programs": ["xviewer", "xdg-open", "feh"],
 			"match": ["*.png", "*.jpg", "*.jpeg", "*.jfif", "*.flif", "*.tiff", "*.gif", "*.webp", "*.bmp"]
 		},
 		{
 			"programs": ["nvim", "vim", "vi"],
 			"match": [
-				"*.json",
+				".gitignore", "LICENSE",
+
+				"*.json", "*.txt", "*.mod", "*.sum",
 
 				"*.zip", "*.jar", "*.kra",
 				"*.tar.bz2", "*.tb2", "*.tbz", "*.tbz2", "*.tz2",

@@ -1,10 +1,13 @@
 ## TODOs, vaguely sorted by priority
 
 - Opening multiple selected files
+- Make the '/' search a modal
 - Fix selecting text with mouse when noMouse = false
 - Allow opening images with 'feh', fix it not breaking fen
 - Show folders first in filespanes
+- Make the "open with" modal a selectable list with tab/shift+tab controls aswell as arrow keys, would replace inputfield placeholder and reset input text to blank
 - Better scrolling
+- Configurable keybindings
 - Commands like :mkdir etc.
 - Don't show "empty" twice on the right, aka when fen.sel is a file
 - File previews
@@ -19,7 +22,7 @@
 - Fix invisibility near root dir
 - Caching stuff (maybe only re-dirlist for left/right)
 - Util function for getting folder/file size string (sensible file size strings like 8.2M, 40B, 1.2G)
-- Custom themes by changing `tview.Styles`
+- Configurable custom themes by changing `tview.Styles`
 - Maybe do dimming of colors with the dim text styling in tview where its like `"[dim:]"` or something
 - Different colors in modals
 - `H` and `L` controls feel weird because the screen scrolls in a specific way instead of just setting the cursor to the bottom of the screen like the behaviour in vim

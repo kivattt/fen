@@ -27,8 +27,6 @@ type Fen struct {
 
 	bottomBarText string
 
-	dontShowHiddenFiles bool
-
 	config Config
 
 	topPane    *Bar
@@ -44,6 +42,7 @@ type Config struct {
 	UiBorders bool `json:"ui-borders"`
 	NoMouse bool `json:"no-mouse"`
 	NoWrite bool `json:"no-write"`
+	DontShowHiddenFiles bool `json:"dont-show-hidden-files"`
 	OpenWith []FileMatchWithProgram `json:"open-with"`
 }
 
@@ -53,7 +52,6 @@ type FileMatchWithProgram struct {
 }
 
 func (fen *Fen) Init(workingDirectory string) error {
-	fen.dontShowHiddenFiles = false
 	fen.selectingWithV = false
 	fen.fileProperties = NewFileProperties()
 
@@ -62,9 +60,9 @@ func (fen *Fen) Init(workingDirectory string) error {
 	fen.topPane = NewBar(&fen.sel, &fen.sel, &fen.config.NoWrite)
 	fen.topPane.isTopBar = true
 
-	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, false)
-	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, true)
-	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.dontShowHiddenFiles, false)
+	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, false)
+	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, true)
+	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, false)
 
 	if fen.config.UiBorders {
 		fen.leftPane.SetBorder(true)
@@ -171,7 +169,7 @@ func (fen *Fen) UpdatePanes() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry))
 	fen.rightPane.SetEntries(fen.sel)
 
-	h, err := fen.history.GetHistoryEntryForPath(fen.sel, fen.dontShowHiddenFiles)
+	h, err := fen.history.GetHistoryEntryForPath(fen.sel, fen.config.DontShowHiddenFiles)
 	if err != nil {
 		fen.rightPane.SetSelectedEntryFromIndex(0)
 	} else {
@@ -225,7 +223,7 @@ func (fen *Fen) GoLeft() {
 	fen.selectedBeforeSelectingWithV = []string{}
 }
 
-func (fen *Fen) GoRight(app *tview.Application) {
+func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 	if len(fen.middlePane.entries) <= 0 {
 		return
 	}
@@ -236,7 +234,7 @@ func (fen *Fen) GoRight(app *tview.Application) {
 	}
 
 	if !fi.IsDir() {
-		OpenFile(fen, app)
+		OpenFile(fen, app, openWith)
 		return
 	}
 
@@ -246,7 +244,7 @@ func (fen *Fen) GoRight(app *tview.Application) {
 		}*/
 
 	fen.wd = fen.sel
-	fen.sel, err = fen.history.GetHistoryEntryForPath(fen.wd, fen.dontShowHiddenFiles)
+	fen.sel, err = fen.history.GetHistoryEntryForPath(fen.wd, fen.config.DontShowHiddenFiles)
 
 	if err != nil {
 		// FIXME
