@@ -39,16 +39,16 @@ type Fen struct {
 }
 
 type Config struct {
-	UiBorders bool `json:"ui-borders"`
-	NoMouse bool `json:"no-mouse"`
-	NoWrite bool `json:"no-write"`
-	DontShowHiddenFiles bool `json:"dont-show-hidden-files"`
-	OpenWith []FileMatchWithProgram `json:"open-with"`
+	UiBorders           bool                   `json:"ui-borders"`
+	NoMouse             bool                   `json:"no-mouse"`
+	NoWrite             bool                   `json:"no-write"`
+	DontShowHiddenFiles bool                   `json:"dont-show-hidden-files"`
+	OpenWith            []FileMatchWithProgram `json:"open-with"`
 }
 
 type FileMatchWithProgram struct {
 	Programs []string `json:"programs"`
-	Match []string `json:"match"`
+	Match    []string `json:"match"`
 }
 
 func (fen *Fen) Init(workingDirectory string) error {

@@ -234,7 +234,7 @@ func main() {
 
 			flex.SetBorder(true)
 
-			pages.AddPage("openwith", modal(flex, 60, 2 + 2 + len(programs)), true, true)
+			pages.AddPage("openwith", modal(flex, 60, 2+2+len(programs)), true, true)
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
 			fen.GoUp()
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
