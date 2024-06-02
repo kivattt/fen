@@ -87,6 +87,7 @@ func (fen *Fen) Init(workingDirectory string) error {
 
 	if len(wdFiles) > 0 {
 		fen.sel = filepath.Join(fen.wd, wdFiles[0].Name())
+		fen.GoTop()
 	}
 
 	fen.history.AddToHistory(fen.sel)
