@@ -28,21 +28,12 @@ func (h *History) GetHistoryEntryForPath(path string, ignoreHiddenFiles bool) (s
 			continue
 		}
 
-		//fmt.Println("sub: " + sub)
-
-		/*		if len(path) >= len(sub) {
-				continue
-			}*/
-
-		//		return filepath.Join(e, sub), nil
-
 		if strings.HasPrefix(e, path) {
 			if len(path) >= len(e) {
 				continue
 			}
 
 			e = e[len(path)+1:]
-			//			nextSlashIdx := strings.Index(e, "/")
 			nextSlashIdx := strings.Index(e, string(os.PathSeparator))
 			if nextSlashIdx == -1 {
 				return filepath.Join(path, e), nil

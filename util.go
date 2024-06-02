@@ -417,6 +417,10 @@ func FilePathUniqueNameIfAlreadyExists(path string) string {
 		panic("FilePathUniqueNameIfAlreadyExists got an uncleaned file path")
 	}
 
+	if strings.HasSuffix(path, string(os.PathSeparator)) {
+		panic("FilePathUniqueNameIfAlreadyExists got a file path ending in " + string(os.PathSeparator))
+	}
+
 	newPath := path
 	for i := -1; ; i++ {
 		_, err := os.Stat(newPath)
