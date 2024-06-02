@@ -86,7 +86,8 @@ func (fen *Fen) Init(workingDirectory string) error {
 	}
 
 	if len(wdFiles) > 0 {
-		fen.sel = filepath.Join(fen.wd, wdFiles[0].Name())
+		// HACKY: middlePane has to have entries so that GoTop() will work
+		fen.middlePane.SetEntries(fen.wd, fen.config.FoldersNotFirst)
 		fen.GoTop()
 	}
 
