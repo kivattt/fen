@@ -20,9 +20,11 @@ type FilesPane struct {
 	entries             []os.DirEntry
 	selectedEntry       int
 	showEntrySizes      bool
+	isRightFilesPane    bool
+	parentIsEmptyFolder bool
 }
 
-func NewFilesPane(selected *[]string, yankSelected *[]string, dontShowHiddenFiles *bool, showEntrySizes bool) *FilesPane {
+func NewFilesPane(selected *[]string, yankSelected *[]string, dontShowHiddenFiles *bool, showEntrySizes bool, isRightFilesPane bool) *FilesPane {
 	return &FilesPane{
 		Box:                 tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
 		selected:            selected,
@@ -30,6 +32,7 @@ func NewFilesPane(selected *[]string, yankSelected *[]string, dontShowHiddenFile
 		dontShowHiddenFiles: dontShowHiddenFiles,
 		selectedEntry:       0,
 		showEntrySizes:      showEntrySizes,
+		isRightFilesPane:    isRightFilesPane,
 	}
 }
 
@@ -68,6 +71,8 @@ func (fp *FilesPane) SetEntries(path string, foldersNotFirst bool) {
 	if !foldersNotFirst {
 		fp.entries = FoldersAtBeginning(fp.entries)
 	}
+
+	fp.parentIsEmptyFolder = len(fp.entries) <= 0
 }
 
 func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {
@@ -143,7 +148,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 	x, y, w, h := fp.GetInnerRect()
 
-	if len(fp.entries) <= 0 && fp.folder != filepath.Dir(fp.folder) {
+	if fp.parentIsEmptyFolder || !fp.isRightFilesPane && len(fp.entries) <= 0 && fp.folder != filepath.Dir(fp.folder) {
 		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
 		return
 	}

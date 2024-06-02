@@ -62,9 +62,9 @@ func (fen *Fen) Init(workingDirectory string) error {
 	fen.topPane = NewBar(&fen.sel, &fen.sel, &fen.config.NoWrite)
 	fen.topPane.isTopBar = true
 
-	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, false)
-	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, true)
-	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, false)
+	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, false, false)
+	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, true, false)
+	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, false, true)
 
 	if fen.config.UiBorders {
 		fen.leftPane.SetBorder(true)
@@ -171,6 +171,11 @@ func (fen *Fen) UpdatePanes() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry))
 	fen.rightPane.SetEntries(fen.sel, fen.config.FoldersNotFirst)
 
+	// Prevents showing 'empty' a second time in rightPane, if middlePane is already showing 'empty'
+	if len(fen.middlePane.entries) <= 0 {
+		fen.rightPane.parentIsEmptyFolder = false
+	}
+
 	h, err := fen.history.GetHistoryEntryForPath(fen.sel, fen.config.DontShowHiddenFiles)
 	if err != nil {
 		fen.rightPane.SetSelectedEntryFromIndex(0)
@@ -235,7 +240,7 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 		return
 	}
 
-	if !fi.IsDir() {
+	if !fi.IsDir() || openWith != "" {
 		OpenFile(fen, app, openWith)
 		return
 	}

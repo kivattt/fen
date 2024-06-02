@@ -1,14 +1,13 @@
 ## TODOs, vaguely sorted by priority
 
+- Better scrolling
+- File previews
 - Fix selecting text with mouse when noMouse = false
 - Allow opening images with 'feh', fix it not breaking fen
 - Make the "open with" modal a selectable list with tab/shift+tab controls aswell as arrow keys, would replace inputfield placeholder and reset input text to blank
-- Better scrolling
 - Configurable keybindings
 - Commands like :mkdir etc.
 - Fix some hidden file toggle bugs?
-- Don't show "empty" twice on the right, aka when fen.sel is a file
-- File previews
 - Disallow recursive copies or whatever
 - Add an underscore for duplicate pasting (maybe a modal question for overwrite/new name?)
 - Copying from the terminal is annoying because of tview somehow

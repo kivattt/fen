@@ -182,15 +182,6 @@ func main() {
 		} else if event.Key() == tcell.KeyRight || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
 			fen.GoRight(app, "")
 		} else if event.Key() == tcell.KeyCtrlSpace {
-			fi, err := os.Stat(fen.sel)
-			if err != nil {
-				return nil
-			}
-
-			if fi.IsDir() {
-				return nil
-			}
-
 			modal := func(p tview.Primitive, width, height int) tview.Primitive {
 				return tview.NewFlex().
 					AddItem(nil, 0, 1, false).
