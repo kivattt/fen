@@ -1,5 +1,6 @@
 ## TODOs, vaguely sorted by priority
 
+- Bulk rename
 - Better scrolling
 - File previews
 - Fix selecting text with mouse when noMouse = false
