@@ -62,12 +62,9 @@ func main() {
 	}
 
 	workingDirectory, err := filepath.Abs(getopt.CommandLine.Arg(0))
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
 
-	if workingDirectory == "" {
-		workingDirectory, err := os.Getwd()
+	if workingDirectory == "" || err != nil {
+		workingDirectory, err = os.Getwd()
 
 		// os.Getwd() will error if the working directory doesn't exist
 		if err != nil {
