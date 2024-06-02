@@ -471,7 +471,7 @@ func main() {
 						continue
 					}
 
-					newPath := filepath.Join(fen.wd, filepath.Base(e))
+					newPath := FilePathUniqueNameIfAlreadyExists(filepath.Join(fen.wd, filepath.Base(e)))
 					if fi.IsDir() {
 						err := os.Mkdir(newPath, 0755)
 						if err != nil {
@@ -516,7 +516,7 @@ func main() {
 						continue
 					}
 
-					newPath := filepath.Join(fen.wd, filepath.Base(e))
+					newPath := FilePathUniqueNameIfAlreadyExists(filepath.Join(fen.wd, filepath.Base(e)))
 					err = os.Rename(e, newPath)
 					if err != nil {
 						// TODO: We need an error log we can scroll through

@@ -411,3 +411,23 @@ func FoldersAtBeginning(dirEntries []os.DirEntry) []os.DirEntry {
 
 	return append(folders, files...)
 }
+
+func FilePathUniqueNameIfAlreadyExists(path string) string {
+	if path != filepath.Clean(path) {
+		panic("FilePathUniqueNameIfAlreadyExists got an uncleaned file path")
+	}
+
+	newPath := path
+	for i := -1;; i++ {
+		_, err := os.Stat(newPath)
+		if err != nil {
+			return newPath
+		}
+
+		if i == -1 {
+			newPath = path + "_"
+		} else {
+			newPath = path + "_" + strconv.Itoa(i)
+		}
+	}
+}

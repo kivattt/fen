@@ -3,13 +3,12 @@
 - Better scrolling
 - File previews
 - Fix selecting text with mouse when noMouse = false
-- Allow opening images with 'feh', fix it not breaking fen
+- Allow opening images with 'feh', fix it not breaking fen, 'xviewer' can also break fen rarely
 - Make the "open with" modal a selectable list with tab/shift+tab controls aswell as arrow keys, would replace inputfield placeholder and reset input text to blank
 - Configurable keybindings
-- Commands like :mkdir etc.
+- Commands like :mkdir etc.?
 - Fix some hidden file toggle bugs?
 - Disallow recursive copies or whatever
-- Add an underscore for duplicate pasting (maybe a modal question for overwrite/new name?)
 - Copying from the terminal is annoying because of tview somehow
 - (Maybe...) Vim/ranger stuff like `5<space>` selecting 5 files, or `5j` going down 5
 - Remove being able to delete while mid and right pane are empty? (Going into an empty folder (mid and right pane are empty), then deleting it will set selected entry on the left pane to 0 instead of matching the GoDown() when deleting in middlePane)
