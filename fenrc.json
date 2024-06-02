@@ -19,7 +19,7 @@
 			"match": ["*.png", "*.jpg", "*.jpeg", "*.jfif", "*.flif", "*.tiff", "*.gif", "*.webp", "*.bmp"]
 		},
 		{
-			"programs": ["nvim", "vim", "vi"],
+			"programs": ["nvim -p", "vim -p", "vi -p"],
 			"match": [
 				".gitignore", "LICENSE",
 

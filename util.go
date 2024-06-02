@@ -333,7 +333,7 @@ func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
 		programs = append(programs, editor)
 		descriptions = append(descriptions, "$EDITOR")
 	}
-	programs = append(programs, "vim", "vi", "nano")
+	programs = append(programs, "vim -p", "vi -p", "nano")
 	for i := 0; i < 3; i++ {
 		descriptions = append(descriptions, "Default fallback")
 	}
@@ -368,11 +368,19 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 
 	app.Suspend(func() {
 		for _, program := range programsAndFallbacks {
+			programSplitSpace := strings.Split(program, " ")
+
+			programName := programSplitSpace[0]
+			programArguments := []string{}
+			if len(programSplitSpace) > 1 {
+				programArguments = programSplitSpace[1:]
+			}
+
 			var cmd *exec.Cmd
 			if len(fen.selected) <= 0 {
-				cmd = exec.Command(program, fen.sel)
+				cmd = exec.Command(programName, append(programArguments, fen.sel)...)
 			} else {
-				cmd = exec.Command(program, fen.selected...)
+				cmd = exec.Command(programName, append(programArguments, fen.selected...)...)
 			}
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
