@@ -61,7 +61,7 @@ The `"open-with"` file matching starts from the top, so you can have something l
 }
 ```
 
-You can find a complete example config in the `fenrc.json` file \
+You can find a complete example config in the [fenrc.json](fenrc.json) file \
 You can specify a different config file path with the `--config` flag
 
 # Known issues
@@ -69,4 +69,4 @@ You can specify a different config file path with the `--config` flag
 - `go test` doesn't work on Windows
 - The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal
 
-See `TODO.md` for other issues and possible future features, roughly sorted by priority
+See [TODO.md](TODO.md) for other issues and possible future features, roughly sorted by priority
