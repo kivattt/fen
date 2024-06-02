@@ -333,9 +333,11 @@ func main() {
 			fen.DisableSelectingWithV()
 			return nil
 		} else if event.Rune() == 'D' {
-			fen.selected = []string{}
-			fen.yankSelected = []string{}
-			fen.bottomBarText = "Deselected and un-yanked!"
+			if len(fen.selected) > 0 || len(fen.yankSelected) > 0 {
+				fen.selected = []string{}
+				fen.yankSelected = []string{}
+				fen.bottomBarText = "Deselected and un-yanked!"
+			}
 			fen.DisableSelectingWithV()
 			return nil
 		} else if event.Rune() == 'a' {
