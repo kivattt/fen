@@ -418,7 +418,7 @@ func FilePathUniqueNameIfAlreadyExists(path string) string {
 	}
 
 	newPath := path
-	for i := -1;; i++ {
+	for i := -1; ; i++ {
 		_, err := os.Stat(newPath)
 		if err != nil {
 			return newPath
