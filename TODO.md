@@ -1,26 +1,22 @@
 ## TODOs, vaguely sorted by priority
 
 - Bulk rename
-- Better scrolling
 - File previews
+- Better scrolling
 - Fix selecting text with mouse when noMouse = false
 - Allow opening images with 'feh', fix it not breaking fen, 'xviewer' can also break fen rarely
 - Make the "open with" modal a selectable list with tab/shift+tab controls aswell as arrow keys, would replace inputfield placeholder and reset input text to blank
 - Configurable keybindings
+- Configurable custom themes by changing `tview.Styles`
+- Jump to file/folder created on n/N
 - Commands like :mkdir etc.?
 - Fix some hidden file toggle bugs?
 - Disallow recursive copies or whatever
-- Copying from the terminal is annoying because of tview somehow
 - (Maybe...) Vim/ranger stuff like `5<space>` selecting 5 files, or `5j` going down 5
 - Remove being able to delete while mid and right pane are empty? (Going into an empty folder (mid and right pane are empty), then deleting it will set selected entry on the left pane to 0 instead of matching the GoDown() when deleting in middlePane)
 - 'n' is a little too close to 'M', maybe change it?
 - Fix `history_test.go` for Windows paths
 - Fix green color for all executables (the current bitmask check doesn't work for everything)
-- Fix invisibility near root dir
-- Caching stuff (maybe only re-dirlist for left/right)
-- Util function for getting folder/file size string (sensible file size strings like 8.2M, 40B, 1.2G)
-- Configurable custom themes by changing `tview.Styles`
-- Maybe do dimming of colors with the dim text styling in tview where its like `"[dim:]"` or something
-- Different colors in modals
+- Fix invisibility near root dir (easy to see on Android with Termux)
+- Performance: Caching stuff (maybe only re-dirlist for left/right)
 - `H` and `L` controls feel weird because the screen scrolls in a specific way instead of just setting the cursor to the bottom of the screen like the behaviour in vim
-- Jump to file/folder created on n/N
