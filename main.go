@@ -159,7 +159,6 @@ func main() {
 				fen.history.AddToHistory(fen.sel)
 			}
 
-			fen.bottomBarText = fen.sel
 			fen.UpdatePanes()
 			return nil, action
 		}
@@ -252,7 +251,6 @@ func main() {
 			fen.GoDown()
 		} else if event.Rune() == ' ' {
 			fen.ToggleSelection(fen.sel)
-			fen.bottomBarText = strings.Join(fen.selected, ", ")
 			fen.GoDown()
 		} else if event.Key() == tcell.KeyHome || event.Rune() == 'g' {
 			fen.GoTop()
@@ -277,7 +275,6 @@ func main() {
 				fen.history.AddToHistory(fen.sel)
 			}
 
-			fen.bottomBarText = fen.sel
 			fen.UpdatePanes()
 			return nil
 		}
@@ -375,7 +372,6 @@ func main() {
 						fen.sel = newPath
 
 						fen.UpdatePanes()
-						//fen.bottomBarText = fen.sel
 					}
 
 					pages.RemovePage("inputfield")
@@ -543,7 +539,7 @@ func main() {
 			fen.selected = []string{}
 
 			fen.UpdatePanes()
-			//			fen.bottomBarText = "Paste! (fen.sel = " + fen.sel + ")"
+			fen.bottomBarText = "Paste!"
 
 			return nil
 		} else if event.Rune() == 'V' {

@@ -368,7 +368,12 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 
 	app.Suspend(func() {
 		for _, program := range programsAndFallbacks {
-			cmd := exec.Command(program, fen.sel)
+			var cmd *exec.Cmd
+			if len(fen.selected) <= 0 {
+				cmd = exec.Command(program, fen.sel)
+			} else {
+				cmd = exec.Command(program, fen.selected...)
+			}
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
