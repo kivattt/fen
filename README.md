@@ -18,7 +18,7 @@ go run github.com/kivattt/fen@latest
 ```
 
 # Installing on Linux/FreeBSD
-Download the latest version in the [Releases](https://github.com/kivattt/fen/releases), and put it inside `/usr/local/bin`
+Download the latest version in the [Releases](https://github.com/kivattt/fen/releases) page, and put it inside `/usr/local/bin`
 
 Alternatively:
 ```console
