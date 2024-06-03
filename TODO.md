@@ -2,6 +2,7 @@
 
 - Bulk rename
 - File previews
+- Scrollable search history
 - Better scrolling
 - Installation instructions for Windows in the README
 - .deb file in Releases
