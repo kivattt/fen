@@ -3,6 +3,8 @@
 - Bulk rename
 - File previews
 - Better scrolling
+- Installation instructions for Windows in the README
+- .deb file in Releases
 - Fix selecting text with mouse when noMouse = false
 - Allow opening images with 'feh', fix it not breaking fen, 'xviewer' can also break fen rarely
 - Make the "open with" modal a selectable list with tab/shift+tab controls aswell as arrow keys, would replace inputfield placeholder and reset input text to blank

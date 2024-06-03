@@ -18,7 +18,7 @@ import (
 	dirCopy "github.com/otiai10/copy"
 )
 
-const version = "v0.0.0-indev"
+const version = "v1.0.0"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
