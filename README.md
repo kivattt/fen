@@ -21,7 +21,7 @@ go run github.com/kivattt/fen@latest
 Download the latest version in the [Releases](https://github.com/kivattt/fen/releases) page, and put it inside `/usr/local/bin`
 
 Alternatively:
-```console
+```
 sudo -i GOBIN=/usr/local/bin go install github.com/kivattt/fen@latest
 ```
 
