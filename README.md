@@ -76,6 +76,6 @@ You can specify a different config file path with the `--config` flag
 - Setting a boolean command-line flag to false, e.g. `--no-write=false` has no effect, and the configuration file value will be prioritized. You can disable loading the config file by giving a bogus filename: `--config=aaaaa`
 - `go test` doesn't work on Windows
 - The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal
-- The color for Yes/No buttons when deleting files is invisible in the Linux "Ctrl+Alt+F1" erminal, aswell as FreeBSD
+- The color for Yes/No buttons when deleting files is invisible in the Linux "Ctrl+Alt+F1" rerminal, aswell as FreeBSD
 
 See [TODO.md](TODO.md) for other issues and possible future features, roughly sorted by priority
