@@ -61,6 +61,9 @@ Linux/FreeBSD: `~/.config/fen/fenrc.json` or `$XDG_CONFIG_HOME/fen/fenrc.json` i
 macOS: `$HOME/Library/Application Support/fen/fenrc.json`\
 Windows: `%AppData%\Roaming\fen\fenrc.json`
 
+You can find a complete example config in the [fenrc.json](fenrc.json) file\
+You can specify a different config file path with the `--config` flag
+
 The `"open-with"` file matching starts from the top, so you can have something like this at the end of the list to catch anything not previously matched:
 ```json
 {
@@ -77,9 +80,6 @@ You can use "do-not-match" in conjunction with "match":
     "do-not-match": ["*.exe"]
 }
 ```
-
-You can find a complete example config in the [fenrc.json](fenrc.json) file\
-You can specify a different config file path with the `--config` flag
 
 # File previews
 fen does not (yet!) have file previews by default\
