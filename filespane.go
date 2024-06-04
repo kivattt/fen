@@ -3,19 +3,20 @@ package main
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/yuin/gopher-lua"
+	"layeh.com/gopher-luar"
 )
 
 type FilesPane struct {
 	*tview.Box
-	selected            *[]string
-	yankSelected        *[]string
-	dontShowHiddenFiles *bool
+	fen                 *Fen
 	folder              string
 	entries             []os.DirEntry
 	selectedEntry       int
@@ -24,34 +25,71 @@ type FilesPane struct {
 	parentIsEmptyFolder bool
 }
 
-func NewFilesPane(selected *[]string, yankSelected *[]string, dontShowHiddenFiles *bool, showEntrySizes bool, isRightFilesPane bool) *FilesPane {
+func NewFilesPane(fen *Fen, showEntrySizes bool, isRightFilesPane bool) *FilesPane {
 	return &FilesPane{
-		Box:                 tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
-		selected:            selected,
-		yankSelected:        yankSelected,
-		dontShowHiddenFiles: dontShowHiddenFiles,
-		selectedEntry:       0,
-		showEntrySizes:      showEntrySizes,
-		isRightFilesPane:    isRightFilesPane,
+		Box:              tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
+		fen:              fen,
+		selectedEntry:    0,
+		showEntrySizes:   showEntrySizes,
+		isRightFilesPane: isRightFilesPane,
 	}
+}
+
+type FenLuaGlobal struct {
+	SelectedFile string
+	Width        int
+	Height       int
+	x            int
+	y            int
+	screen       tcell.Screen
+}
+
+func (f *FenLuaGlobal) Print(text string, x, y, maxWidth, align int, color tcell.Color) {
+	if x < 0 || x > f.Width {
+		return
+	}
+	if y < 0 || y >= f.Height {
+		return
+	}
+
+	text = strings.ReplaceAll(text, "\t", "    ")
+	tview.Print(f.screen, text, x+f.x, y+f.y, maxWidth, align, color)
+}
+
+func (f *FenLuaGlobal) PrintSimple(text string, x, y int) {
+	f.Print(text, x, y, f.Width, 0, 0)
+}
+
+func (f *FenLuaGlobal) Escape(text string) string {
+	return tview.Escape(text)
+}
+
+func (f *FenLuaGlobal) TranslateANSI(text string) string {
+	return tview.TranslateANSI(text)
+}
+
+func (f *FenLuaGlobal) NewRGBColor(r, g, b int32) tcell.Color {
+	return tcell.NewRGBColor(r, g, b)
 }
 
 func (fp *FilesPane) SetEntries(path string, foldersNotFirst bool) {
 	fi, err := os.Stat(path)
 	if err != nil {
 		fp.entries = []os.DirEntry{}
+		fp.parentIsEmptyFolder = true
 		return
 	}
 
 	if !fi.IsDir() {
 		fp.entries = []os.DirEntry{}
+		fp.parentIsEmptyFolder = false
 		return
 	}
 
 	fp.folder = path
 	fp.entries, _ = os.ReadDir(fp.folder)
 
-	if *fp.dontShowHiddenFiles {
+	if fp.fen.config.DontShowHiddenFiles {
 		withoutHiddenFiles := []os.DirEntry{}
 		for _, e := range fp.entries {
 			if !strings.HasPrefix(e.Name(), ".") {
@@ -153,8 +191,86 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		return
 	}
 
-	scrollOffset := fp.GetTopScreenEntryIndex()
+	// File previews
+	stat, statErr := os.Stat(fp.fen.sel)
+	f, readErr := os.OpenFile(fp.fen.sel, os.O_RDONLY, 0)
+	f.Close()
+	if statErr == nil && stat.Mode().IsRegular() && readErr == nil && len(fp.entries) <= 0 && fp.isRightFilesPane {
+		i := 0
+		for _, previewWith := range fp.fen.config.PreviewWith {
+			i++
+			for _, match := range previewWith.Match {
+				matched, _ := filepath.Match(match, filepath.Base(fp.fen.sel))
+				if matched {
+					if previewWith.Script != "" {
+						L := lua.NewState()
+						defer L.Close()
 
+						fenLuaGlobal := &FenLuaGlobal{
+							SelectedFile: fp.fen.sel,
+							x:            x,
+							y:            y,
+							Width:        w,
+							Height:       h,
+							screen:       screen,
+						}
+
+						L.SetGlobal("fen", luar.New(L, fenLuaGlobal))
+						luaFileAbsolutePath := ""
+						if !filepath.IsAbs(previewWith.Script) {
+							userConfigDir, err := os.UserConfigDir()
+							if err == nil {
+								luaFileAbsolutePath = filepath.Join(userConfigDir, "fen", previewWith.Script)
+							}
+						} else {
+							luaFileAbsolutePath = previewWith.Script
+						}
+						err := L.DoFile(luaFileAbsolutePath)
+						if err != nil {
+							tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
+							lines := tview.WordWrap(err.Error(), w)
+							i := 0
+							for _, line := range lines {
+								tview.Print(fenLuaGlobal.screen, line, x, y+1+i, w, tview.AlignLeft, tcell.ColorDefault)
+								i++
+							}
+						}
+						return
+					}
+
+					for _, program := range previewWith.Programs {
+						programSplitSpace := strings.Split(program, " ")
+
+						programName := programSplitSpace[0]
+						programArguments := []string{}
+						if len(programSplitSpace) > 1 {
+							programArguments = programSplitSpace[1:]
+						}
+
+						cmd := exec.Command(programName, append(programArguments, fp.fen.sel)...)
+
+						textView := tview.NewTextView()
+						textView.Box.SetRect(x, y, w, h)
+						textView.SetBackgroundColor(tcell.ColorDefault)
+						textView.SetTextColor(tcell.ColorDefault)
+						textView.SetTextStyle(tcell.StyleDefault.Dim(true))
+						textView.SetDynamicColors(true)
+
+						cmd.Stdout = tview.ANSIWriter(textView)
+
+						err := cmd.Run()
+						if err == nil {
+							textView.Draw(screen)
+							return
+						}
+					}
+				}
+			}
+		}
+		return
+	}
+
+	scrollOffset := fp.GetTopScreenEntryIndex()
 	for i, entry := range fp.entries[scrollOffset:] {
 		if i >= h {
 			break
@@ -168,13 +284,13 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Reverse(true)
 		}
 
-		if slices.Contains(*fp.selected, entryFullPath) {
+		if slices.Contains(fp.fen.selected, entryFullPath) {
 			spaceForSelected = " "
 			style = style.Foreground(tcell.ColorYellow)
 		}
 
 		// Dim the entry if its in yankSelected
-		if slices.Contains(*fp.yankSelected, entryFullPath) {
+		if slices.Contains(fp.fen.yankSelected, entryFullPath) {
 			style = style.Dim(true)
 		}
 
@@ -184,11 +300,12 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			continue
 		}
 
-		entrySizeText, err := EntrySize(entryFullPath, *fp.dontShowHiddenFiles)
+		entrySizeText, err := EntrySize(entryFullPath, fp.fen.config.DontShowHiddenFiles)
 		if err != nil {
 			entrySizeText = "?"
 		}
 
 		tview.Print(screen, StyleToStyleTagString(style)+" "+tview.Escape(entrySizeText)+" ", x, y+i, w-1, tview.AlignRight, tcell.ColorDefault)
 	}
+
 }

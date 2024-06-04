@@ -39,16 +39,23 @@ type Fen struct {
 }
 
 type Config struct {
-	UiBorders           bool                   `json:"ui-borders"`
-	NoMouse             bool                   `json:"no-mouse"`
-	NoWrite             bool                   `json:"no-write"`
-	DontShowHiddenFiles bool                   `json:"dont-show-hidden-files"`
-	FoldersNotFirst     bool                   `json:"folders-not-first"`
-	PrintPathOnOpen     bool                   `json:"print-path-on-open"`
-	OpenWith            []FileMatchWithProgram `json:"open-with"`
+	UiBorders           bool               `json:"ui-borders"`
+	NoMouse             bool               `json:"no-mouse"`
+	NoWrite             bool               `json:"no-write"`
+	DontShowHiddenFiles bool               `json:"dont-show-hidden-files"`
+	FoldersNotFirst     bool               `json:"folders-not-first"`
+	PrintPathOnOpen     bool               `json:"print-path-on-open"`
+	OpenWith            []OpenWithEntry    `json:"open-with"`
+	PreviewWith         []PreviewWithEntry `json:"preview-with"`
 }
 
-type FileMatchWithProgram struct {
+type OpenWithEntry struct {
+	Programs []string `json:"programs"`
+	Match    []string `json:"match"`
+}
+
+type PreviewWithEntry struct {
+	Script   string   `json:"script"`
 	Programs []string `json:"programs"`
 	Match    []string `json:"match"`
 }
@@ -62,9 +69,9 @@ func (fen *Fen) Init(workingDirectory string) error {
 	fen.topPane = NewBar(&fen.sel, &fen.sel, &fen.config.NoWrite)
 	fen.topPane.isTopBar = true
 
-	fen.leftPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, false, false)
-	fen.middlePane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, true, false)
-	fen.rightPane = NewFilesPane(&fen.selected, &fen.yankSelected, &fen.config.DontShowHiddenFiles, false, true)
+	fen.leftPane = NewFilesPane(fen, false, false)
+	fen.middlePane = NewFilesPane(fen, true, false)
+	fen.rightPane = NewFilesPane(fen, false, true)
 
 	if fen.config.UiBorders {
 		fen.leftPane.SetBorder(true)
@@ -158,7 +165,7 @@ func (fen *Fen) UpdatePanes() {
 	}
 	filePermissions, _ := FilePermissionsString(fen.sel)
 	fileLastModified, _ := FileLastModifiedString(fen.sel)
-	fen.bottomBarText = "[aqua:]" + filePermissions + fileOwners + " [white:]" + fileLastModified
+	fen.bottomBarText = "[teal:]" + filePermissions + fileOwners + " [default:]" + fileLastModified
 
 	fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel))
 

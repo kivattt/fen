@@ -7,7 +7,9 @@ require (
 	github.com/kivattt/getopt v0.0.0-20240327140735-6c39468cff24
 	github.com/otiai10/copy v1.14.0
 	github.com/rivo/tview v0.0.0-20240402201323-fec4f00cf099
+	github.com/yuin/gopher-lua v1.1.1
 	golang.org/x/sys v0.18.0
+	layeh.com/gopher-luar v1.0.11
 )
 
 require (

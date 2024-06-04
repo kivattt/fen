@@ -18,13 +18,13 @@ import (
 	dirCopy "github.com/otiai10/copy"
 )
 
-const version = "v1.0.0"
+const version = "v1.1.0"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
 	configFilenamePath := ""
 	if err == nil {
-		configFilenamePath = filepath.Join(userConfigDir, "fen/fenrc.json")
+		configFilenamePath = filepath.Join(userConfigDir, "fen", "fenrc.json")
 	}
 
 	v := flag.Bool("version", false, "output version information and exit")
@@ -178,7 +178,7 @@ func main() {
 			fen.GoLeft()
 		} else if event.Key() == tcell.KeyRight || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
 			fen.GoRight(app, "")
-		} else if event.Key() == tcell.KeyCtrlSpace {
+		} else if event.Key() == tcell.KeyCtrlSpace || event.Key() == tcell.KeyCtrlN {
 			modal := func(p tview.Primitive, width, height int) tview.Primitive {
 				return tview.NewFlex().
 					AddItem(nil, 0, 1, false).
@@ -404,7 +404,8 @@ func main() {
 					pages.RemovePage("newfilemodal")
 					return
 				} else if key == tcell.KeyEnter {
-					if !fen.config.NoWrite {
+					_, err := os.Stat(filepath.Join(fen.wd, inputField.GetText())) // Here to make sure we don't overwrite a file when making a new one
+					if !fen.config.NoWrite && err != nil {
 						if event.Rune() == 'n' {
 							os.Create(filepath.Join(fen.wd, inputField.GetText()))
 						} else if event.Rune() == 'N' {
@@ -620,7 +621,9 @@ func main() {
 
 			modal.Box.SetBackgroundColor(tcell.ColorBlack) // This sets the border background color
 			modal.SetBackgroundColor(tcell.ColorBlack)
-			modal.SetButtonBackgroundColor(tcell.ColorGray)
+
+			modal.SetButtonBackgroundColor(tcell.ColorDefault)
+			modal.SetButtonTextColor(tcell.ColorRed)
 
 			pages.AddPage("deletemodal", modal, true, true)
 			app.SetFocus(modal)

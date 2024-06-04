@@ -1,10 +1,13 @@
 ## TODOs, vaguely sorted by priority
 
 - Bulk rename
-- File previews
 - Scrollable search history
 - Better scrolling
+- Index/Length (maybe even percentage) in the bottom right like in vim/ranger
+- System-wide configuration file instructions
+- Make file previews not run every time the terminal is resized?
 - Installation instructions for Windows in the README
+- Allow spaces in "programs" path in config with `\ `? (Maybe not, this might be annoying on Windows), maybe add os package ExpandEnv to allow using environment variables in "programs"
 - .deb file in Releases
 - Fix selecting text with mouse when noMouse = false
 - Allow opening images with 'feh', fix it not breaking fen, 'xviewer' can also break fen rarely
