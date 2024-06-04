@@ -20,14 +20,16 @@
 		},
 		{
 			"programs": ["nvim -p", "vim -p", "vi -p"],
-			"match": ["*"]
+			"match": ["*"],
+			"do-not-match": ["*.mod"]
 		}
 	],
 
 	"preview-with": [
 		{
 			"script": "rainbow.lua",
-			"match": ["*"]
+			"match": ["*"],
+			"do-not-match": ["*.png", "*.exe"]
 		}
 	]
 }
