@@ -22,5 +22,12 @@
 			"programs": ["nvim -p", "vim -p", "vi -p"],
 			"match": ["*"]
 		}
+	],
+
+	"preview-with": [
+		{
+			"script": "rainbow.lua",
+			"match": ["*"]
+		}
 	]
 }
