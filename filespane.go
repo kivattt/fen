@@ -196,74 +196,72 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	f, readErr := os.OpenFile(fp.fen.sel, os.O_RDONLY, 0)
 	f.Close()
 	if statErr == nil && stat.Mode().IsRegular() && readErr == nil && len(fp.entries) <= 0 && fp.isRightFilesPane {
-		i := 0
 		for _, previewWith := range fp.fen.config.PreviewWith {
-			i++
-			for _, match := range previewWith.Match {
-				matched, _ := filepath.Match(match, filepath.Base(fp.fen.sel))
-				if matched {
-					if previewWith.Script != "" {
-						L := lua.NewState()
-						defer L.Close()
+			matched := PathMatchesList(fp.fen.sel, previewWith.Match) && !PathMatchesList(fp.fen.sel, previewWith.DoNotMatch)
+			if !matched {
+				continue
+			}
 
-						fenLuaGlobal := &FenLuaGlobal{
-							SelectedFile: fp.fen.sel,
-							x:            x,
-							y:            y,
-							Width:        w,
-							Height:       h,
-							screen:       screen,
-						}
+			if previewWith.Script != "" {
+				L := lua.NewState()
+				defer L.Close()
 
-						L.SetGlobal("fen", luar.New(L, fenLuaGlobal))
-						luaFileAbsolutePath := ""
-						if !filepath.IsAbs(previewWith.Script) {
-							userConfigDir, err := os.UserConfigDir()
-							if err == nil {
-								luaFileAbsolutePath = filepath.Join(userConfigDir, "fen", previewWith.Script)
-							}
-						} else {
-							luaFileAbsolutePath = previewWith.Script
-						}
-						err := L.DoFile(luaFileAbsolutePath)
-						if err != nil {
-							tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
-							lines := tview.WordWrap(err.Error(), w)
-							i := 0
-							for _, line := range lines {
-								tview.Print(fenLuaGlobal.screen, line, x, y+1+i, w, tview.AlignLeft, tcell.ColorDefault)
-								i++
-							}
-						}
-						return
+				fenLuaGlobal := &FenLuaGlobal{
+					SelectedFile: fp.fen.sel,
+					x:            x,
+					y:            y,
+					Width:        w,
+					Height:       h,
+					screen:       screen,
+				}
+
+				L.SetGlobal("fen", luar.New(L, fenLuaGlobal))
+				luaFileAbsolutePath := ""
+				if !filepath.IsAbs(previewWith.Script) {
+					userConfigDir, err := os.UserConfigDir()
+					if err == nil {
+						luaFileAbsolutePath = filepath.Join(userConfigDir, "fen", previewWith.Script)
 					}
-
-					for _, program := range previewWith.Programs {
-						programSplitSpace := strings.Split(program, " ")
-
-						programName := programSplitSpace[0]
-						programArguments := []string{}
-						if len(programSplitSpace) > 1 {
-							programArguments = programSplitSpace[1:]
-						}
-
-						cmd := exec.Command(programName, append(programArguments, fp.fen.sel)...)
-
-						textView := tview.NewTextView()
-						textView.Box.SetRect(x, y, w, h)
-						textView.SetBackgroundColor(tcell.ColorDefault)
-						textView.SetTextColor(tcell.ColorDefault)
-						textView.SetTextStyle(tcell.StyleDefault.Dim(true))
-						textView.SetDynamicColors(true)
-
-						cmd.Stdout = tview.ANSIWriter(textView)
-
-						err := cmd.Run()
-						if err == nil {
-							textView.Draw(screen)
-							return
-						}
+				} else {
+					luaFileAbsolutePath = previewWith.Script
+				}
+				err := L.DoFile(luaFileAbsolutePath)
+				if err != nil {
+					tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
+					lines := tview.WordWrap(err.Error(), w)
+					i := 0
+					for _, line := range lines {
+						tview.Print(fenLuaGlobal.screen, line, x, y+1+i, w, tview.AlignLeft, tcell.ColorDefault)
+						i++
 					}
+				}
+				return
+			}
+
+			for _, program := range previewWith.Programs {
+				programSplitSpace := strings.Split(program, " ")
+
+				programName := programSplitSpace[0]
+				programArguments := []string{}
+				if len(programSplitSpace) > 1 {
+					programArguments = programSplitSpace[1:]
+				}
+
+				cmd := exec.Command(programName, append(programArguments, fp.fen.sel)...)
+
+				textView := tview.NewTextView()
+				textView.Box.SetRect(x, y, w, h)
+				textView.SetBackgroundColor(tcell.ColorDefault)
+				textView.SetTextColor(tcell.ColorDefault)
+				textView.SetTextStyle(tcell.StyleDefault.Dim(true))
+				textView.SetDynamicColors(true)
+
+				cmd.Stdout = tview.ANSIWriter(textView)
+
+				err := cmd.Run()
+				if err == nil {
+					textView.Draw(screen)
+					return
 				}
 			}
 		}

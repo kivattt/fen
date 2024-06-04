@@ -69,6 +69,15 @@ The `"open-with"` file matching starts from the top, so you can have something l
 }
 ```
 
+You can use "do-not-match" in conjunction with "match":
+```json
+{
+    "programs": ["notepad"],
+    "match": ["*"],
+    "do-not-match": ["*.exe"]
+}
+```
+
 You can find a complete example config in the [fenrc.json](fenrc.json) file\
 You can specify a different config file path with the `--config` flag
 

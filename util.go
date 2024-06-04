@@ -294,18 +294,22 @@ func FileColor(path string) tcell.Style {
 	return ret.Foreground(tcell.ColorDefault)
 }
 
+func PathMatchesList(path string, matchList []string) bool {
+	for _, match := range matchList {
+		matched, _ := filepath.Match(match, filepath.Base(path))
+		if matched {
+			return true
+		}
+	}
+	return false
+}
+
 // We could maybe cache this to a certain extent
 func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
-	matched := false
 	var programs []string
 	var descriptions []string
 	for _, programMatch := range fen.config.OpenWith {
-		for _, match := range programMatch.Match {
-			matched, _ = filepath.Match(match, filepath.Base(fen.sel))
-			if matched {
-				break
-			}
-		}
+		matched := PathMatchesList(fen.sel, programMatch.Match) && !PathMatchesList(fen.sel, programMatch.DoNotMatch)
 
 		if matched {
 			for _, program := range programMatch.Programs {
