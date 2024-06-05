@@ -123,7 +123,7 @@ for line in io.lines(fen.SelectedFile) do
 	end
 
 	if lineTrimLeftSpaces:sub(1,1) == "-" then
-		fen:PrintSimple("●", 0, y)
+		fen:PrintSimple("[::d]●", 0, y)
 	end
 
 	y = y + 1
