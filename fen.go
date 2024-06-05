@@ -50,16 +50,16 @@ type Config struct {
 }
 
 type OpenWithEntry struct {
-	Programs []string `json:"programs"`
-	Match    []string `json:"match"`
+	Programs   []string `json:"programs"`
+	Match      []string `json:"match"`
 	DoNotMatch []string `json:"do-not-match"`
 }
 
 type PreviewWithEntry struct {
-	Script   string   `json:"script"`
-	Programs []string `json:"programs"`
-	Match    []string `json:"match"`
-	DoNotMatch    []string `json:"do-not-match"`
+	Script     string   `json:"script"`
+	Programs   []string `json:"programs"`
+	Match      []string `json:"match"`
+	DoNotMatch []string `json:"do-not-match"`
 }
 
 func (fen *Fen) Init(workingDirectory string) error {
