@@ -26,6 +26,7 @@ local style = ""
 local y = 0
 for line in io.lines(fen.SelectedFile) do
 	local lineTrimLeftSpaces = trimLeftSpaces(line)
+	local xOffset = 0
 
 	local codeFenceChars = 0
 	for j = 1, #lineTrimLeftSpaces do
@@ -63,7 +64,6 @@ for line in io.lines(fen.SelectedFile) do
 		end
 	end
 
-	local xOffset = 0
 	for i = 1, #line do
 		char = line:sub(i,i)
 
@@ -120,6 +120,10 @@ for line in io.lines(fen.SelectedFile) do
 		fen:PrintSimple(style..char, i+xOffset-1, y)
 		lastChar = char
 	    ::continue::
+	end
+
+	if lineTrimLeftSpaces:sub(1,1) == "-" then
+		fen:PrintSimple("●", 0, y)
 	end
 
 	y = y + 1
