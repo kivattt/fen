@@ -72,6 +72,10 @@ func (f *FenLuaGlobal) NewRGBColor(r, g, b int32) tcell.Color {
 	return tcell.NewRGBColor(r, g, b)
 }
 
+func (f *FenLuaGlobal) ColorToString(color tcell.Color) string {
+	return color.String()
+}
+
 func (fp *FilesPane) SetEntries(path string, foldersNotFirst bool) {
 	fi, err := os.Stat(path)
 	if err != nil {
