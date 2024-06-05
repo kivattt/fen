@@ -68,19 +68,6 @@ for line in io.lines(fen.SelectedFile) do
 		char = line:sub(i,i)
 
 		if not codeblock then
-			if isEmphasis(lastChar) and isEmphasis(char) then
-				bold = not bold
-				italic = false
-				xOffset = xOffset - 1
-				lastChar = char
-				goto continue
-			elseif isEmphasis(char) then
-				italic = not italic
-				xOffset = xOffset - 1
-				lastChar = char
-				goto continue
-			end
-
 			if char == '`' and lastChar ~= '`' then
 				backtickString = not backtickString
 				-- It messes up table alignment if we skip over the backticks, so we just replace them with blank space instead
@@ -88,6 +75,21 @@ for line in io.lines(fen.SelectedFile) do
 				fen:PrintSimple("[:black] ", i+xOffset-1, y)
 				lastChar = char
 				goto continue
+			end
+
+			if not backtickString then
+				if isEmphasis(lastChar) and isEmphasis(char) then
+					bold = not bold
+					italic = false
+					xOffset = xOffset - 1
+					lastChar = char
+					goto continue
+				elseif isEmphasis(char) then
+					italic = not italic
+					xOffset = xOffset - 1
+					lastChar = char
+					goto continue
+				end
 			end
 		end
 
