@@ -50,7 +50,7 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `A` Flip selection in folder (select all files)\
 `D` Deselect all, and un-yank\
 `a` Rename a file\
-`z or Backspace` Toggle hidden files\
+`z` or `Backspace` Toggle hidden files\
 `V` Start selecting by moving\
 `n` Create a new file (touch)\
 `N` Create a new folder (mkdir)\
