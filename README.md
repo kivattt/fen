@@ -116,7 +116,7 @@ You can find examples in [lua-file-preview-examples](lua-file-preview-examples)
 `fen:Escape(text)` Escape style tags [Go doc](https://pkg.go.dev/github.com/rivo/tview#Escape)\
 `fen:TranslateANSI(text)` Turn ANSI into style tags [Go doc](https://pkg.go.dev/github.com/rivo/tview#TranslateANSI)\
 `fen:NewRGBColor(r, g, b)` [Go doc](https://pkg.go.dev/github.com/gdamore/tcell/v2#NewRGBColor)\
-`fen:ColorToString(color)` [Go doc](https://pkg.go.dev/github.com/gdamore/tcell/v2#Color.String)
+`fen:ColorToString(color)` [Go doc](https://pkg.go.dev/github.com/gdamore/tcell/v2#Color.String)\
 `fen:RuntimeOS()` The OS fen is running in [Go doc](https://pkg.go.dev/runtime#pkg-constants)
 
 Notes about `fen:Print()` and `fen:PrintSimple()`:\
