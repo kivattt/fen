@@ -5,6 +5,7 @@
 	"dont-show-hidden-files": true,
 	"folders-not-first": false,
 	"print-path-on-open": false,
+	"dont-change-terminal-title": false,
 
 	"open-with": [
 		{

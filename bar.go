@@ -41,7 +41,7 @@ func (bar *Bar) Draw(screen tcell.Screen) {
 		if user.Uid == "0" {
 			usernameColor = "[red:]"
 		}
-		text = "[::b]" + usernameColor + tview.Escape(user.Username) + " [blue::B]" + tview.Escape(PathWithEndSeparator(filepath.Dir(text))) + "[white::b]" + tview.Escape(PathWithoutEndSeparator(filepath.Base(text)))
+		text = "[::b]" + usernameColor + tview.Escape(user.Username) + " [blue::B]" + FilenameSpecialCharactersHighlighted(tview.Escape(PathWithEndSeparator(filepath.Dir(text))), "[blue::B]") + "[white::b]" + FilenameSpecialCharactersHighlighted(tview.Escape(PathWithoutEndSeparator(filepath.Base(text))), "[white::b]")
 	}
 
 	noWriteEnabledText := ""

@@ -329,7 +329,7 @@ func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
 		descriptions = append(descriptions, "Windows")
 	} else {
 		programs = append(programs, "xdg-open")
-		descriptions = append(descriptions, "Linux")
+		descriptions = append(descriptions, "Linux/FreeBSD")
 	}
 
 	editor := os.Getenv("EDITOR")
@@ -438,4 +438,8 @@ func FilePathUniqueNameIfAlreadyExists(path string) string {
 			newPath = path + "_" + strconv.Itoa(i)
 		}
 	}
+}
+
+func FilenameSpecialCharactersHighlighted(filename, defaultStyle string) string {
+	return strings.ReplaceAll(filename, "\n", "[:red]\\n[-:-:-:-]" + defaultStyle)
 }

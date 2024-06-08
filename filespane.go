@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -74,6 +75,10 @@ func (f *FenLuaGlobal) NewRGBColor(r, g, b int32) tcell.Color {
 
 func (f *FenLuaGlobal) ColorToString(color tcell.Color) string {
 	return color.String()
+}
+
+func (f *FenLuaGlobal) RuntimeOS() string {
+	return runtime.GOOS
 }
 
 func (fp *FilesPane) SetEntries(path string, foldersNotFirst bool) {
@@ -296,7 +301,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Dim(true)
 		}
 
-		tview.Print(screen, spaceForSelected+StyleToStyleTagString(style)+" "+tview.Escape(entry.Name())+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, tcell.ColorDefault)
+		styleStr := StyleToStyleTagString(style)
+		tview.Print(screen, spaceForSelected+styleStr+" "+FilenameSpecialCharactersHighlighted(tview.Escape(entry.Name()), styleStr)+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, tcell.ColorDefault)
 
 		if !fp.showEntrySizes {
 			continue

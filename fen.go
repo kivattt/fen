@@ -47,6 +47,7 @@ type Config struct {
 	PrintPathOnOpen     bool               `json:"print-path-on-open"`
 	OpenWith            []OpenWithEntry    `json:"open-with"`
 	PreviewWith         []PreviewWithEntry `json:"preview-with"`
+	DontChangeTerminalTitle bool `json:"dont-change-terminal-title"`
 }
 
 type OpenWithEntry struct {

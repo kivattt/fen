@@ -18,7 +18,7 @@ import (
 	dirCopy "github.com/otiai10/copy"
 )
 
-const version = "v1.1.2"
+const version = "v1.1.3"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
@@ -33,6 +33,7 @@ func main() {
 	noWrite := flag.Bool("no-write", false, "safe mode, no file write operations will be performed")
 	dontShowHiddenFiles := flag.Bool("dont-show-hidden-files", false, "")
 	printPathOnOpen := flag.Bool("print-path-on-open", false, "output file path and exit on open file")
+	dontChangeTerminalTitle := flag.Bool("dont-change-terminal-title", false, "")
 
 	configFilename := flag.String("config", configFilenamePath, "use configuration file")
 
@@ -86,6 +87,7 @@ func main() {
 	fen.config.NoWrite = fen.config.NoWrite || *noWrite // Command-line flag is higher priority than config
 	fen.config.DontShowHiddenFiles = fen.config.DontShowHiddenFiles || *dontShowHiddenFiles
 	fen.config.PrintPathOnOpen = fen.config.PrintPathOnOpen || *printPathOnOpen
+	fen.config.DontChangeTerminalTitle = fen.config.DontChangeTerminalTitle || *dontChangeTerminalTitle
 
 	if !fen.config.NoWrite {
 		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
@@ -567,7 +569,8 @@ func main() {
 			if len(fen.selected) <= 0 {
 				fileToDelete = fen.sel
 				// When the text wraps, color styling gets reset on line breaks. I have not found a good solution yet
-				modal.SetText("[red::d]Delete[-:-:-:-] " + StyleToStyleTagString(FileColor(fileToDelete)) + tview.Escape(filepath.Base(fileToDelete)) + "[-:-:-:-] ?")
+				styleStr := StyleToStyleTagString(FileColor(fileToDelete))
+				modal.SetText("[red::d]Delete[-:-:-:-] " + styleStr + FilenameSpecialCharactersHighlighted(tview.Escape(filepath.Base(fileToDelete)), styleStr) + "[-:-:-:-] ?")
 			} else {
 				modal.SetText("[red::d]Delete[-:-:-:-] " + tview.Escape(strconv.Itoa(len(fen.selected))) + " selected files?")
 			}
@@ -633,7 +636,14 @@ func main() {
 		return event
 	})
 
+	if !fen.config.DontChangeTerminalTitle && runtime.GOOS == "linux" {
+		print("\x1b[22t") // Push current terminal title
+		print("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen"
+	}
 	if err := app.SetRoot(pages, true).EnableMouse(!fen.config.NoMouse).Run(); err != nil {
 		log.Fatal(err)
+	}
+	if !fen.config.DontChangeTerminalTitle && runtime.GOOS == "linux" {
+		print("\x1b[23t") // Pop terminal title, sets it back to normal
 	}
 }

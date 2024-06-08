@@ -1,5 +1,5 @@
 --[[
--- FIXME: Only output style tags when the style changes
+-- Works for fen v1.1.3 or above
 --]]
 
 local function trimLeftSpaces(s)
@@ -125,7 +125,12 @@ for line in io.lines(fen.SelectedFile) do
 	end
 
 	if lineTrimLeftSpaces:sub(1,1) == "-" then
-		fen:PrintSimple("[::d]●", 0, y)
+		-- The non-graphical FreeBSD console would print a '?' instead of the fancy character, so fallback to an asterix
+		if fen:RuntimeOS() == "freebsd" then
+			fen:PrintSimple("[::d]*", 0, y)
+		else
+			fen:PrintSimple("[::d]●", 0, y)
+		end
 	end
 
 	y = y + 1
