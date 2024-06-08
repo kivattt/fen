@@ -441,5 +441,5 @@ func FilePathUniqueNameIfAlreadyExists(path string) string {
 }
 
 func FilenameSpecialCharactersHighlighted(filename, defaultStyle string) string {
-	return strings.ReplaceAll(filename, "\n", "[:red]\\n[-:-:-:-]" + defaultStyle)
+	return strings.ReplaceAll(filename, "\n", "[:red]\\n[-:-:-:-]"+defaultStyle)
 }

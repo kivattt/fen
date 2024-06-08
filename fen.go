@@ -39,15 +39,15 @@ type Fen struct {
 }
 
 type Config struct {
-	UiBorders           bool               `json:"ui-borders"`
-	NoMouse             bool               `json:"no-mouse"`
-	NoWrite             bool               `json:"no-write"`
-	DontShowHiddenFiles bool               `json:"dont-show-hidden-files"`
-	FoldersNotFirst     bool               `json:"folders-not-first"`
-	PrintPathOnOpen     bool               `json:"print-path-on-open"`
-	OpenWith            []OpenWithEntry    `json:"open-with"`
-	PreviewWith         []PreviewWithEntry `json:"preview-with"`
-	DontChangeTerminalTitle bool `json:"dont-change-terminal-title"`
+	UiBorders               bool               `json:"ui-borders"`
+	NoMouse                 bool               `json:"no-mouse"`
+	NoWrite                 bool               `json:"no-write"`
+	DontShowHiddenFiles     bool               `json:"dont-show-hidden-files"`
+	FoldersNotFirst         bool               `json:"folders-not-first"`
+	PrintPathOnOpen         bool               `json:"print-path-on-open"`
+	OpenWith                []OpenWithEntry    `json:"open-with"`
+	PreviewWith             []PreviewWithEntry `json:"preview-with"`
+	DontChangeTerminalTitle bool               `json:"dont-change-terminal-title"`
 }
 
 type OpenWithEntry struct {

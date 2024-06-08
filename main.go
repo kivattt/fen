@@ -637,7 +637,7 @@ func main() {
 	})
 
 	if !fen.config.DontChangeTerminalTitle && runtime.GOOS == "linux" {
-		print("\x1b[22t") // Push current terminal title
+		print("\x1b[22t")                       // Push current terminal title
 		print("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen"
 	}
 	if err := app.SetRoot(pages, true).EnableMouse(!fen.config.NoMouse).Run(); err != nil {
