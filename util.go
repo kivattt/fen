@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -441,5 +442,15 @@ func FilePathUniqueNameIfAlreadyExists(path string) string {
 }
 
 func FilenameSpecialCharactersHighlighted(filename, defaultStyle string) string {
-	return strings.ReplaceAll(filename, "\n", "[:red]\\n[-:-:-:-]"+defaultStyle)
+	var ret strings.Builder
+	for _, c := range filename {
+		if !unicode.IsPrint(c) {
+			fmt.Fprintf(&ret, "[:red]%#U[-:-:-:-]"+defaultStyle, c)
+			continue
+		}
+
+		ret.WriteRune(c)
+	}
+	return ret.String()
+	//return strings.ReplaceAll(filename, "\n", "[:red]\\n[-:-:-:-]"+defaultStyle)
 }
