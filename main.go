@@ -411,7 +411,7 @@ func main() {
 						if event.Rune() == 'n' {
 							os.Create(filepath.Join(fen.wd, inputField.GetText()))
 						} else if event.Rune() == 'N' {
-							os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0755)
+							os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0775)
 						}
 						fen.UpdatePanes()
 					}
