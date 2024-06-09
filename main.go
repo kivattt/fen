@@ -62,10 +62,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	workingDirectory, err := filepath.Abs(getopt.CommandLine.Arg(0))
+	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
 
-	if workingDirectory == "" || err != nil {
-		workingDirectory, err = os.Getwd()
+	if path == "" || err != nil {
+		path, err = os.Getwd()
 
 		// os.Getwd() will error if the working directory doesn't exist
 		if err != nil {
@@ -74,8 +74,8 @@ func main() {
 				log.Fatalf("Unable to determine current working directory")
 			}
 
-			workingDirectory = os.Getenv("PWD")
-			if workingDirectory == "" {
+			path = os.Getenv("PWD")
+			if path == "" {
 				log.Fatalf("PWD environment variable empty")
 			}
 		}
@@ -98,7 +98,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = fen.Init(workingDirectory)
+	err = fen.Init(path)
 	if err != nil {
 		log.Fatal(err)
 	}
