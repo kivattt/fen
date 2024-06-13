@@ -52,8 +52,8 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `a` Rename a file\
 `z` or `Backspace` Toggle hidden files\
 `V` Start selecting by moving\
-`n` Create a new file (touch)\
-`N` Create a new folder (mkdir)\
+`n` Create a new file\
+`N` Create a new folder\
 `?` Toggle file properties window
 
 # Configuration
@@ -80,6 +80,9 @@ You can use "do-not-match" in conjunction with "match":
     "do-not-match": ["*.exe"]
 }
 ```
+Programs in `"programs"` do not expand tildes like `"~/some/file.sh"`. You have to specify an absolute path.\
+If you want to use a shell script in `"programs"`, it has to have a shebang or you need to explicitly invoke the appropriate shell like `"bash /some/file.sh"`\
+Note: Programs will be started in the working directory you're inside in fen
 
 # File previews
 fen does not (yet!) have file previews by default\

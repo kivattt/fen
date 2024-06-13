@@ -262,7 +262,6 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				textView.Box.SetRect(x, y, w, h)
 				textView.SetBackgroundColor(tcell.ColorDefault)
 				textView.SetTextColor(tcell.ColorDefault)
-				textView.SetTextStyle(tcell.StyleDefault.Dim(true))
 				textView.SetDynamicColors(true)
 
 				cmd.Stdout = tview.ANSIWriter(textView)
@@ -301,19 +300,19 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Dim(true)
 		}
 
+		entrySizeText := ""
+		entrySizePrintedSize := 0
+		if fp.showEntrySizes {
+			var err error
+			entrySizeText, err = EntrySize(entryFullPath, fp.fen.config.DontShowHiddenFiles)
+			if err != nil {
+				entrySizeText = "?"
+			}
+
+			_, entrySizePrintedSize = tview.Print(screen, StyleToStyleTagString(style)+" "+tview.Escape(entrySizeText)+" ", x, y+i, w-1, tview.AlignRight, tcell.ColorDefault)
+		}
+
 		styleStr := StyleToStyleTagString(style)
-		tview.Print(screen, spaceForSelected+styleStr+" "+FilenameSpecialCharactersHighlighted(tview.Escape(entry.Name()), styleStr)+strings.Repeat(" ", w), x, y+i, w-1, tview.AlignLeft, tcell.ColorDefault)
-
-		if !fp.showEntrySizes {
-			continue
-		}
-
-		entrySizeText, err := EntrySize(entryFullPath, fp.fen.config.DontShowHiddenFiles)
-		if err != nil {
-			entrySizeText = "?"
-		}
-
-		tview.Print(screen, StyleToStyleTagString(style)+" "+tview.Escape(entrySizeText)+" ", x, y+i, w-1, tview.AlignRight, tcell.ColorDefault)
+		tview.Print(screen, spaceForSelected+styleStr+" "+FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(entry.Name()), styleStr)+strings.Repeat(" ", w), x, y+i, w-1-entrySizePrintedSize, tview.AlignLeft, tcell.ColorDefault)
 	}
-
 }
