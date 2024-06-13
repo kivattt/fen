@@ -18,7 +18,7 @@ import (
 	dirCopy "github.com/otiai10/copy"
 )
 
-const version = "v1.1.3"
+const version = "v1.1.4"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
@@ -62,10 +62,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	workingDirectory, err := filepath.Abs(getopt.CommandLine.Arg(0))
+	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
 
-	if workingDirectory == "" || err != nil {
-		workingDirectory, err = os.Getwd()
+	if path == "" || err != nil {
+		path, err = os.Getwd()
 
 		// os.Getwd() will error if the working directory doesn't exist
 		if err != nil {
@@ -74,8 +74,8 @@ func main() {
 				log.Fatalf("Unable to determine current working directory")
 			}
 
-			workingDirectory = os.Getenv("PWD")
-			if workingDirectory == "" {
+			path = os.Getenv("PWD")
+			if path == "" {
 				log.Fatalf("PWD environment variable empty")
 			}
 		}
@@ -98,7 +98,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = fen.Init(workingDirectory)
+	err = fen.Init(path)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -411,7 +411,7 @@ func main() {
 						if event.Rune() == 'n' {
 							os.Create(filepath.Join(fen.wd, inputField.GetText()))
 						} else if event.Rune() == 'N' {
-							os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0755)
+							os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0775)
 						}
 						fen.UpdatePanes()
 					}
@@ -570,7 +570,7 @@ func main() {
 				fileToDelete = fen.sel
 				// When the text wraps, color styling gets reset on line breaks. I have not found a good solution yet
 				styleStr := StyleToStyleTagString(FileColor(fileToDelete))
-				modal.SetText("[red::d]Delete[-:-:-:-] " + styleStr + FilenameSpecialCharactersHighlighted(tview.Escape(filepath.Base(fileToDelete)), styleStr) + "[-:-:-:-] ?")
+				modal.SetText("[red::d]Delete[-:-:-:-] " + styleStr + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(filepath.Base(fileToDelete)), styleStr) + "[-:-:-:-] ?")
 			} else {
 				modal.SetText("[red::d]Delete[-:-:-:-] " + tview.Escape(strconv.Itoa(len(fen.selected))) + " selected files?")
 			}

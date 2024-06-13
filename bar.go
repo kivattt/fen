@@ -1,8 +1,11 @@
 package main
 
 import (
+	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -41,7 +44,18 @@ func (bar *Bar) Draw(screen tcell.Screen) {
 		if user.Uid == "0" {
 			usernameColor = "[red:]"
 		}
-		text = "[::b]" + usernameColor + tview.Escape(user.Username) + " [blue::B]" + FilenameSpecialCharactersHighlighted(tview.Escape(PathWithEndSeparator(filepath.Dir(text))), "[blue::B]") + "[white::b]" + FilenameSpecialCharactersHighlighted(tview.Escape(PathWithoutEndSeparator(filepath.Base(text))), "[white::b]")
+
+
+		pathToShow := filepath.Dir(text)
+		if runtime.GOOS == "linux" {
+			homeDir, err := os.UserHomeDir()
+			if err == nil {
+				if strings.HasPrefix(pathToShow, homeDir) {
+					pathToShow = filepath.Join("~", pathToShow[len(homeDir):])
+				}
+			}
+		}
+		text = "[::b]" + usernameColor + tview.Escape(user.Username) + " [blue::B]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithEndSeparator(pathToShow)), "[blue::B]") + "[white::b]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithoutEndSeparator(filepath.Base(text))), "[white::b]")
 	}
 
 	noWriteEnabledText := ""

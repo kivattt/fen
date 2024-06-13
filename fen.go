@@ -63,11 +63,11 @@ type PreviewWithEntry struct {
 	DoNotMatch []string `json:"do-not-match"`
 }
 
-func (fen *Fen) Init(workingDirectory string) error {
+func (fen *Fen) Init(path string) error {
 	fen.selectingWithV = false
 	fen.fileProperties = NewFileProperties()
 
-	fen.wd = workingDirectory
+	fen.wd = path
 
 	fen.topPane = NewBar(&fen.sel, &fen.sel, &fen.config.NoWrite)
 	fen.topPane.isTopBar = true
@@ -85,6 +85,13 @@ func (fen *Fen) Init(workingDirectory string) error {
 	fen.bottomPane = NewBar(&fen.bottomBarText, &fen.sel, &fen.config.NoWrite)
 
 	wdFiles, err := os.ReadDir(fen.wd)
+	shouldSelectSpecifiedFile := false
+
+	stat, statErr := os.Stat(fen.wd)
+	if statErr == nil && !stat.IsDir() {
+		shouldSelectSpecifiedFile = true
+	}
+
 	// If our working directory doesn't exist, go up a parent until it does
 	for err != nil {
 		if filepath.Dir(fen.wd) == fen.wd {
@@ -99,6 +106,10 @@ func (fen *Fen) Init(workingDirectory string) error {
 		// HACKY: middlePane has to have entries so that GoTop() will work
 		fen.middlePane.SetEntries(fen.wd, fen.config.FoldersNotFirst)
 		fen.GoTop()
+
+		if shouldSelectSpecifiedFile {
+			fen.sel = path
+		}
 	}
 
 	fen.history.AddToHistory(fen.sel)
@@ -155,20 +166,11 @@ func (fen *Fen) UpdatePanes() {
 	fen.leftPane.SetEntries(filepath.Dir(fen.wd), fen.config.FoldersNotFirst)
 	fen.middlePane.SetEntries(fen.wd, fen.config.FoldersNotFirst)
 
-	if fen.wd != filepath.Dir(fen.wd) {
-		fen.leftPane.SetSelectedEntryFromString(filepath.Base(fen.wd))
-	} else {
+	if fen.wd == filepath.Dir(fen.wd) {
 		fen.leftPane.entries = []os.DirEntry{}
+	} else {
+		fen.leftPane.SetSelectedEntryFromString(filepath.Base(fen.wd))
 	}
-
-	username, groupname, err := FileUserAndGroupName(fen.sel)
-	fileOwners := ""
-	if err == nil {
-		fileOwners = " " + UsernameWithColor(username) + ":" + GroupnameWithColor(groupname)
-	}
-	filePermissions, _ := FilePermissionsString(fen.sel)
-	fileLastModified, _ := FileLastModifiedString(fen.sel)
-	fen.bottomBarText = "[teal:]" + filePermissions + fileOwners + " [default:]" + fileLastModified
 
 	fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel))
 
@@ -182,6 +184,15 @@ func (fen *Fen) UpdatePanes() {
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry))
 	fen.rightPane.SetEntries(fen.sel, fen.config.FoldersNotFirst)
+
+	username, groupname, err := FileUserAndGroupName(fen.sel)
+	fileOwners := ""
+	if err == nil {
+		fileOwners = " " + UsernameWithColor(username) + ":" + GroupnameWithColor(groupname)
+	}
+	filePermissions, _ := FilePermissionsString(fen.sel)
+	fileLastModified, _ := FileLastModifiedString(fen.sel)
+	fen.bottomBarText = "[teal:]" + filePermissions + fileOwners + " [default:]" + fileLastModified
 
 	// Prevents showing 'empty' a second time in rightPane, if middlePane is already showing 'empty'
 	if len(fen.middlePane.entries) <= 0 {

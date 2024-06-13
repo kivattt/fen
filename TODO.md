@@ -3,7 +3,23 @@
 - Bulk rename
 - Scrollable search history
 - Better scrolling
+- File operations async queue (with undo when applicable)
+- Make file previews async
+- Show ~/ in top bar for /home/$USER
+- Show user@something in top bar
+- Changing owner/group, chmod inside fen
 - Index/Length (maybe even percentage) in the bottom right like in vim/ranger
+- Refactor bar.go into top bar and bottom bar
+- Make draw functions for top bar / bottom bar scriptable with lua
+- Global selection (selection stored in a file under UserCacheDir ?)
+- cd Change directory
+- A sort of "pause" (cross-platform please) after opening a file, configurable, maybe excluding it for certain programs like vim
+- Shortcuts / bookmarks (think the 1,2,3,4 number row idea (maybe Ctrl+\<Number\> for it?)
+- Ctrl+Shift+n, Ctrl+Shift+n search by content, search by path name like telescope
+- Check if [dragon](https://github.com/mwh/dragon) works, maybe just make my own built into fen with some gtk wrapper? (bad idea lol)
+- Show current folder size beside disk size?
+- A sort of --no-unicode option, to print the character codes instead of fancy unicode characters
+
 - System-wide configuration file instructions
 - Make file previews not run every time the terminal is resized?
 - Installation instructions for Windows in the README
@@ -26,3 +42,4 @@
 - Fix invisibility near root dir (easy to see on Android with Termux)
 - Performance: Caching stuff (maybe only re-dirlist for left/right)
 - `H` and `L` controls feel weird because the screen scrolls in a specific way instead of just setting the cursor to the bottom of the screen like the behaviour in vim
+- Optional xdg trash specification? https://specifications.freedesktop.org/trash-spec/trashspec-latest.html
