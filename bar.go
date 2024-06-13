@@ -15,7 +15,7 @@ type Bar struct {
 	*tview.Box
 	str          *string
 	selectedPath *string
-	isTopBar     bool // For making the filepath base a different color
+	isTopBar     bool // TODO: Refactor bar.go into 2 files
 	noWrite      *bool
 }
 
@@ -31,8 +31,6 @@ func NewBar(str *string, selectedPath *string, noWrite *bool) *Bar {
 func (bar *Bar) Draw(screen tcell.Screen) {
 	if !bar.isTopBar {
 		bar.Box.SetBackgroundColor(tcell.ColorBlack)
-		//				bar.Box.SetBackgroundColor(tcell.ColorGray)
-		//		bar.Box.SetBackgroundColor(tcell.ColorWhite)
 	}
 	bar.Box.DrawForSubclass(screen, bar)
 
@@ -55,7 +53,9 @@ func (bar *Bar) Draw(screen tcell.Screen) {
 				}
 			}
 		}
-		text = "[::b]" + usernameColor + tview.Escape(user.Username) + " [blue::B]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithEndSeparator(pathToShow)), "[blue::B]") + "[white::b]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithoutEndSeparator(filepath.Base(text))), "[white::b]")
+		text = "[::b]" + usernameColor + tview.Escape(user.Username) + " " +
+			"[blue::B]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithEndSeparator(pathToShow)), "[blue::B]") +
+			"[white::b]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithoutEndSeparator(filepath.Base(text))), "[white::b]")
 	}
 
 	noWriteEnabledText := ""
