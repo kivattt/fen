@@ -488,7 +488,7 @@ func RuneToPrintableCode(c rune) string {
 // Spaces are shown as normal, except leading and trailing ones, which will be shown as "\u20"
 func FilenameInvisibleCharactersAsCodeHighlighted(filename, defaultStyle string) string {
 	if filename == "" {
-		panic("FilenameSpecialCharactersHighlighted got empty filename")
+		panic("FilenameInvisibleCharactersAsCodeHighlighted got empty filename")
 	}
 
 	leadingInvisibleOrNonPrintableCharLength := 0
