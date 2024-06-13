@@ -67,12 +67,12 @@ func TestStyleToStyleTagString(t *testing.T) {
 
 func TestFilenameInvisibleCharactersAsCodeHighlighted(t *testing.T) {
 	expectedResults := map[[2]string]string{
-		{"file.txt", ""}: "file.txt",
-		{"file.txt", "[blue::b]"}: "file.txt",
+		{"file.txt", ""}:            "file.txt",
+		{"file.txt", "[blue::b]"}:   "file.txt",
 		{"file\n.txt", "[blue::b]"}: "file[:darkred]\\n[-:-:-:-][blue::b].txt",
-		{" a a ", ""}: "[:darkred]\\u20[-:-:-:-]a a[:darkred]\\u20[-:-:-:-]",
-		{"●", ""}: "●",
-		{"\u2800", ""}: "[:darkred]\\u2800[-:-:-:-]",
+		{" a a ", ""}:               "[:darkred]\\u20[-:-:-:-]a a[:darkred]\\u20[-:-:-:-]",
+		{"●", ""}:                   "●",
+		{"\u2800", ""}:              "[:darkred]\\u2800[-:-:-:-]",
 	}
 
 	for input, expected := range expectedResults {

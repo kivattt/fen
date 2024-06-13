@@ -43,7 +43,6 @@ func (bar *Bar) Draw(screen tcell.Screen) {
 			usernameColor = "[red:]"
 		}
 
-
 		pathToShow := filepath.Dir(text)
 		if runtime.GOOS == "linux" {
 			homeDir, err := os.UserHomeDir()
