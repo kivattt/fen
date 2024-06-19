@@ -18,7 +18,7 @@ import (
 	dirCopy "github.com/otiai10/copy"
 )
 
-const version = "v1.1.4"
+const version = "v1.1.5"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
@@ -106,12 +106,12 @@ func main() {
 	app := tview.NewApplication()
 
 	flex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(fen.topPane, 1, 0, false).
+		AddItem(fen.topBar, 1, 0, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
 			AddItem(fen.leftPane, 0, 1, false).
 			AddItem(fen.middlePane, 0, 3, false).
 			AddItem(fen.rightPane, 0, 3, false), 0, 1, false).
-		AddItem(fen.bottomPane, 1, 0, false)
+		AddItem(fen.bottomBar, 1, 0, false)
 
 	pages := tview.NewPages().
 		AddPage("flex", flex, true, true)
@@ -300,7 +300,7 @@ func main() {
 					err := fen.GoSearchFirstMatch(inputField.GetText())
 					if err != nil {
 						// FIXME: We need a log window or something
-						fen.bottomBarText = "Nothing found"
+						fen.bottomBar.TemporarilyShowTextInstead("Nothing found")
 					} else {
 						// Same code as the wasMovementKey check
 						fen.history.AddToHistory(fen.sel)
@@ -326,7 +326,7 @@ func main() {
 			if len(fen.selected) > 0 || len(fen.yankSelected) > 0 {
 				fen.selected = []string{}
 				fen.yankSelected = []string{}
-				fen.bottomBarText = "Deselected and un-yanked!"
+				fen.bottomBar.TemporarilyShowTextInstead("Deselected and un-yanked!")
 			}
 			fen.DisableSelectingWithV()
 			return nil
@@ -364,6 +364,8 @@ func main() {
 						fen.sel = newPath
 
 						fen.UpdatePanes()
+					} else {
+						fen.bottomBar.TemporarilyShowTextInstead("Can't rename in no-write mode")
 					}
 
 					pages.RemovePage("inputfield")
@@ -414,6 +416,8 @@ func main() {
 							os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0775)
 						}
 						fen.UpdatePanes()
+					} else {
+						fen.bottomBar.TemporarilyShowTextInstead("Can't create new files in no-write mode")
 					}
 
 					pages.RemovePage("newfilemodal")
@@ -437,7 +441,7 @@ func main() {
 			} else {
 				fen.yankSelected = fen.selected
 			}
-			fen.bottomBarText = "Yank!"
+			fen.bottomBar.TemporarilyShowTextInstead("Yank!")
 			return nil
 		} else if event.Rune() == 'd' {
 			fen.yankType = "cut"
@@ -446,7 +450,7 @@ func main() {
 			} else {
 				fen.yankSelected = fen.selected
 			}
-			fen.bottomBarText = "Cut!"
+			fen.bottomBar.TemporarilyShowTextInstead("Cut!")
 			return nil
 		} else if event.Rune() == 'z' || event.Key() == tcell.KeyBackspace {
 			fen.config.DontShowHiddenFiles = !fen.config.DontShowHiddenFiles
@@ -456,11 +460,12 @@ func main() {
 			return nil
 		} else if event.Rune() == 'p' {
 			if len(fen.yankSelected) <= 0 {
-				fen.bottomBarText = "Nothing to paste..." // TODO: We need a log we can scroll through
+				fen.bottomBar.TemporarilyShowTextInstead("Nothing to paste...") // TODO: We need a log we can scroll through
 				return nil
 			}
 
 			if fen.config.NoWrite {
+				fen.bottomBar.TemporarilyShowTextInstead("Can't paste in no-write mode")
 				return nil // TODO: Need a msg showing nothing was done in a log (we can scroll through)
 			}
 
@@ -476,10 +481,10 @@ func main() {
 						err := os.Mkdir(newPath, 0755)
 						if err != nil {
 							// TODO: We need an error log we can scroll through
-							fen.bottomBarText = newPath
+							//fen.bottomBar.TemporarilyShowTextInstead(newPath)
 						}
 						//						fen.bottomBarText = fen.sel
-						fen.bottomBarText = fen.wd
+						//fen.bottomBar.TemporarilyShowTextInstead(fen.wd)
 
 						err = dirCopy.Copy(e, newPath)
 						if err != nil {
@@ -506,6 +511,7 @@ func main() {
 							// TODO: We need an error log we can scroll through
 							continue
 						}
+						destination.Chmod(fi.Mode())
 					}
 				}
 			} else if fen.yankType == "cut" {
@@ -532,7 +538,7 @@ func main() {
 			fen.selected = []string{}
 
 			fen.UpdatePanes()
-			fen.bottomBarText = "Paste!"
+			fen.bottomBar.TemporarilyShowTextInstead("Paste!")
 
 			return nil
 		} else if event.Rune() == 'V' {
@@ -585,6 +591,7 @@ func main() {
 					}
 
 					if fen.config.NoWrite {
+						fen.bottomBar.TemporarilyShowTextInstead("Can't delete in no-write mode")
 						return
 					}
 
@@ -592,11 +599,11 @@ func main() {
 						err := os.RemoveAll(fileToDelete)
 						if err != nil {
 							// TODO: We need an error log we can scroll through
-							fen.bottomBarText = "Failed to delete!"
+							fen.bottomBar.TemporarilyShowTextInstead("Failed to delete!")
 							return
 						}
 						fen.history.RemoveFromHistory(fileToDelete)
-						fen.bottomBarText = "Deleted " + fileToDelete
+						fen.bottomBar.TemporarilyShowTextInstead("Deleted " + fileToDelete)
 					} else {
 						for _, filePath := range fen.selected {
 							err := os.RemoveAll(filePath)
@@ -607,7 +614,7 @@ func main() {
 							fen.history.RemoveFromHistory(filePath)
 						}
 
-						fen.bottomBarText = "Deleted " + strings.Join(fen.selected, ", ")
+						fen.bottomBar.TemporarilyShowTextInstead("Deleted " + strings.Join(fen.selected, ", "))
 					}
 
 					fen.selected = []string{}
