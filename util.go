@@ -533,14 +533,14 @@ func FilenameInvisibleCharactersAsCodeHighlighted(filename, defaultStyle string)
 	var ret strings.Builder
 	for i, c := range filename {
 		// Use printable codes for leading and trailing invisible or non-printable runes
-		if i < leadingInvisibleOrNonPrintableCharLength || len(filename) - i <= trailingInvisibleOrNonPrintableCharLength {
-			ret.WriteString("[:darkred]"+RuneToPrintableCode(c)+"[-:-:-:-]"+defaultStyle)
+		if i < leadingInvisibleOrNonPrintableCharLength || len(filename)-i <= trailingInvisibleOrNonPrintableCharLength {
+			ret.WriteString("[:darkred]" + RuneToPrintableCode(c) + "[-:-:-:-]" + defaultStyle)
 			continue
 		}
 
 		// For the rest, don't use printable codes for space
 		if c != ' ' && isInvisible(c) {
-			ret.WriteString("[:darkred]"+RuneToPrintableCode(c)+"[-:-:-:-]"+defaultStyle)
+			ret.WriteString("[:darkred]" + RuneToPrintableCode(c) + "[-:-:-:-]" + defaultStyle)
 			continue
 		}
 

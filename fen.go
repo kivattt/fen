@@ -182,15 +182,6 @@ func (fen *Fen) UpdatePanes() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry))
 	fen.rightPane.SetEntries(fen.sel, fen.config.FoldersNotFirst)
 
-	username, groupname, err := FileUserAndGroupName(fen.sel)
-	fileOwners := ""
-	if err == nil {
-		fileOwners = " " + UsernameWithColor(username) + ":" + GroupnameWithColor(groupname)
-	}
-	filePermissions, _ := FilePermissionsString(fen.sel)
-	fileLastModified, _ := FileLastModifiedString(fen.sel)
-	fen.bottomBarText = "[teal:]" + filePermissions + fileOwners + " [default:]" + fileLastModified
-
 	// Prevents showing 'empty' a second time in rightPane, if middlePane is already showing 'empty'
 	if len(fen.middlePane.entries) <= 0 {
 		fen.rightPane.parentIsEmptyFolder = false

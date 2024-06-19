@@ -483,7 +483,6 @@ func main() {
 							// TODO: We need an error log we can scroll through
 							//fen.bottomBar.TemporarilyShowTextInstead(newPath)
 						}
-						//						fen.bottomBarText = fen.sel
 						//fen.bottomBar.TemporarilyShowTextInstead(fen.wd)
 
 						err = dirCopy.Copy(e, newPath)
