@@ -362,7 +362,26 @@ func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
 func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 	if fen.config.PrintPathOnOpen && openWith == "" {
 		app.Stop()
-		fmt.Println(fen.sel)
+		if len(fen.selected) <= 0 {
+			if strings.ContainsRune(fen.sel, '\n') {
+				fmt.Fprintln(os.Stderr, "The file you've selected has a newline (0x0a) in it's filename, exiting...")
+				return
+			}
+			fmt.Println(fen.sel)
+		} else {
+			for _, selectedFile := range fen.selected {
+				if strings.ContainsRune(selectedFile, '\n') {
+					fmt.Fprintln(os.Stderr, "A file you've selected has a newline (0x0a) in it's filename, exiting...")
+					return
+				}
+			}
+			fmt.Println(strings.Join(fen.selected, "\n"))
+		}
+		return
+	}
+
+	if fen.config.NoWrite {
+		fen.bottomBar.TemporarilyShowTextInstead("Can't open files in no-write mode")
 		return
 	}
 

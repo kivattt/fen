@@ -25,15 +25,13 @@ type Fen struct {
 	selectingWithVEndIndex       int
 	selectedBeforeSelectingWithV []string
 
-	bottomBarText string
-
 	config Config
 
-	topPane    *Bar
+	topBar     *TopBar
+	bottomBar  *BottomBar
 	leftPane   *FilesPane
 	middlePane *FilesPane
 	rightPane  *FilesPane
-	bottomPane *Bar
 
 	fileProperties *FileProperties
 }
@@ -69,8 +67,7 @@ func (fen *Fen) Init(path string) error {
 
 	fen.wd = path
 
-	fen.topPane = NewBar(&fen.sel, &fen.sel, &fen.config.NoWrite)
-	fen.topPane.isTopBar = true
+	fen.topBar = NewTopBar(fen)
 
 	fen.leftPane = NewFilesPane(fen, false, false)
 	fen.middlePane = NewFilesPane(fen, true, false)
@@ -82,7 +79,7 @@ func (fen *Fen) Init(path string) error {
 		fen.rightPane.SetBorder(true)
 	}
 
-	fen.bottomPane = NewBar(&fen.bottomBarText, &fen.sel, &fen.config.NoWrite)
+	fen.bottomBar = NewBottomBar(fen)
 
 	wdFiles, err := os.ReadDir(fen.wd)
 	shouldSelectSpecifiedFile := false
@@ -184,15 +181,6 @@ func (fen *Fen) UpdatePanes() {
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry))
 	fen.rightPane.SetEntries(fen.sel, fen.config.FoldersNotFirst)
-
-	username, groupname, err := FileUserAndGroupName(fen.sel)
-	fileOwners := ""
-	if err == nil {
-		fileOwners = " " + UsernameWithColor(username) + ":" + GroupnameWithColor(groupname)
-	}
-	filePermissions, _ := FilePermissionsString(fen.sel)
-	fileLastModified, _ := FileLastModifiedString(fen.sel)
-	fen.bottomBarText = "[teal:]" + filePermissions + fileOwners + " [default:]" + fileLastModified
 
 	// Prevents showing 'empty' a second time in rightPane, if middlePane is already showing 'empty'
 	if len(fen.middlePane.entries) <= 0 {
