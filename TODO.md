@@ -9,7 +9,6 @@
 - Show user@something in top bar
 - Changing owner/group, chmod inside fen
 - Index/Length (maybe even percentage) in the bottom right like in vim/ranger
-- Refactor bar.go into top bar and bottom bar
 - Make draw functions for top bar / bottom bar scriptable with lua
 - Global selection (selection stored in a file under UserCacheDir ?)
 - cd Change directory
