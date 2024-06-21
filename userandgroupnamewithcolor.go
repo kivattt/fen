@@ -6,27 +6,35 @@ const userColor = "[green:]"
 const rootColor = "[red:]"
 
 func UsernameWithColor(username string) string {
+	return UsernameColor(username) + username
+}
+
+func UsernameColor(username string) string {
 	user, err := user.Lookup(username)
 	if err != nil {
-		return userColor + username
+		return userColor
 	}
 
 	if user.Uid == "0" {
-		return rootColor + username
+		return rootColor
 	}
 
-	return userColor + username
+	return userColor
 }
 
 func GroupnameWithColor(groupname string) string {
+	return GroupnameColor(groupname) + groupname
+}
+
+func GroupnameColor(groupname string) string {
 	group, err := user.LookupGroup(groupname)
 	if err != nil {
-		return userColor + groupname
+		return userColor
 	}
 
 	if group.Gid == "0" {
-		return rootColor + groupname
+		return rootColor
 	}
 
-	return userColor + groupname
+	return userColor
 }

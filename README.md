@@ -45,7 +45,7 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `y` Copy file(s)\
 `d` Cut file(s)\
 `p` Paste file(s)\
-`/` Search file\
+`/` or `Ctrl + f` Search\
 ` ` Select files\
 `A` Flip selection in folder (select all files)\
 `D` Deselect all, and un-yank\

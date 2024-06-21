@@ -6,13 +6,18 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 )
 
 type History struct {
 	history []string
+	historyMutex sync.Mutex
 }
 
 func (h *History) GetHistoryEntryForPath(path string, ignoreHiddenFiles bool) (string, error) {
+	h.historyMutex.Lock()
+	defer h.historyMutex.Unlock()
+
 	for _, e := range h.history {
 		if ignoreHiddenFiles && strings.HasPrefix(filepath.Base(e), ".") {
 			continue
@@ -48,6 +53,9 @@ func (h *History) GetHistoryEntryForPath(path string, ignoreHiddenFiles bool) (s
 
 // TODO: Disallow adding like, parents of existing stuff
 func (h *History) AddToHistory(path string) {
+	h.historyMutex.Lock()
+	defer h.historyMutex.Unlock()
+
 	if index := slices.Index(h.history, path); index != -1 {
 		if h.history[0] == path {
 			return
@@ -63,11 +71,17 @@ func (h *History) AddToHistory(path string) {
 }
 
 func (h *History) RemoveFromHistory(path string) {
+	h.historyMutex.Lock()
+	defer h.historyMutex.Unlock()
+
 	if index := slices.Index(h.history, path); index != -1 {
 		h.history = append(h.history[:index], h.history[index+1:]...)
 	}
 }
 
 func (h *History) ClearHistory() {
+	h.historyMutex.Lock()
+	defer h.historyMutex.Unlock()
+
 	h.history = []string{}
 }
