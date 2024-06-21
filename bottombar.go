@@ -28,8 +28,18 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	x, y, w, _ := bottomBar.GetInnerRect()
 
+	freeBytes, err := FreeDiskSpaceBytes(bottomBar.fen.sel)
+	freeBytesStr := BytesToHumanReadableUnitString(freeBytes, 3)
+	if err != nil {
+		freeBytesStr = "?"
+	}
+
+	freeBytesStr += " free"
+
 	if bottomBar.alternateText != "" {
 		tview.Print(screen, "[teal:]"+tview.Escape(bottomBar.alternateText), x, y, w, tview.AlignLeft, tcell.ColorDefault)
+		// We still want to see the disk space left
+		tview.Print(screen, tview.Escape(freeBytesStr), x, y, w, tview.AlignRight, tcell.ColorDefault)
 		bottomBar.alternateText = ""
 		return
 	}
@@ -48,13 +58,5 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 		noWriteEnabledText = " [red::r]no-write"
 	}
 	tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
-
-	freeBytes, err := FreeDiskSpaceBytes(bottomBar.fen.sel)
-	freeBytesStr := BytesToHumanReadableUnitString(freeBytes, 3)
-	if err != nil {
-		freeBytesStr = "?"
-	}
-
-	freeBytesStr += " free"
 	tview.Print(screen, tview.Escape(freeBytesStr), x, y, w, tview.AlignRight, tcell.ColorDefault)
 }

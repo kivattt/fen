@@ -26,14 +26,13 @@ type Fen struct {
 	selectedBeforeSelectingWithV []string
 
 	config Config
+	fileOperationsHandler FileOperationsHandler
 
 	topBar     *TopBar
 	bottomBar  *BottomBar
 	leftPane   *FilesPane
 	middlePane *FilesPane
 	rightPane  *FilesPane
-
-	fileProperties *FileProperties
 }
 
 type Config struct {
@@ -61,9 +60,10 @@ type PreviewWithEntry struct {
 	DoNotMatch []string `json:"do-not-match"`
 }
 
-func (fen *Fen) Init(path string) error {
+func (fen *Fen) Init(path string, app *tview.Application) error {
+	fen.fileOperationsHandler = FileOperationsHandler{fen: fen, app: app}
+
 	fen.selectingWithV = false
-	fen.fileProperties = NewFileProperties()
 
 	fen.wd = path
 
@@ -195,10 +195,18 @@ func (fen *Fen) UpdatePanes() {
 	}
 
 	fen.UpdateSelectingWithV()
+}
 
-	if fen.fileProperties.visible {
-		fen.fileProperties.UpdateTable(fen.sel)
-	}
+func (fen *Fen) HidePanes() {
+	fen.leftPane.Invisible = true
+	fen.middlePane.Invisible = true
+	fen.rightPane.Invisible = true
+}
+
+func (fen *Fen) ShowPanes() {
+	fen.leftPane.Invisible = false
+	fen.middlePane.Invisible = false
+	fen.rightPane.Invisible = false
 }
 
 func (fen *Fen) RemoveFromSelectedAndYankSelected(path string) {

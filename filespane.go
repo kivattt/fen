@@ -24,6 +24,7 @@ type FilesPane struct {
 	showEntrySizes      bool
 	isRightFilesPane    bool
 	parentIsEmptyFolder bool
+	Invisible             bool
 }
 
 func NewFilesPane(fen *Fen, showEntrySizes bool, isRightFilesPane bool) *FilesPane {
@@ -191,6 +192,10 @@ func (fp *FilesPane) GetBottomScreenEntryIndex() int {
 }
 
 func (fp *FilesPane) Draw(screen tcell.Screen) {
+	if fp.Invisible {
+		return
+	}
+
 	fp.Box.DrawForSubclass(screen, fp)
 
 	x, y, w, h := fp.GetInnerRect()

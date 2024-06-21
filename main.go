@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,11 +13,9 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/kivattt/getopt"
 	"github.com/rivo/tview"
-
-	dirCopy "github.com/otiai10/copy"
 )
 
-const version = "v1.1.5"
+const version = "v1.2.0"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
@@ -98,12 +95,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = fen.Init(path)
+	app := tview.NewApplication()
+
+	err = fen.Init(path, app)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	app := tview.NewApplication()
 
 	flex := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(fen.topBar, 1, 0, false).
@@ -116,23 +113,32 @@ func main() {
 	pages := tview.NewPages().
 		AddPage("flex", flex, true, true)
 
-	bottomRight := func(p tview.Primitive, width, height int) tview.Primitive {
-		/*return tview.NewGrid().
-		SetRows(30, 30).
-		SetColumns(30, 30).
-		AddItem(p, 1, 1, 1, 1, 5, 10, false)*/
-
-		// Works, although no auto-resizing
-		return tview.NewFlex().SetDirection(tview.FlexColumn).
+	centered := func(p tview.Primitive, width, height int) tview.Primitive {
+		return tview.NewFlex().
 			AddItem(nil, 0, 1, false).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 				AddItem(nil, 0, 1, false).
-				AddItem(p, height, 1, true), width, 1, true)
+				AddItem(p, height, 1, true).
+				AddItem(nil, 0, 1, false), width, 1, true).
+			AddItem(nil, 0, 1, false)
 	}
 
-	pages.AddPage("fileproperties", bottomRight(fen.fileProperties, 64, 20), true, true)
+	helpScreen := NewHelpScreen(&fen)
+	helpScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyF1 || event.Rune() == '?' || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			helpScreen.visible = false
+			pages.RemovePage("helpscreen")
+			fen.ShowPanes()
+			return nil
+		}
+		return event
+	})
 
 	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") {
+			return event, action
+		}
+
 		wasMovementKey := true
 
 		// Required to prevent a nil dereference crash
@@ -166,12 +172,59 @@ func main() {
 	})
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") {
 			return event
 		}
 
 		if event.Rune() == 'q' {
-			app.Stop()
+			fen.fileOperationsHandler.workCountMutex.Lock()
+			if fen.fileOperationsHandler.workCount <= 0 {
+				fen.fileOperationsHandler.workCountMutex.Unlock()
+				app.Stop()
+				return nil
+			}
+
+			modal := tview.NewModal()
+
+			modal.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
+				switch e.Rune() {
+				case 'h':
+					return tcell.NewEventKey(tcell.KeyLeft, e.Rune(), e.Modifiers())
+				case 'l':
+					return tcell.NewEventKey(tcell.KeyRight, e.Rune(), e.Modifiers())
+				case 'j':
+					return tcell.NewEventKey(tcell.KeyDown, e.Rune(), e.Modifiers())
+				case 'k':
+					return tcell.NewEventKey(tcell.KeyUp, e.Rune(), e.Modifiers())
+				}
+
+				return e
+			})
+
+			modal.SetText(strconv.Itoa(fen.fileOperationsHandler.workCount) + " file operations in progress.\nQuitting can corrupt your files!")
+			modal.
+				AddButtons([]string{"Force quit", "Cancel"}).
+				SetFocus(1). // Default is "No"
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					pages.RemovePage("forcequitmodal")
+					if buttonIndex != 0 {
+						return
+					}
+
+					fen.fileOperationsHandler.workCountMutex.Unlock()
+					app.Stop()
+				})
+			modal.SetBorder(true)
+
+			modal.Box.SetBackgroundColor(tcell.ColorBlack) // This sets the border background color
+			modal.SetBackgroundColor(tcell.ColorBlack)
+
+			modal.SetButtonBackgroundColor(tcell.ColorDefault)
+			modal.SetButtonTextColor(tcell.ColorRed)
+
+			pages.AddPage("forcequitmodal", modal, true, true)
+			app.SetFocus(modal)
+			fen.fileOperationsHandler.workCountMutex.Unlock()
 			return nil
 		}
 
@@ -181,16 +234,6 @@ func main() {
 		} else if event.Key() == tcell.KeyRight || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
 			fen.GoRight(app, "")
 		} else if event.Key() == tcell.KeyCtrlSpace || event.Key() == tcell.KeyCtrlN {
-			modal := func(p tview.Primitive, width, height int) tview.Primitive {
-				return tview.NewFlex().
-					AddItem(nil, 0, 1, false).
-					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-						AddItem(nil, 0, 1, false).
-						AddItem(p, height, 1, true).
-						AddItem(nil, 0, 1, false), width, 1, true).
-					AddItem(nil, 0, 1, false)
-			}
-
 			inputField := tview.NewInputField().
 				SetLabel(" Open with: ").
 				SetFieldWidth(45)
@@ -234,7 +277,7 @@ func main() {
 
 			flex.SetBorder(true)
 
-			pages.AddPage("openwith", modal(flex, 60, inputFieldHeight+2+len(programs)), true, true)
+			pages.AddPage("openwith", centered(flex, 60, inputFieldHeight+2+len(programs)), true, true)
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
 			fen.GoUp()
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
@@ -269,17 +312,7 @@ func main() {
 			return nil
 		}
 
-		if event.Rune() == '/' {
-			modal := func(p tview.Primitive, width, height int) tview.Primitive {
-				return tview.NewFlex().
-					AddItem(nil, 0, 1, false).
-					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-						AddItem(nil, 0, 1, false).
-						AddItem(p, height, 1, true).
-						AddItem(nil, 0, 1, false), width, 1, true).
-					AddItem(nil, 0, 1, false)
-			}
-
+		if event.Rune() == '/' || event.Key() == tcell.KeyCtrlF {
 			inputField := tview.NewInputField().
 				SetLabel(" Search: ").
 				SetPlaceholder("case-insensitive").
@@ -315,7 +348,7 @@ func main() {
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
 
-			pages.AddPage("searchbox", modal(inputField, 60, 3), true, true)
+			pages.AddPage("searchbox", centered(inputField, 60, 3), true, true)
 		} else if event.Rune() == 'A' {
 			for _, e := range fen.middlePane.entries {
 				fen.ToggleSelection(filepath.Join(fen.wd, e.Name()))
@@ -333,17 +366,6 @@ func main() {
 		} else if event.Rune() == 'a' {
 			fileToRename := fen.sel
 
-			// https://github.com/rivo/tview/wiki/Modal
-			modal := func(p tview.Primitive, width, height int) tview.Primitive {
-				return tview.NewFlex().
-					AddItem(nil, 0, 1, false).
-					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-						AddItem(nil, 0, 1, false).
-						AddItem(p, height, 1, true).
-						AddItem(nil, 0, 1, false), width, 1, true).
-					AddItem(nil, 0, 1, false)
-			}
-
 			inputField := tview.NewInputField().
 				SetLabel(" Rename: ").
 				SetText(filepath.Base(fileToRename)).
@@ -355,7 +377,18 @@ func main() {
 					return
 				} else if key == tcell.KeyEnter {
 					if !fen.config.NoWrite {
+						if strings.ContainsRune(inputField.GetText(), os.PathSeparator) {
+							pages.RemovePage("inputfield")
+							fen.bottomBar.TemporarilyShowTextInstead("Can't use slashes when renaming")
+							return
+						}
 						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
+						_, err := os.Stat(newPath)
+						if err == nil {
+							pages.RemovePage("inputfield")
+							fen.bottomBar.TemporarilyShowTextInstead("Can't rename to an existing file")
+							return
+						}
 						os.Rename(fileToRename, newPath)
 
 						fen.RemoveFromSelectedAndYankSelected(fileToRename)
@@ -379,20 +412,10 @@ func main() {
 			inputField.SetFieldTextColor(tcell.ColorBlack)
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 
-			pages.AddPage("inputfield", modal(inputField, 60, 3), true, true)
+			pages.AddPage("inputfield", centered(inputField, 60, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'n' || event.Rune() == 'N' {
-			modal := func(p tview.Primitive, width, height int) tview.Primitive {
-				return tview.NewFlex().
-					AddItem(nil, 0, 1, false).
-					AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-						AddItem(nil, 0, 1, false).
-						AddItem(p, height, 1, true).
-						AddItem(nil, 0, 1, false), width, 1, true).
-					AddItem(nil, 0, 1, false)
-			}
-
 			inputField := tview.NewInputField().
 				SetFieldWidth(44)
 
@@ -431,7 +454,7 @@ func main() {
 			inputField.SetFieldTextColor(tcell.ColorBlack)
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 
-			pages.AddPage("newfilemodal", modal(inputField, 60, 3), true, true)
+			pages.AddPage("newfilemodal", centered(inputField, 60, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'y' {
@@ -471,62 +494,13 @@ func main() {
 
 			if fen.yankType == "copy" {
 				for _, e := range fen.yankSelected {
-					fi, err := os.Stat(e)
-					if err != nil {
-						continue
-					}
-
 					newPath := FilePathUniqueNameIfAlreadyExists(filepath.Join(fen.wd, filepath.Base(e)))
-					if fi.IsDir() {
-						err := os.Mkdir(newPath, 0755)
-						if err != nil {
-							// TODO: We need an error log we can scroll through
-							//fen.bottomBar.TemporarilyShowTextInstead(newPath)
-						}
-						//fen.bottomBar.TemporarilyShowTextInstead(fen.wd)
-
-						err = dirCopy.Copy(e, newPath)
-						if err != nil {
-							// TODO: We need an error log we can scroll through
-							continue
-						}
-					} else if fi.Mode().IsRegular() {
-						source, err := os.Open(e)
-						if err != nil {
-							// TODO: We need an error log we can scroll through
-							continue
-						}
-						defer source.Close()
-
-						destination, err := os.Create(newPath)
-						if err != nil {
-							// TODO: We need an error log we can scroll through
-							continue
-						}
-						defer destination.Close()
-
-						_, err = io.Copy(destination, source)
-						if err != nil {
-							// TODO: We need an error log we can scroll through
-							continue
-						}
-						destination.Chmod(fi.Mode())
-					}
+					go fen.fileOperationsHandler.QueueOperation(FileOperation{operation: Copy, path: e, newPath: newPath})
 				}
 			} else if fen.yankType == "cut" {
 				for _, e := range fen.yankSelected {
-					// Just to make sure the file exists?
-					_, err := os.Stat(e)
-					if err != nil {
-						continue
-					}
-
 					newPath := FilePathUniqueNameIfAlreadyExists(filepath.Join(fen.wd, filepath.Base(e)))
-					err = os.Rename(e, newPath)
-					if err != nil {
-						// TODO: We need an error log we can scroll through
-						continue
-					}
+					go fen.fileOperationsHandler.QueueOperation(FileOperation{operation: Rename, path: e, newPath: newPath})
 				}
 			} else {
 				panic("yankType was not \"copy\" or \"cut\"")
@@ -544,10 +518,15 @@ func main() {
 			fen.ToggleSelectingWithV()
 			fen.UpdatePanes()
 			return nil
-		} else if event.Rune() == '?' {
-			fen.fileProperties.visible = !fen.fileProperties.visible
-			fen.UpdatePanes()
-
+		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
+			helpScreen.visible = !helpScreen.visible
+			if helpScreen.visible {
+				pages.AddPage("helpscreen", helpScreen, true, true)
+				fen.HidePanes()
+			} else {
+				pages.RemovePage("helpscreen")
+				fen.ShowPanes()
+			}
 			return nil
 		}
 
@@ -585,7 +564,7 @@ func main() {
 				SetFocus(1). // Default is "No"
 				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 					pages.RemovePage("deletemodal")
-					if buttonLabel != "Yes" {
+					if buttonIndex != 0 {
 						return
 					}
 
@@ -595,25 +574,11 @@ func main() {
 					}
 
 					if len(fen.selected) <= 0 {
-						err := os.RemoveAll(fileToDelete)
-						if err != nil {
-							// TODO: We need an error log we can scroll through
-							fen.bottomBar.TemporarilyShowTextInstead("Failed to delete!")
-							return
-						}
-						fen.history.RemoveFromHistory(fileToDelete)
-						fen.bottomBar.TemporarilyShowTextInstead("Deleted " + fileToDelete)
+						go fen.fileOperationsHandler.QueueOperation(FileOperation{operation: Delete, path: fileToDelete})
 					} else {
 						for _, filePath := range fen.selected {
-							err := os.RemoveAll(filePath)
-							if err != nil {
-								// TODO: We need an error log we can scroll through
-								continue
-							}
-							fen.history.RemoveFromHistory(filePath)
+							go fen.fileOperationsHandler.QueueOperation(FileOperation{operation: Delete, path: filePath})
 						}
-
-						fen.bottomBar.TemporarilyShowTextInstead("Deleted " + strings.Join(fen.selected, ", "))
 					}
 
 					fen.selected = []string{}
