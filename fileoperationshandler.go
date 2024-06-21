@@ -12,34 +12,36 @@ import (
 )
 
 type Operation int
+
 const (
 	Rename Operation = 0
-	Delete = 1
-	Copy = 2
+	Delete           = 1
+	Copy             = 2
 )
 
 type Status int
+
 const (
-	Queued Status = 0
-	Completed = 1
-	Failed = 2
+	Queued    Status = 0
+	Completed        = 1
+	Failed           = 2
 )
 
 type FileOperation struct {
 	operation Operation
-	status Status
-	path string
-	newPath string // For Rename, Copy and Cut
+	status    Status
+	path      string
+	newPath   string // For Rename, Copy and Cut
 }
 
 type FileOperationsHandler struct {
-	fen *Fen // So we can access fen.config.NoWrite
+	fen *Fen               // So we can access fen.config.NoWrite
 	app *tview.Application // For updating the screen
 
-	entries [][]FileOperation
+	entries      [][]FileOperation
 	entriesMutex sync.Mutex
 
-	workCount int
+	workCount      int
 	workCountMutex sync.Mutex
 }
 
@@ -100,67 +102,67 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 	}
 
 	switch fileOperation.operation {
-		case Rename:
-			if fileOperation.newPath == "" {
-				return errors.New("Empty newPath")
-			}
+	case Rename:
+		if fileOperation.newPath == "" {
+			return errors.New("Empty newPath")
+		}
 
-			_, err := os.Stat(fileOperation.newPath)
-			if err == nil {
-				return errors.New("Rename would've overwritten an existing file")
-			}
-			err = os.Rename(fileOperation.path, fileOperation.newPath)
+		_, err := os.Stat(fileOperation.newPath)
+		if err == nil {
+			return errors.New("Rename would've overwritten an existing file")
+		}
+		err = os.Rename(fileOperation.path, fileOperation.newPath)
+		if err != nil {
+			return err
+		}
+	case Delete:
+		err := os.RemoveAll(fileOperation.path)
+		if err != nil {
+			return err
+		}
+		handler.fen.history.RemoveFromHistory(fileOperation.path)
+	case Copy:
+		fi, err := os.Stat(fileOperation.path)
+		if err != nil {
+			return err
+		}
+
+		if fi.IsDir() {
+			err := os.Mkdir(fileOperation.newPath, 0755)
 			if err != nil {
 				return err
 			}
-		case Delete:
-			err := os.RemoveAll(fileOperation.path)
+
+			err = dirCopy.Copy(fileOperation.path, fileOperation.newPath)
 			if err != nil {
 				return err
 			}
-			handler.fen.history.RemoveFromHistory(fileOperation.path)
-		case Copy:
-			fi, err := os.Stat(fileOperation.path)
+		} else if fi.Mode().IsRegular() {
+			source, err := os.Open(fileOperation.path)
+			if err != nil {
+				return err
+			}
+			defer source.Close()
+
+			destination, err := os.Create(fileOperation.newPath)
+			if err != nil {
+				return err
+			}
+			defer destination.Close()
+
+			_, err = io.Copy(destination, source)
 			if err != nil {
 				return err
 			}
 
-			if fi.IsDir() {
-				err := os.Mkdir(fileOperation.newPath, 0755)
-				if err != nil {
-					return err
-				}
-
-				err = dirCopy.Copy(fileOperation.path, fileOperation.newPath)
-				if err != nil {
-					return err
-				}
-			} else if fi.Mode().IsRegular() {
-				source, err := os.Open(fileOperation.path)
-				if err != nil {
-					return err
-				}
-				defer source.Close()
-
-				destination, err := os.Create(fileOperation.newPath)
-				if err != nil {
-					return err
-				}
-				defer destination.Close()
-
-				_, err = io.Copy(destination, source)
-				if err != nil {
-					return err
-				}
-
-				destination.Chmod(fi.Mode())
-			}
-		default:
-			panic("doOperation got an invalid operation")
+			destination.Chmod(fi.Mode())
+		}
+	default:
+		panic("doOperation got an invalid operation")
 	}
 
 	statusToSet = Completed
-	handler.app.QueueUpdateDraw(func(){handler.fen.UpdatePanes()})
+	handler.app.QueueUpdateDraw(func() { handler.fen.UpdatePanes() })
 
 	return nil
 }

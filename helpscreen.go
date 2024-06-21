@@ -10,7 +10,7 @@ import (
 
 type HelpScreen struct {
 	*tview.Box
-	fen *Fen
+	fen     *Fen
 	visible bool
 }
 
@@ -56,12 +56,12 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 	}
 
 	x, y, w, h := helpScreen.GetInnerRect()
-	helpScreen.Box.SetRect(x, y+1, w, h - 2)
+	helpScreen.Box.SetRect(x, y+1, w, h-2)
 	helpScreen.Box.DrawForSubclass(screen, helpScreen)
 
 	// If fen.sel is a file with characters we escape, the red background of them will bleed into this "fen vX.X.X help menu" title
 	// A possible solution is to just use a black background with "[:black]", but it is distinct from the default background...
-	tview.Print(screen, " [::r]fen " + version + " help menu[::-] ", x, y, w, tview.AlignCenter, tcell.ColorDefault)
+	tview.Print(screen, " [::r]fen "+version+" help menu[::-] ", x, y, w, tview.AlignCenter, tcell.ColorDefault)
 
 	longestDescriptionLength := 0
 	for _, e := range helpScreenControlsList {
@@ -70,7 +70,7 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 		}
 	}
 
-	controlsYOffset := h/2 - len(helpScreenControlsList) / 2
+	controlsYOffset := h/2 - len(helpScreenControlsList)/2
 	if controlsYOffset < 1 {
 		controlsYOffset = 1
 	}
@@ -82,13 +82,13 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 		topUsernameColor = "[red:]"
 	}
 
-	tview.Print(screen, topUsernameColor + "|[-:-:-:-]", x, y+1, w, tview.AlignLeft, tcell.ColorDefault)
+	tview.Print(screen, topUsernameColor+"|[-:-:-:-]", x, y+1, w, tview.AlignLeft, tcell.ColorDefault)
 	tview.Print(screen, "[blue:]|", x+len(topUser.Username)+1, y+1, w, tview.AlignLeft, tcell.ColorDefault)
 
-	tview.Print(screen, topUsernameColor + "|[-:-:-:-]", x, y+2, w, tview.AlignLeft, tcell.ColorDefault)
+	tview.Print(screen, topUsernameColor+"|[-:-:-:-]", x, y+2, w, tview.AlignLeft, tcell.ColorDefault)
 	tview.Print(screen, "[blue:]Path", x+len(topUser.Username)+1, y+2, w, tview.AlignLeft, tcell.ColorDefault)
 
-	tview.Print(screen, topUsernameColor + "User[-:-:-:-]", x, y+3, w, tview.AlignLeft, tcell.ColorDefault)
+	tview.Print(screen, topUsernameColor+"User[-:-:-:-]", x, y+3, w, tview.AlignLeft, tcell.ColorDefault)
 
 	// There is no User:Group shown on Windows, so only describe the file permissions
 	if err != nil {
@@ -97,8 +97,8 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 	} else {
 		tview.Print(screen, "[teal:]File permissions", x, h-4, w, tview.AlignLeft, tcell.ColorDefault)
 		tview.Print(screen, "[teal:]|[default:]", x, h-3, w, tview.AlignLeft, tcell.ColorDefault)
-		tview.Print(screen, UsernameColor(username) + "User:[-:-:-:-]" + GroupnameColor(groupname) + "Group", x+10, h-3, w, tview.AlignLeft, tcell.ColorDefault)
-		tview.Print(screen, UsernameColor(username) + "|[-:-:-:-]", x+10, h-2, w, tview.AlignLeft, tcell.ColorDefault)
+		tview.Print(screen, UsernameColor(username)+"User:[-:-:-:-]"+GroupnameColor(groupname)+"Group", x+10, h-3, w, tview.AlignLeft, tcell.ColorDefault)
+		tview.Print(screen, UsernameColor(username)+"|[-:-:-:-]", x+10, h-2, w, tview.AlignLeft, tcell.ColorDefault)
 	}
 
 	tview.Print(screen, "[teal:]|[default:]", x, h-2, w, tview.AlignLeft, tcell.ColorDefault)
@@ -107,19 +107,19 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 	tview.Print(screen, "|", x, h-2, w, tview.AlignRight, tcell.ColorDefault)
 
 	for dY, e := range helpScreenControlsList {
-		if dY >= h - 1 { // This just returns if we're outside of the terminal
+		if dY >= h-1 { // This just returns if we're outside of the terminal
 			break
 		}
 
 		var keyBindingsStr strings.Builder
 		for i, keyBinding := range e.KeyBindings {
 			keyBindingsStr.WriteString("[blue:]" + keyBinding + "[default:]")
-			if i < len(e.KeyBindings) - 1 {
+			if i < len(e.KeyBindings)-1 {
 				keyBindingsStr.WriteString(" or ")
 			}
 		}
-		xPos := x + w/2 - (longestDescriptionLength + 15) / 2
-		if xPos < len("|         User:Group") + 1 {
+		xPos := x + w/2 - (longestDescriptionLength+15)/2
+		if xPos < len("|         User:Group")+1 {
 			xPos = len("|         User:Group") + 1
 		}
 		tview.Print(screen, keyBindingsStr.String(), xPos, y+dY+controlsYOffset, w, tview.AlignLeft, tcell.ColorDefault)

@@ -10,7 +10,7 @@ import (
 )
 
 type History struct {
-	history []string
+	history      []string
 	historyMutex sync.Mutex
 }
 

@@ -25,7 +25,7 @@ type Fen struct {
 	selectingWithVEndIndex       int
 	selectedBeforeSelectingWithV []string
 
-	config Config
+	config                Config
 	fileOperationsHandler FileOperationsHandler
 
 	topBar     *TopBar

@@ -24,7 +24,7 @@ type FilesPane struct {
 	showEntrySizes      bool
 	isRightFilesPane    bool
 	parentIsEmptyFolder bool
-	Invisible             bool
+	Invisible           bool
 }
 
 func NewFilesPane(fen *Fen, showEntrySizes bool, isRightFilesPane bool) *FilesPane {
