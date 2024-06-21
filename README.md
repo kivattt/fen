@@ -34,6 +34,7 @@ go build
 # Controls
 Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
 
+`?` or `F1` Toggle help menu\
 `Ctrl + Space` or `Ctrl + n` Open file(s) with specific program\
 `Home` or `g` to go to the top\
 `End` or `G` to go to the bottom\
@@ -53,8 +54,7 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `z` or `Backspace` Toggle hidden files\
 `V` Start selecting by moving\
 `n` Create a new file\
-`N` Create a new folder\
-`?` or `F1` Toggle help menu
+`N` Create a new folder
 
 # Configuration
 Linux/FreeBSD: `~/.config/fen/fenrc.json` or `$XDG_CONFIG_HOME/fen/fenrc.json` if `$XDG_CONFIG_HOME` set\
