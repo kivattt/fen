@@ -132,6 +132,7 @@ Tabs are replaced with 4 spaces so they are visible
 `fen.Height` Height of the file preview area
 
 # Known issues
+- On FreeBSD, when the disk is full, fen may erroneously show a very large amount of disk space available (like `18.446 EB free`), when in reality there is no available space
 - Deleting files sometimes doesn't work on Windows
 - Setting a boolean command-line flag to false, e.g. `--no-write=false` has no effect, and the configuration file value will be prioritized. You can disable loading the config file by giving a bogus filename: `--config=aaaaa`
 - `go test` doesn't work on Windows

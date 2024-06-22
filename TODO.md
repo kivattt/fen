@@ -3,6 +3,7 @@
 - Bulk rename
 - Scrollable search history
 - Better scrolling
+- It sometimes exits badly, stuff is left on screen ever since async file operations were added
 - File operations async queue (with undo when applicable)
 - Make file previews async
 - Show ~/ in top bar for /home/$USER
