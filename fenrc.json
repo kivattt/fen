@@ -6,6 +6,7 @@
 	"folders-not-first": false,
 	"print-path-on-open": false,
 	"dont-change-terminal-title": false,
+	"dont-show-help-text": false,
 
 	"open-with": [
 		{

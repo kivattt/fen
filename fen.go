@@ -28,6 +28,8 @@ type Fen struct {
 	config                Config
 	fileOperationsHandler FileOperationsHandler
 
+	helpScreenVisible *bool
+
 	topBar     *TopBar
 	bottomBar  *BottomBar
 	leftPane   *FilesPane
@@ -45,6 +47,7 @@ type Config struct {
 	OpenWith                []OpenWithEntry    `json:"open-with"`
 	PreviewWith             []PreviewWithEntry `json:"preview-with"`
 	DontChangeTerminalTitle bool               `json:"dont-change-terminal-title"`
+	DontShowHelpText        bool               `json:"dont-show-help-text"`
 }
 
 type OpenWithEntry struct {
@@ -60,8 +63,9 @@ type PreviewWithEntry struct {
 	DoNotMatch []string `json:"do-not-match"`
 }
 
-func (fen *Fen) Init(path string, app *tview.Application) error {
+func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool) error {
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen, app: app}
+	fen.helpScreenVisible = helpScreenVisible
 
 	fen.selectingWithV = false
 

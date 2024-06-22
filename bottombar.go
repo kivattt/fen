@@ -57,6 +57,45 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 	if bottomBar.fen.config.NoWrite {
 		noWriteEnabledText = " [red::r]no-write"
 	}
-	tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
-	tview.Print(screen, tview.Escape(freeBytesStr), x, y, w, tview.AlignRight, tcell.ColorDefault)
+
+	_, leftLength := tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
+	_, rightLength := tview.Print(screen, tview.Escape(freeBytesStr), x, y, w, tview.AlignRight, tcell.ColorDefault)
+
+	if bottomBar.fen.config.DontShowHelpText || *bottomBar.fen.helpScreenVisible {
+		return
+	}
+
+	spaceForHelpText := w - leftLength - rightLength
+
+	helpTextAlternatives := []string{
+		"For help: Type ? or F1",
+		"Help: Type ? or F1",
+		"Help: Type ?",
+		"Help: ?",
+	}
+
+	var helpText string
+	for _, alternative := range helpTextAlternatives {
+		if spaceForHelpText-1 > len(alternative) {
+			helpText = alternative
+			break
+		}
+	}
+
+	if helpText == "" {
+		return
+	}
+
+	helpTextXPosBetween := x + leftLength + (w-leftLength-rightLength)/2 - len(helpText)/2
+	helpTextXPosMiddle := w/2 - len(helpText)/2
+
+	linearInterpolationSteps := max(1, x+(leftLength-rightLength)/2)
+	N := linearInterpolationSteps - min(linearInterpolationSteps, max(0, spaceForHelpText-leftLength-rightLength))
+	helpTextXPos := leftLength + (helpTextXPosBetween-leftLength)*N/linearInterpolationSteps + (helpTextXPosMiddle-leftLength)*(1-N/linearInterpolationSteps)
+
+	if helpTextXPos < x+leftLength {
+		helpTextXPos = x + leftLength
+	}
+
+	tview.Print(screen, "[::d]"+helpText, helpTextXPos, y, spaceForHelpText, tview.AlignLeft, tcell.ColorDefault)
 }

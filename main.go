@@ -15,7 +15,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.2.0"
+const version = "v1.2.1"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
@@ -31,6 +31,7 @@ func main() {
 	dontShowHiddenFiles := flag.Bool("dont-show-hidden-files", false, "")
 	printPathOnOpen := flag.Bool("print-path-on-open", false, "output file path and exit on open file")
 	dontChangeTerminalTitle := flag.Bool("dont-change-terminal-title", false, "")
+	dontShowHelpText := flag.Bool("dont-show-help-text", false, "hide the 'For help: ...' text")
 
 	configFilename := flag.String("config", configFilenamePath, "use configuration file")
 
@@ -85,6 +86,7 @@ func main() {
 	fen.config.DontShowHiddenFiles = fen.config.DontShowHiddenFiles || *dontShowHiddenFiles
 	fen.config.PrintPathOnOpen = fen.config.PrintPathOnOpen || *printPathOnOpen
 	fen.config.DontChangeTerminalTitle = fen.config.DontChangeTerminalTitle || *dontChangeTerminalTitle
+	fen.config.DontShowHelpText = fen.config.DontShowHelpText || *dontShowHelpText
 
 	if !fen.config.NoWrite {
 		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
@@ -97,7 +99,9 @@ func main() {
 
 	app := tview.NewApplication()
 
-	err = fen.Init(path, app)
+	helpScreen := NewHelpScreen(&fen)
+
+	err = fen.Init(path, app, &helpScreen.visible)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -123,7 +127,6 @@ func main() {
 			AddItem(nil, 0, 1, false)
 	}
 
-	helpScreen := NewHelpScreen(&fen)
 	helpScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyF1 || event.Rune() == '?' || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
 			helpScreen.visible = false
@@ -439,8 +442,10 @@ func main() {
 							os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0775)
 						}
 						fen.UpdatePanes()
-					} else {
+					} else if fen.config.NoWrite {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't create new files in no-write mode")
+					} else {
+						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 					}
 
 					pages.RemovePage("newfilemodal")
