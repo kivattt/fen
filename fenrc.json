@@ -29,7 +29,7 @@
 
 	"preview-with": [
 		{
-			"script": "rainbow.lua",
+			"script": "FEN_CONFIG_PATH/rainbow.lua",
 			"match": ["*"],
 			"do-not-match": ["*.png", "*.exe"]
 		}

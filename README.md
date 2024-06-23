@@ -57,11 +57,12 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `N` Create a new folder
 
 # Configuration
+You can find a complete example config in the [fenrc.json](fenrc.json) file
+
 Linux/FreeBSD: `~/.config/fen/fenrc.json` or `$XDG_CONFIG_HOME/fen/fenrc.json` if `$XDG_CONFIG_HOME` set\
 macOS: `$HOME/Library/Application Support/fen/fenrc.json`\
 Windows: `%AppData%\Roaming\fen\fenrc.json`
 
-You can find a complete example config in the [fenrc.json](fenrc.json) file\
 You can specify a different config file path with the `--config` flag
 
 The `"open-with"` file matching starts from the top, so you can have something like this at the end of the list to catch anything not previously matched:
@@ -80,7 +81,9 @@ You can use "do-not-match" in conjunction with "match":
     "do-not-match": ["*.exe"]
 }
 ```
+
 Programs in `"programs"` do not expand tildes like `"~/some/file.sh"`. You have to specify an absolute path.\
+However, `FEN_CONFIG_PATH` will be expanded to the config path, see: [Configuration](#Configuration)\
 If you want to use a shell script in `"programs"`, it has to have a shebang or you need to explicitly invoke the appropriate shell like `"bash /some/file.sh"`\
 Note: Programs will be started in the working directory you're inside in fen
 
@@ -107,7 +110,9 @@ For something cross-platform, file previews can also be a [lua script](lua-file-
 ```
 If "script" is set, "programs" will be ignored in the same "preview-with" entry.\
 "script" is not a list like "programs" is, because we want to see syntax errors when writing lua code instead of falling back to anything.\
-The "script" key can either be an absolute path e.g. `"/home/user/my-script.lua"` or a relative path: `"my-script.lua"` which will correspond to `~/.config/fen/my-script.lua` (or the respective OS config path, see: [Configuration](#Configuration))
+The "script" key has to be an absolute path e.g. `"/home/user/my-script.lua"`, however `FEN_CONFIG_PATH` will be expanded to the config path, see: [Configuration](#Configuration)
+
+For backwards compatibility reasons, a "script" path which isn't an absolute path is valid and will be automatically prepended with the config path (same as `FEN_CONFIG_PATH`)
 
 # Writing file preview scripts with Lua
 Do not use `print()`, it outputs to stdout which doesn't work well within fen.\

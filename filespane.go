@@ -216,7 +216,13 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				continue
 			}
 
+			userConfigDir, userConfigDirErr := os.UserConfigDir()
 			if previewWith.Script != "" {
+				scriptPath := previewWith.Script
+				if userConfigDirErr == nil {
+					scriptPath = strings.ReplaceAll(scriptPath, "FEN_CONFIG_PATH", filepath.Join(userConfigDir, "fen"))
+				}
+
 				L := lua.NewState()
 				defer L.Close()
 
@@ -231,13 +237,13 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 				L.SetGlobal("fen", luar.New(L, fenLuaGlobal))
 				luaFileAbsolutePath := ""
-				if !filepath.IsAbs(previewWith.Script) {
+				if !filepath.IsAbs(scriptPath) {
 					userConfigDir, err := os.UserConfigDir()
 					if err == nil {
-						luaFileAbsolutePath = filepath.Join(userConfigDir, "fen", previewWith.Script)
+						luaFileAbsolutePath = filepath.Join(userConfigDir, "fen", scriptPath)
 					}
 				} else {
-					luaFileAbsolutePath = previewWith.Script
+					luaFileAbsolutePath = scriptPath
 				}
 				err := L.DoFile(luaFileAbsolutePath)
 				if err != nil {
@@ -254,6 +260,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 			for _, program := range previewWith.Programs {
 				programSplitSpace := strings.Split(program, " ")
+				if userConfigDirErr == nil {
+					for i, e := range programSplitSpace {
+						programSplitSpace[i] = strings.ReplaceAll(e, "FEN_CONFIG_PATH", filepath.Join(userConfigDir, "fen"))
+					}
+				}
 
 				programName := programSplitSpace[0]
 				programArguments := []string{}

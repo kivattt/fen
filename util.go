@@ -390,9 +390,15 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 		programsAndFallbacks = append([]string{openWith}, programsAndFallbacks...)
 	}
 
+	userConfigDir, userConfigDirErr := os.UserConfigDir()
 	app.Suspend(func() {
 		for _, program := range programsAndFallbacks {
 			programSplitSpace := strings.Split(program, " ")
+			if userConfigDirErr == nil {
+				for i, e := range programSplitSpace {
+					programSplitSpace[i] = strings.ReplaceAll(e, "FEN_CONFIG_PATH", filepath.Join(userConfigDir, "fen"))
+				}
+			}
 
 			programName := programSplitSpace[0]
 			programArguments := []string{}
