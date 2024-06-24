@@ -128,7 +128,7 @@ You can find examples in [lua-file-preview-examples](lua-file-preview-examples)
 `fen:RuntimeOS()` (Since v1.1.3) The OS fen is running in [Go doc](https://pkg.go.dev/runtime#pkg-constants)\
 `fen:Version()` (Since v1.2.3) fen version string, like `"v1.2.3"`
 
-Notes about `fen:Print()` and `fen:PrintSimple()`:\
+**Notes about `fen:Print()` and `fen:PrintSimple()`:**\
 Newlines will not show up, and do nothing. You will have to manually call it multiple times, increasing y.\
 Tabs are replaced with 4 spaces so they are visible
 
