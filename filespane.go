@@ -46,20 +46,21 @@ type FenLuaGlobal struct {
 	screen       tcell.Screen
 }
 
-func (f *FenLuaGlobal) Print(text string, x, y, maxWidth, align int, color tcell.Color) {
+func (f *FenLuaGlobal) Print(text string, x, y, maxWidth, align int, color tcell.Color) int {
 	if x < 0 || x > f.Width {
-		return
+		return 0
 	}
 	if y < 0 || y >= f.Height {
-		return
+		return 0
 	}
 
 	text = strings.ReplaceAll(text, "\t", "    ")
-	tview.Print(f.screen, text, x+f.x, y+f.y, maxWidth, align, color)
+	_, widthPrinted := tview.Print(f.screen, text, x+f.x, y+f.y, maxWidth, align, color)
+	return widthPrinted
 }
 
-func (f *FenLuaGlobal) PrintSimple(text string, x, y int) {
-	f.Print(text, x, y, f.Width, 0, 0)
+func (f *FenLuaGlobal) PrintSimple(text string, x, y int) int {
+	return f.Print(text, x, y, f.Width, 0, 0)
 }
 
 func (f *FenLuaGlobal) Escape(text string) string {
@@ -80,6 +81,10 @@ func (f *FenLuaGlobal) ColorToString(color tcell.Color) string {
 
 func (f *FenLuaGlobal) RuntimeOS() string {
 	return runtime.GOOS
+}
+
+func (f *FenLuaGlobal) Version() string {
+	return version
 }
 
 func (fp *FilesPane) SetEntries(path string, foldersNotFirst bool) {

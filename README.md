@@ -119,13 +119,14 @@ Do not use `print()`, it outputs to stdout which doesn't work well within fen.\
 You can find examples in [lua-file-preview-examples](lua-file-preview-examples)
 
 ### Available functions:
-`fen:Print(text, x, y, maxWidth, alignment, color)` Print text at the given x/y position. x=0, y=0 is the top left corner of the file preview area and limited to the file preview area only [Go doc](https://pkg.go.dev/github.com/rivo/tview#Print)\
-`fen:PrintSimple(text, x, y)` Same as above, with default color and alignment and no maxWidth [Go doc](https://pkg.go.dev/github.com/rivo/tview#PrintSimple)\
+`fen:Print(text, x, y, maxWidth, alignment, color) returns amount of characters on screen printed` Print text at the given x/y position. x=0, y=0 is the top left corner of the file preview area and limited to the file preview area only [Go doc](https://pkg.go.dev/github.com/rivo/tview#Print)\
+`fen:PrintSimple(text, x, y) returns amount of characters on screen printed` Same as above, with default color and alignment and no maxWidth [Go doc](https://pkg.go.dev/github.com/rivo/tview#PrintSimple)\
 `fen:Escape(text)` Escape style tags [Go doc](https://pkg.go.dev/github.com/rivo/tview#Escape)\
 `fen:TranslateANSI(text)` Turn ANSI into style tags [Go doc](https://pkg.go.dev/github.com/rivo/tview#TranslateANSI)\
 `fen:NewRGBColor(r, g, b)` [Go doc](https://pkg.go.dev/github.com/gdamore/tcell/v2#NewRGBColor)\
-`fen:ColorToString(color)` [Go doc](https://pkg.go.dev/github.com/gdamore/tcell/v2#Color.String)\
-`fen:RuntimeOS()` The OS fen is running in [Go doc](https://pkg.go.dev/runtime#pkg-constants)
+`fen:ColorToString(color)` (Since v1.1.2) [Go doc](https://pkg.go.dev/github.com/gdamore/tcell/v2#Color.String)\
+`fen:RuntimeOS()` (Since v1.1.3) The OS fen is running in [Go doc](https://pkg.go.dev/runtime#pkg-constants)
+`fen:Version()` (Since v1.2.3) fen version string, like `"v1.2.3"`
 
 Notes about `fen:Print()` and `fen:PrintSimple()`:\
 Newlines will not show up, and do nothing. You will have to manually call it multiple times, increasing y.\
