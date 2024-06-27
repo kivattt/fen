@@ -58,7 +58,7 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 
 # Configuration
 You can find a complete example config in the [config.lua](config.lua) file\
-For a full config folder example, see [my personal config](https://github.com/kivattt/dotfiles/tree/main/.config/fen)
+For a full config folder example, see [my personal config](https://github.com/kivattt/dotfiles/blob/main/.config/fen/config.lua)
 
 Linux/FreeBSD: `~/.config/fen/config.lua` or `$XDG_CONFIG_HOME/fen/config.lua` if `$XDG_CONFIG_HOME` set\
 macOS: `$HOME/Library/Application Support/fen/config.lua`\
