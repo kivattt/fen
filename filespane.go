@@ -20,7 +20,7 @@ type FilesPane struct {
 	fen                 *Fen
 	folder              string
 	entries             []os.DirEntry
-	selectedEntry       int
+	selectedEntryIndex  int
 	showEntrySizes      bool
 	isRightFilesPane    bool
 	parentIsEmptyFolder bool
@@ -29,11 +29,11 @@ type FilesPane struct {
 
 func NewFilesPane(fen *Fen, showEntrySizes bool, isRightFilesPane bool) *FilesPane {
 	return &FilesPane{
-		Box:              tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
-		fen:              fen,
-		selectedEntry:    0,
-		showEntrySizes:   showEntrySizes,
-		isRightFilesPane: isRightFilesPane,
+		Box:                tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
+		fen:                fen,
+		selectedEntryIndex: 0,
+		showEntrySizes:     showEntrySizes,
+		isRightFilesPane:   isRightFilesPane,
 	}
 }
 
@@ -87,7 +87,7 @@ func (f *FenLuaGlobal) Version() string {
 	return version
 }
 
-func (fp *FilesPane) SetEntries(path string, foldersNotFirst bool) {
+func (fp *FilesPane) SetEntries(path string, foldersFirst bool) {
 	fi, err := os.Stat(path)
 	if err != nil {
 		fp.entries = []os.DirEntry{}
@@ -104,7 +104,7 @@ func (fp *FilesPane) SetEntries(path string, foldersNotFirst bool) {
 	fp.folder = path
 	fp.entries, _ = os.ReadDir(fp.folder)
 
-	if fp.fen.config.DontShowHiddenFiles {
+	if !fp.fen.config.HiddenFiles {
 		withoutHiddenFiles := []os.DirEntry{}
 		for _, e := range fp.entries {
 			if !strings.HasPrefix(e.Name(), ".") {
@@ -115,13 +115,13 @@ func (fp *FilesPane) SetEntries(path string, foldersNotFirst bool) {
 		fp.entries = withoutHiddenFiles
 
 		// TODO: Generic bounds checking function?
-		if len(fp.entries) > 0 && fp.selectedEntry >= len(fp.entries) {
-			fp.selectedEntry = len(fp.entries) - 1
+		if len(fp.entries) > 0 && fp.selectedEntryIndex >= len(fp.entries) {
+			fp.selectedEntryIndex = len(fp.entries) - 1
 			//			fp.SetSelectedEntryFromIndex(len(fp.entries) - 1)
 		}
 	}
 
-	if !foldersNotFirst {
+	if foldersFirst {
 		fp.entries = FoldersAtBeginning(fp.entries)
 	}
 
@@ -131,17 +131,17 @@ func (fp *FilesPane) SetEntries(path string, foldersNotFirst bool) {
 func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {
 	for i, entry := range fp.entries {
 		if entry.Name() == entryName {
-			fp.selectedEntry = i
+			fp.selectedEntryIndex = i
 			return nil
 		}
 	}
 
-	fp.selectedEntry = 0
+	fp.selectedEntryIndex = 0
 	return errors.New("No entry with that name")
 }
 
 func (fp *FilesPane) SetSelectedEntryFromIndex(index int) {
-	fp.selectedEntry = index
+	fp.selectedEntryIndex = index
 }
 
 func (fp *FilesPane) GetSelectedEntryFromIndex(index int) string {
@@ -175,8 +175,8 @@ func (fp *FilesPane) GetSelectedIndexFromEntry(entryName string) int {
 func (fp *FilesPane) GetTopScreenEntryIndex() int {
 	_, _, _, h := fp.GetInnerRect()
 	topScreenEntryIndex := 0
-	if fp.selectedEntry > h/2 {
-		topScreenEntryIndex = fp.selectedEntry - h/2
+	if fp.selectedEntryIndex > h/2 {
+		topScreenEntryIndex = fp.selectedEntryIndex - h/2
 	}
 
 	if topScreenEntryIndex >= len(fp.entries) {
@@ -215,19 +215,13 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	f, readErr := os.OpenFile(fp.fen.sel, os.O_RDONLY, 0)
 	f.Close()
 	if statErr == nil && stat.Mode().IsRegular() && readErr == nil && len(fp.entries) <= 0 && fp.isRightFilesPane {
-		for _, previewWith := range fp.fen.config.PreviewWith {
+		for _, previewWith := range fp.fen.config.Preview {
 			matched := PathMatchesList(fp.fen.sel, previewWith.Match) && !PathMatchesList(fp.fen.sel, previewWith.DoNotMatch)
 			if !matched {
 				continue
 			}
 
-			userConfigDir, userConfigDirErr := os.UserConfigDir()
 			if previewWith.Script != "" {
-				scriptPath := previewWith.Script
-				if userConfigDirErr == nil {
-					scriptPath = strings.ReplaceAll(scriptPath, "FEN_CONFIG_PATH", filepath.Join(userConfigDir, "fen"))
-				}
-
 				L := lua.NewState()
 				defer L.Close()
 
@@ -241,16 +235,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				}
 
 				L.SetGlobal("fen", luar.New(L, fenLuaGlobal))
-				luaFileAbsolutePath := ""
-				if !filepath.IsAbs(scriptPath) {
-					userConfigDir, err := os.UserConfigDir()
-					if err == nil {
-						luaFileAbsolutePath = filepath.Join(userConfigDir, "fen", scriptPath)
-					}
-				} else {
-					luaFileAbsolutePath = scriptPath
-				}
-				err := L.DoFile(luaFileAbsolutePath)
+				err := L.DoFile(previewWith.Script)
 				if err != nil {
 					tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
 					lines := tview.WordWrap(err.Error(), w)
@@ -263,13 +248,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				return
 			}
 
-			for _, program := range previewWith.Programs {
+			for _, program := range previewWith.Program {
 				programSplitSpace := strings.Split(program, " ")
-				if userConfigDirErr == nil {
-					for i, e := range programSplitSpace {
-						programSplitSpace[i] = strings.ReplaceAll(e, "FEN_CONFIG_PATH", filepath.Join(userConfigDir, "fen"))
-					}
-				}
 
 				programName := programSplitSpace[0]
 				programArguments := []string{}
@@ -283,7 +263,6 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				textView.Box.SetRect(x, y, w, h)
 				textView.SetBackgroundColor(tcell.ColorDefault)
 				textView.SetTextColor(tcell.ColorDefault)
-				textView.SetDynamicColors(true)
 
 				cmd.Stdout = tview.ANSIWriter(textView)
 
@@ -307,7 +286,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		style := FileColor(entryFullPath)
 
 		spaceForSelected := ""
-		if i+scrollOffset == fp.selectedEntry {
+		if i+scrollOffset == fp.selectedEntryIndex {
 			style = style.Reverse(true)
 		}
 
@@ -325,7 +304,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		entrySizePrintedSize := 0
 		if fp.showEntrySizes {
 			var err error
-			entrySizeText, err = EntrySize(entryFullPath, fp.fen.config.DontShowHiddenFiles)
+			entrySizeText, err = EntrySize(entryFullPath, fp.fen.config.HiddenFiles)
 			if err != nil {
 				entrySizeText = "?"
 			}

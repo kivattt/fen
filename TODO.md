@@ -8,7 +8,6 @@
 - Make file previews async
 - Show user@something in top bar
 - Changing owner/group, chmod inside fen (probably not, since you can do it with open-with)
-- Index/Length (maybe even percentage) in the bottom right like in vim/ranger
 - Make draw functions for top bar / bottom bar scriptable with lua
 - Global selection (selection stored in a file under UserCacheDir ?)
 - cd Change directory
@@ -18,6 +17,12 @@
 - Check if [dragon](https://github.com/mwh/dragon) works, maybe just make my own built into fen with some gtk wrapper? (bad idea lol)
 - Show current folder size beside disk size?
 - A sort of --no-unicode option, to print the character codes instead of fancy unicode characters
+- bottombar.go: Also show position string (index/len text) when alternateText is shown
+- Configuration: Matching based on file permission flags (like executables)? (Maybe not now that we have open Lua scripts
+- Handle symlinks (show them as separate colors / a " ->" after file size in filespane.go
+- Configurable colors / respect LS\_COLORS?
+- Fix a crash (fen hanging) on something like `/proc/.../oom_score_adj`
+- Fix the bottom bar sometimes not showing info on files inside `/proc/.../map_files`
 
 - System-wide configuration file instructions
 - Make file previews not run every time the terminal is resized?

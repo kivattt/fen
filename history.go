@@ -14,12 +14,12 @@ type History struct {
 	historyMutex sync.Mutex
 }
 
-func (h *History) GetHistoryEntryForPath(path string, ignoreHiddenFiles bool) (string, error) {
+func (h *History) GetHistoryEntryForPath(path string, hiddenFiles bool) (string, error) {
 	h.historyMutex.Lock()
 	defer h.historyMutex.Unlock()
 
 	for _, e := range h.history {
-		if ignoreHiddenFiles && strings.HasPrefix(filepath.Base(e), ".") {
+		if !hiddenFiles && strings.HasPrefix(filepath.Base(e), ".") {
 			continue
 		}
 

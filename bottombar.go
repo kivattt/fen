@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strconv"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -59,19 +61,50 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 	}
 
 	_, leftLength := tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
-	_, rightLength := tview.Print(screen, tview.Escape(freeBytesStr), x, y, w, tview.AlignRight, tcell.ColorDefault)
+	_, rightFreeBytesStrLength := tview.Print(screen, " "+tview.Escape(freeBytesStr), x, y, w, tview.AlignRight, tcell.ColorDefault)
+	rightFreeBytesStrLength-- // To ignore the leading ^ space
 
-	if bottomBar.fen.config.DontShowHelpText || *bottomBar.fen.helpScreenVisible {
+	entriesLengthStr := strconv.Itoa(len(bottomBar.fen.middlePane.entries))
+	positionStr := strconv.Itoa(bottomBar.fen.middlePane.selectedEntryIndex+1) + "/" + entriesLengthStr
+	positionStrMaxLength := 2*len(entriesLengthStr) + len("/")
+
+	// We multiply entriesLengthStr by 2 so that the help text won't suddenly change/move if the selected index string length changes
+	rightLength := rightFreeBytesStrLength + positionStrMaxLength + 1 // For positioning the help text
+	spaceForHelpText := w - leftLength - rightLength
+
+	positionStrXPos := w - rightFreeBytesStrLength - len(positionStr) - 1
+	positionStrLowerXPos := w - rightFreeBytesStrLength - positionStrMaxLength - 1
+	positionStrHasNoSpace := positionStrLowerXPos < leftLength+1
+
+	if !bottomBar.fen.config.ShowHelpText || *bottomBar.fen.helpScreenVisible {
+		if !positionStrHasNoSpace {
+			tview.Print(screen, tview.Escape(positionStr), positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
+		}
 		return
 	}
-
-	spaceForHelpText := w - leftLength - rightLength
 
 	helpTextAlternatives := []string{
 		"For help: Type ? or F1",
 		"Help: Type ? or F1",
 		"Help: Type ?",
 		"Help: ?",
+	}
+
+	if spaceForHelpText-1 > len(helpTextAlternatives[len(helpTextAlternatives)-1]) {
+		if !positionStrHasNoSpace {
+			tview.Print(screen, tview.Escape(positionStr), positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
+		}
+	} else {
+		// We hide the positionStr to give enough space for the help text
+		spaceForHelpText += rightLength - rightFreeBytesStrLength
+
+		// Show positionStr anyway if the help text has no chance of being shown even with the positionStr hidden
+		if spaceForHelpText-1 <= len(helpTextAlternatives[len(helpTextAlternatives)-1]) {
+			if !positionStrHasNoSpace {
+				tview.Print(screen, tview.Escape(positionStr), positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
+			}
+			return
+		}
 	}
 
 	var helpText string
@@ -86,12 +119,13 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 		return
 	}
 
-	helpTextXPosBetween := x + leftLength + (w-leftLength-rightLength)/2 - len(helpText)/2
+	helpTextXPosBetween := x + leftLength + spaceForHelpText/2 - len(helpText)/2
 	helpTextXPosMiddle := w/2 - len(helpText)/2
 
-	linearInterpolationSteps := max(1, x+(leftLength-rightLength)/2)
-	N := linearInterpolationSteps - min(linearInterpolationSteps, max(0, spaceForHelpText-leftLength-rightLength))
-	helpTextXPos := leftLength + (helpTextXPosBetween-leftLength)*N/linearInterpolationSteps + (helpTextXPosMiddle-leftLength)*(1-N/linearInterpolationSteps)
+	helpTextXPos := helpTextXPosBetween
+	if helpTextXPosMiddle > leftLength+3 {
+		helpTextXPos = helpTextXPosMiddle
+	}
 
 	if helpTextXPos < x+leftLength {
 		helpTextXPos = x + leftLength

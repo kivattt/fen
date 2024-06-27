@@ -1,14 +1,19 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"reflect"
+	"runtime"
 	"slices"
 	"strings"
 
 	"github.com/rivo/tview"
+	"github.com/yuin/gluamapper"
+	lua "github.com/yuin/gopher-lua"
 )
 
 type Fen struct {
@@ -37,30 +42,39 @@ type Fen struct {
 	rightPane  *FilesPane
 }
 
+// gluamapper lets you use Go variables like "UiBorders", using the name "ui_borders".
+// I happen to like this, but since I can't set the "fen" global to the actual Config value,
+// we have to define them manually with a new table where I use these to look up the names
+const luaTagName = "lua"
+
 type Config struct {
-	UiBorders               bool               `json:"ui-borders"`
-	NoMouse                 bool               `json:"no-mouse"`
-	NoWrite                 bool               `json:"no-write"`
-	DontShowHiddenFiles     bool               `json:"dont-show-hidden-files"`
-	FoldersNotFirst         bool               `json:"folders-not-first"`
-	PrintPathOnOpen         bool               `json:"print-path-on-open"`
-	OpenWith                []OpenWithEntry    `json:"open-with"`
-	PreviewWith             []PreviewWithEntry `json:"preview-with"`
-	DontChangeTerminalTitle bool               `json:"dont-change-terminal-title"`
-	DontShowHelpText        bool               `json:"dont-show-help-text"`
+	UiBorders       bool                 `lua:"ui_borders"`
+	Mouse           bool                 `lua:"mouse"`
+	NoWrite         bool                 `lua:"no_write"`
+	HiddenFiles     bool                 `lua:"hidden_files"`
+	FoldersFirst    bool                 `lua:"folders_first"`
+	PrintPathOnOpen bool                 `lua:"print_path_on_open"`
+	TerminalTitle   bool                 `lua:"terminal_title"`
+	ShowHelpText    bool                 `lua:"show_help_text"`
+	Open            []PreviewOrOpenEntry `lua:"open"`
+	Preview         []PreviewOrOpenEntry `lua:"preview"`
 }
 
-type OpenWithEntry struct {
-	Programs   []string `json:"programs"`
-	Match      []string `json:"match"`
-	DoNotMatch []string `json:"do-not-match"`
+func NewConfigDefaultValues() Config {
+	return Config{
+		Mouse:         true,
+		HiddenFiles:   true,
+		FoldersFirst:  true,
+		TerminalTitle: true,
+		ShowHelpText:  true,
+	}
 }
 
-type PreviewWithEntry struct {
-	Script     string   `json:"script"`
-	Programs   []string `json:"programs"`
-	Match      []string `json:"match"`
-	DoNotMatch []string `json:"do-not-match"`
+type PreviewOrOpenEntry struct {
+	Script     string
+	Program    []string // The name used to be "Programs", but this makes more sense for the lua configuration
+	Match      []string
+	DoNotMatch []string
 }
 
 func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool) error {
@@ -105,7 +119,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 
 	if len(wdFiles) > 0 {
 		// HACKY: middlePane has to have entries so that GoTop() will work
-		fen.middlePane.SetEntries(fen.wd, fen.config.FoldersNotFirst)
+		fen.middlePane.SetEntries(fen.wd, fen.config.FoldersFirst)
 		fen.GoTop()
 
 		if shouldSelectSpecifiedFile {
@@ -120,14 +134,91 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 }
 
 func (fen *Fen) ReadConfig(path string) error {
-	bytes, err := os.ReadFile(path)
+	if !strings.HasSuffix(filepath.Base(path), ".lua") {
+		fmt.Fprintln(os.Stderr, "Warning: Config file "+path+" has no .lua file extension.\nSince v1.3.0, config files can only be Lua.")
+	}
+
+	_, err := os.Stat(path)
 	if err != nil {
+		oldJSONConfigPath := filepath.Join(filepath.Dir(path), "fenrc.json")
+		_, err := os.Stat(oldJSONConfigPath)
+		if err == nil {
+			return errors.New("Could not find " + path + ", but found " + oldJSONConfigPath + "\nSince v1.3.0, config files can only be Lua.")
+		}
+
 		// We don't want to exit if there is no config file
 		// This should really be checked by the caller...
 		return nil
 	}
 
-	err = json.Unmarshal(bytes, &fen.config)
+	L := lua.NewState()
+	defer L.Close()
+
+	// This is what we initially pass to config.lua
+	luaInitialConfigTable := L.NewTable()
+
+	fen.config = NewConfigDefaultValues()
+	defaultConfigReflectTypes := reflect.TypeOf(fen.config)
+	defaultConfigReflectValues := reflect.ValueOf(fen.config)
+	for i := 0; i < defaultConfigReflectValues.NumField(); i++ {
+		fieldName := defaultConfigReflectTypes.Field(i).Tag.Get(luaTagName)
+
+		switch defaultConfigReflectValues.Field(i).Kind() {
+		case reflect.Bool:
+			fieldValue := defaultConfigReflectValues.Field(i).Bool()
+			luaInitialConfigTable.RawSetString(fieldName, lua.LBool(fieldValue))
+		case reflect.Slice: // fen.open and fen.preview are set to empty lists (called a "table" in lua)
+			luaInitialConfigTable.RawSetString(fieldName, L.NewTable())
+		}
+	}
+
+	userConfigDir, err := os.UserConfigDir()
+	if err == nil {
+		luaInitialConfigTable.RawSetString("config_path", lua.LString(PathWithEndSeparator(filepath.Join(userConfigDir, "fen"))))
+	}
+	luaInitialConfigTable.RawSetString("version", lua.LString(version))
+	luaInitialConfigTable.RawSetString("runtime_os", lua.LString(runtime.GOOS))
+	L.SetGlobal("fen", luaInitialConfigTable)
+
+	err = L.DoFile(path)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Could probably refactor this and make it check via reflection of fen.config
+	// In the Lua config, referring to variables by their Go name, e.g. "fen.UiBorders" instead of "fen.ui_borders" makes fen
+	// pick between one or the other (previously set by luaInitialConfigTable) randomly.
+	// Why? Because Golang maps.
+	// You can actually still observe this kind of issue by using atleast 2 invalid fen global variable names in your config:
+	//
+	// config.lua:
+	//   fen.UiBorders = false
+	//   fen.AnotherOne = false
+	//
+	// then, by running fen multiple times you will see the "Invalid fen global variable name: ..." error msg show one of the two randomly
+	//
+	// So let's save the user most of this pain and not allow using the original name.
+	mapper := gluamapper.NewMapper(gluamapper.Option{NameFunc: func(originalName string) string {
+		newName := gluamapper.ToUpperCamelCase(originalName)
+
+		// If ToUpperCamelCase did nothing, it indicates the use of a fen.config Go name instead of the intended Lua name
+		if originalName == newName {
+			// Since we unfortunately can't just return err like in ReadConfig(), let's just replicate the behaviour of handling the error from main.go
+			fmt.Println("Invalid config " + path)
+			err := errors.New("Invalid fen global variable name: " + originalName)
+			log.Fatal(err)
+		}
+
+		return newName
+	}})
+
+	fenGlobal := L.GetGlobal("fen")
+	fenGlobalAsTablePointer, ok := L.GetGlobal("fen").(*lua.LTable)
+	if !ok {
+		return errors.New("Failed to convert \"fen\" (of type " + fenGlobal.Type().String() + ") to a *lua.LTable")
+	}
+
+	err = mapper.Map(fenGlobalAsTablePointer, &fen.config)
 	if err != nil {
 		return err
 	}
@@ -149,7 +240,7 @@ func (fen *Fen) EnableSelectingWithV() {
 	}
 
 	fen.selectingWithV = true
-	fen.selectingWithVStartIndex = fen.middlePane.selectedEntry
+	fen.selectingWithVStartIndex = fen.middlePane.selectedEntryIndex
 	fen.selectingWithVEndIndex = fen.selectingWithVStartIndex
 	fen.selectedBeforeSelectingWithV = fen.selected
 }
@@ -164,8 +255,8 @@ func (fen *Fen) DisableSelectingWithV() {
 }
 
 func (fen *Fen) UpdatePanes() {
-	fen.leftPane.SetEntries(filepath.Dir(fen.wd), fen.config.FoldersNotFirst)
-	fen.middlePane.SetEntries(fen.wd, fen.config.FoldersNotFirst)
+	fen.leftPane.SetEntries(filepath.Dir(fen.wd), fen.config.FoldersFirst)
+	fen.middlePane.SetEntries(fen.wd, fen.config.FoldersFirst)
 
 	if fen.wd == filepath.Dir(fen.wd) {
 		fen.leftPane.entries = []os.DirEntry{}
@@ -176,22 +267,22 @@ func (fen *Fen) UpdatePanes() {
 	fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel))
 
 	// FIXME: Generic bounds checking across all panes in this function
-	if fen.middlePane.selectedEntry >= len(fen.middlePane.entries) {
+	if fen.middlePane.selectedEntryIndex >= len(fen.middlePane.entries) {
 		if len(fen.middlePane.entries) > 0 {
 			fen.sel = fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries) - 1)
 			fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel)) // Duplicated from above...
 		}
 	}
 
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry))
-	fen.rightPane.SetEntries(fen.sel, fen.config.FoldersNotFirst)
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex))
+	fen.rightPane.SetEntries(fen.sel, fen.config.FoldersFirst)
 
 	// Prevents showing 'empty' a second time in rightPane, if middlePane is already showing 'empty'
 	if len(fen.middlePane.entries) <= 0 {
 		fen.rightPane.parentIsEmptyFolder = false
 	}
 
-	h, err := fen.history.GetHistoryEntryForPath(fen.sel, fen.config.DontShowHiddenFiles)
+	h, err := fen.history.GetHistoryEntryForPath(fen.sel, fen.config.HiddenFiles)
 	if err != nil {
 		fen.rightPane.SetSelectedEntryFromIndex(0)
 	} else {
@@ -201,13 +292,13 @@ func (fen *Fen) UpdatePanes() {
 	fen.UpdateSelectingWithV()
 }
 
-func (fen *Fen) HidePanes() {
+func (fen *Fen) HideFilepanes() {
 	fen.leftPane.Invisible = true
 	fen.middlePane.Invisible = true
 	fen.rightPane.Invisible = true
 }
 
-func (fen *Fen) ShowPanes() {
+func (fen *Fen) ShowFilepanes() {
 	fen.leftPane.Invisible = false
 	fen.middlePane.Invisible = false
 	fen.rightPane.Invisible = false
@@ -274,7 +365,7 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 		}*/
 
 	fen.wd = fen.sel
-	fen.sel, err = fen.history.GetHistoryEntryForPath(fen.wd, fen.config.DontShowHiddenFiles)
+	fen.sel, err = fen.history.GetHistoryEntryForPath(fen.wd, fen.config.HiddenFiles)
 
 	if err != nil {
 		// FIXME
@@ -286,28 +377,28 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 }
 
 func (fen *Fen) GoUp() {
-	if fen.middlePane.selectedEntry-1 < 0 {
+	if fen.middlePane.selectedEntryIndex-1 < 0 {
 		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
 		return
 	}
 
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry-1))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex-1))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = fen.middlePane.selectedEntry - 1 // Strange, but it works
+		fen.selectingWithVEndIndex = fen.middlePane.selectedEntryIndex - 1 // Strange, but it works
 	}
 }
 
 func (fen *Fen) GoDown() {
-	if fen.middlePane.selectedEntry+1 >= len(fen.middlePane.entries) {
+	if fen.middlePane.selectedEntryIndex+1 >= len(fen.middlePane.entries) {
 		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries)-1))
 		return
 	}
 
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntry+1))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex+1))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = fen.middlePane.selectedEntry + 1 // Strange, but it works
+		fen.selectingWithVEndIndex = fen.middlePane.selectedEntryIndex + 1 // Strange, but it works
 	}
 }
 
@@ -353,19 +444,19 @@ func (fen *Fen) GoBottomScreen() {
 
 func (fen *Fen) PageUp() {
 	_, _, _, height := fen.middlePane.Box.GetInnerRect()
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(max(0, fen.middlePane.selectedEntry-height)))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(max(0, fen.middlePane.selectedEntryIndex-height)))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = max(0, fen.middlePane.selectedEntry-height) // Strange, but it works
+		fen.selectingWithVEndIndex = max(0, fen.middlePane.selectedEntryIndex-height) // Strange, but it works
 	}
 }
 
 func (fen *Fen) PageDown() {
 	_, _, _, height := fen.middlePane.Box.GetInnerRect()
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntry+height)))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntryIndex+height)))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntry+height) // Strange, but it works
+		fen.selectingWithVEndIndex = min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntryIndex+height) // Strange, but it works
 	}
 }
 

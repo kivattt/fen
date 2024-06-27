@@ -103,9 +103,6 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 
 	tview.Print(screen, "[teal:]|[default:]", x, h-2, w, tview.AlignLeft, tcell.ColorDefault)
 
-	tview.Print(screen, " Available disk space", x, h-3, w, tview.AlignRight, tcell.ColorDefault)
-	tview.Print(screen, "|", x, h-2, w, tview.AlignRight, tcell.ColorDefault)
-
 	for dY, e := range helpScreenControlsList {
 		if dY >= h-1 { // This just returns if we're outside of the terminal
 			break
@@ -125,4 +122,8 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 		tview.Print(screen, keyBindingsStr.String(), xPos, y+dY+controlsYOffset, w, tview.AlignLeft, tcell.ColorDefault)
 		tview.Print(screen, e.Description, xPos+15, y+dY+controlsYOffset, w, tview.AlignLeft, tcell.ColorDefault)
 	}
+
+	// After the controls list so the leading space of " Available disk space" appears above
+	tview.Print(screen, " Available disk space", x, h-3, w, tview.AlignRight, tcell.ColorDefault)
+	tview.Print(screen, "|", x, h-2, w, tview.AlignRight, tcell.ColorDefault)
 }

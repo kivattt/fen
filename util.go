@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"math"
 	"os"
@@ -15,6 +16,8 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	lua "github.com/yuin/gopher-lua"
+	luar "layeh.com/gopher-luar"
 )
 
 // Trims the last decimals up to maxDecimals, does nothing if maxDecimals is less than 0, e.g -1
@@ -86,7 +89,7 @@ func PathWithoutEndSeparator(path string) string {
 
 // TODO: Maybe make these file functions take a fs.FileInfo from a previously done os.Stat()
 
-func EntrySize(path string, ignoreHiddenFiles bool) (string, error) {
+func EntrySize(path string, hiddenFiles bool) (string, error) {
 	stat, err := os.Stat(path)
 	if err != nil {
 		return "", err
@@ -100,7 +103,7 @@ func EntrySize(path string, ignoreHiddenFiles bool) (string, error) {
 			return "", err
 		}
 
-		if ignoreHiddenFiles {
+		if !hiddenFiles {
 			withoutHiddenFiles := []os.DirEntry{}
 			for _, e := range files {
 				if !strings.HasPrefix(e.Name(), ".") {
@@ -309,11 +312,15 @@ func PathMatchesList(path string, matchList []string) bool {
 func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
 	var programs []string
 	var descriptions []string
-	for _, programMatch := range fen.config.OpenWith {
+	for _, programMatch := range fen.config.Open {
 		matched := PathMatchesList(fen.sel, programMatch.Match) && !PathMatchesList(fen.sel, programMatch.DoNotMatch)
 
 		if matched {
-			for _, program := range programMatch.Programs {
+			if programMatch.Script != "" {
+				programs = append(programs, programMatch.Script)
+				descriptions = append(descriptions, "(Lua) User config")
+			}
+			for _, program := range programMatch.Program {
 				programs = append(programs, program)
 				descriptions = append(descriptions, "User config")
 			}
@@ -325,8 +332,7 @@ func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
 		programs = append(programs, "open")
 		descriptions = append(descriptions, "macOS")
 	} else if runtime.GOOS == "windows" {
-		// TODO: Use the rundll32.exe FileProtocolHandler thing
-		programs = append(programs, "notepad")
+		programs = append(programs, filepath.Join(os.Getenv("SYSTEMROOT"), "System32", "rundll32.exe")+" "+"url.dll,FileProtocolHandler")
 		descriptions = append(descriptions, "Windows")
 	} else {
 		programs = append(programs, "xdg-open")
@@ -356,7 +362,18 @@ func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
 	programs = programs[:i]
 	descriptions = descriptions[:i]
 
+	if len(programs) != len(descriptions) {
+		panic("In ProgramsAndDescriptionsForFile(): Length of programs and descriptions weren't the same")
+	}
+
 	return programs, descriptions
+}
+
+type FenOpenWithLuaGlobal struct {
+	SelectedFiles []string
+	ConfigPath    string
+	Version       string
+	RuntimeOS     string
 }
 
 func OpenFile(fen *Fen, app *tview.Application, openWith string) {
@@ -385,20 +402,50 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 		return
 	}
 
-	programsAndFallbacks, _ := ProgramsAndDescriptionsForFile(fen)
+	programsAndFallbacks, descriptions := ProgramsAndDescriptionsForFile(fen)
 	if openWith != "" {
 		programsAndFallbacks = append([]string{openWith}, programsAndFallbacks...)
+		descriptions = append([]string{"hi"}, descriptions...)
 	}
 
-	userConfigDir, userConfigDirErr := os.UserConfigDir()
+	if len(programsAndFallbacks) != len(descriptions) {
+		panic("In OpenFile(): Length of programs and descriptions weren't the same")
+	}
+
 	app.Suspend(func() {
-		for _, program := range programsAndFallbacks {
-			programSplitSpace := strings.Split(program, " ")
-			if userConfigDirErr == nil {
-				for i, e := range programSplitSpace {
-					programSplitSpace[i] = strings.ReplaceAll(e, "FEN_CONFIG_PATH", filepath.Join(userConfigDir, "fen"))
+		for i, programOrScript := range programsAndFallbacks {
+			description := descriptions[i]
+			if description == "(Lua) User config" { // Hacky
+				L := lua.NewState()
+				defer L.Close()
+
+				userConfigDir, _ := os.UserConfigDir()
+				fenOpenWithLuaGlobal := &FenOpenWithLuaGlobal{
+					ConfigPath: PathWithEndSeparator(filepath.Join(userConfigDir, "fen")),
+					Version:    version,
+					RuntimeOS:  runtime.GOOS,
 				}
+
+				if len(fen.selected) > 0 {
+					fenOpenWithLuaGlobal.SelectedFiles = fen.selected
+				} else {
+					fenOpenWithLuaGlobal.SelectedFiles = []string{fen.sel}
+				}
+
+				L.SetGlobal("fen", luar.New(L, fenOpenWithLuaGlobal))
+
+				err := L.DoFile(programOrScript)
+				if err != nil {
+					fmt.Println("Lua error:")
+					fmt.Println(err)
+					fmt.Println("Press Enter to continue...")
+					bufio.NewReader(os.Stdin).ReadString('\n')
+				}
+
+				break
 			}
+
+			programSplitSpace := strings.Split(programOrScript, " ")
 
 			programName := programSplitSpace[0]
 			programArguments := []string{}

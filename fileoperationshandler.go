@@ -109,7 +109,7 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 
 		_, err := os.Stat(fileOperation.newPath)
 		if err == nil {
-			return errors.New("Rename would've overwritten an existing file")
+			return errors.New("Can't rename to an existing file")
 		}
 		err = os.Rename(fileOperation.path, fileOperation.newPath)
 		if err != nil {

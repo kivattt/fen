@@ -57,66 +57,53 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `N` Create a new folder
 
 # Configuration
-You can find a complete example config in the [fenrc.json](fenrc.json) file
+You can find a complete example config in the [config.lua](config.lua) file\
+For a full config folder example, see [my personal config](https://github.com/kivattt/dotfiles/tree/main/.config/fen)
 
-Linux/FreeBSD: `~/.config/fen/fenrc.json` or `$XDG_CONFIG_HOME/fen/fenrc.json` if `$XDG_CONFIG_HOME` set\
-macOS: `$HOME/Library/Application Support/fen/fenrc.json`\
-Windows: `%AppData%\Roaming\fen\fenrc.json`
+Linux/FreeBSD: `~/.config/fen/config.lua` or `$XDG_CONFIG_HOME/fen/config.lua` if `$XDG_CONFIG_HOME` set\
+macOS: `$HOME/Library/Application Support/fen/config.lua`\
+Windows: `%AppData%\Roaming\fen\config.lua`
 
-You can specify a different config file path with the `--config` flag
-
-The `"open-with"` file matching starts from the top, so you can have something like this at the end of the list to catch anything not previously matched:
-```json
-{
-    "programs": ["vim -p"],
-    "match": ["*"]
-}
-```
-
-You can use "do-not-match" in conjunction with "match":
-```json
-{
-    "programs": ["notepad"],
-    "match": ["*"],
-    "do-not-match": ["*.exe"]
-}
-```
-
-Programs in `"programs"` do not expand tildes like `"~/some/file.sh"`. You have to specify an absolute path.\
-However, `FEN_CONFIG_PATH` will be expanded to the config path, see: [Configuration](#Configuration)\
-If you want to use a shell script in `"programs"`, it has to have a shebang or you need to explicitly invoke the appropriate shell like `"bash /some/file.sh"`\
-Note: Programs will be started in the working directory you're inside in fen
+You can specify a different config file with the `--config` flag
 
 # File previews
 fen does not (yet!) have file previews by default\
-For file previews with programs like `cat` or `head`, you can add something like this to your fenrc.json:
-```json
-"preview-with": [
+For file previews with programs like `cat` or `head`, you can add something like this to your config.lua:
+```lua
+fen.preview = {
     {
-        "programs": ["head -n 100"],
-        "match": ["*"]
+        program = {"head -n 100"},
+        match = {"*"}
     }
-]
+}
 ```
 
-For something cross-platform, file previews can also be a [lua script](lua-file-preview-examples/basic.lua). You can use them by setting "script" in "preview-with":
-```json
-"preview-with": [
+For something cross-platform, file previews can also be a [lua script](lua-file-preview-examples/basic.lua).
+```lua
+fen.preview = {
     {
-        "script": "basic.lua",
-        "match": ["*"]
+        script = fen.config_path.."basic.lua",
+        match = {"*"}
     }
-]
+}
 ```
-If "script" is set, "programs" will be ignored in the same "preview-with" entry.\
-"script" is not a list like "programs" is, because we want to see syntax errors when writing lua code instead of falling back to anything.\
-The "script" key has to be an absolute path e.g. `"/home/user/my-script.lua"`, however `FEN_CONFIG_PATH` will be expanded to the config path, see: [Configuration](#Configuration)
+If "script" is set, "program" will be ignored in the same preview entry.\
+"script" can not be a list like "program" can, because we want to see syntax errors when writing lua code instead of falling back to anything.\
+The "script" key has to be an absolute file path
 
-For backwards compatibility reasons, a "script" path which isn't an absolute path is valid and will be automatically prepended with the config path (same as `FEN_CONFIG_PATH`)
+# Lua scripting
+fen uses [gopher-lua](https://github.com/yuin/gopher-lua) as its Lua runtime.
 
-# Writing file preview scripts with Lua
-Do not use `print()`, it outputs to stdout which doesn't work well within fen.\
+## Writing file preview scripts with Lua
+Do not use `print()`, it outputs to stdout which doesn't work well within file previews.\
 You can find examples in [lua-file-preview-examples](lua-file-preview-examples)
+
+File preview scripts are separate from config.lua, don't expect any direct overlap in the API
+
+### Available variables:
+`fen.SelectedFile` Currently selected file absolute file path to preview\
+`fen.Width` Width of the file preview area\
+`fen.Height` Height of the file preview area
 
 ### Available functions:
 `fen:Print(text, x, y, maxWidth, alignment, color) returns amount of characters on screen printed` Print text at the given x/y position. x=0, y=0 is the top left corner of the file preview area and limited to the file preview area only [Go doc](https://pkg.go.dev/github.com/rivo/tview#Print)\
@@ -126,21 +113,22 @@ You can find examples in [lua-file-preview-examples](lua-file-preview-examples)
 `fen:NewRGBColor(r, g, b)` [Go doc](https://pkg.go.dev/github.com/gdamore/tcell/v2#NewRGBColor)\
 `fen:ColorToString(color)` (Since v1.1.2) [Go doc](https://pkg.go.dev/github.com/gdamore/tcell/v2#Color.String)\
 `fen:RuntimeOS()` (Since v1.1.3) The OS fen is running in [Go doc](https://pkg.go.dev/runtime#pkg-constants)\
-`fen:Version()` (Since v1.2.3) fen version string, like `"v1.2.3"`
+`fen:Version()` (Since v1.2.3) fen version string
 
 **Notes about `fen:Print()` and `fen:PrintSimple()`:**\
 Newlines will not show up, and do nothing. You will have to manually call it multiple times, increasing y.\
 Tabs are replaced with 4 spaces so they are visible
 
+## Writing file open scripts with Lua (Since v1.3.0)
 ### Available variables:
-`fen.SelectedFile` Currently selected file absolute file path to preview\
-`fen.Width` Width of the file preview area\
-`fen.Height` Height of the file preview area
+`fen.SelectedFiles` List of selected files to open\
+`fen.ConfigPath` Same as `fen.config_path` from config.lua\
+`fen.RuntimeOS` The OS fen is running in [Go doc](https://pkg.go.dev/runtime#pkg-constants)\
+`fen.Version` fen version string
 
 # Known issues
 - On FreeBSD, when the disk is full, fen may erroneously show a very large amount of disk space available (like `18.446 EB free`), when in reality there is no available space
 - Deleting files sometimes doesn't work on Windows
-- Setting a boolean command-line flag to false, e.g. `--no-write=false` has no effect, and the configuration file value will be prioritized. You can disable loading the config file by giving a bogus filename: `--config=aaaaa`
 - `go test` doesn't work on Windows
 - The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal
 

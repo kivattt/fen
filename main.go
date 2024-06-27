@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -15,25 +16,28 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.2.3"
+const version = "v1.3.0"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
-	configFilenamePath := ""
+	defaultConfigFilenamePath := ""
 	if err == nil {
-		configFilenamePath = filepath.Join(userConfigDir, "fen", "fenrc.json")
+		defaultConfigFilenamePath = filepath.Join(userConfigDir, "fen", "config.lua")
 	}
 
+	defaultConfigValues := NewConfigDefaultValues()
+
+	// When adding new flags, make sure to duplicate the name when we check flagPassed lower in this file
 	v := flag.Bool("version", false, "output version information and exit")
 	h := flag.Bool("help", false, "display this help and exit")
-	noMouse := flag.Bool("no-mouse", false, "ignore mouse events")
-	noWrite := flag.Bool("no-write", false, "safe mode, no file write operations will be performed")
-	dontShowHiddenFiles := flag.Bool("dont-show-hidden-files", false, "")
-	printPathOnOpen := flag.Bool("print-path-on-open", false, "output file path and exit on open file")
-	dontChangeTerminalTitle := flag.Bool("dont-change-terminal-title", false, "")
-	dontShowHelpText := flag.Bool("dont-show-help-text", false, "hide the 'For help: ...' text")
+	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "Enable mouse events")
+	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
+	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "")
+	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path and exit on open file")
+	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "")
+	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "Show the 'For help: ...' text")
 
-	configFilename := flag.String("config", configFilenamePath, "use configuration file")
+	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
 
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)
@@ -80,21 +84,88 @@ func main() {
 	}
 
 	var fen Fen
+	// Presumably a different value passed by command-line argument
+	if *configFilename != defaultConfigFilenamePath {
+		_, err := os.Stat(*configFilename)
+		if err != nil {
+			log.Fatal("Could not find file: " + *configFilename)
+		}
+	}
 	err = fen.ReadConfig(*configFilename)
-	fen.config.NoMouse = fen.config.NoMouse || *noMouse
-	fen.config.NoWrite = fen.config.NoWrite || *noWrite // Command-line flag is higher priority than config
-	fen.config.DontShowHiddenFiles = fen.config.DontShowHiddenFiles || *dontShowHiddenFiles
-	fen.config.PrintPathOnOpen = fen.config.PrintPathOnOpen || *printPathOnOpen
-	fen.config.DontChangeTerminalTitle = fen.config.DontChangeTerminalTitle || *dontChangeTerminalTitle
-	fen.config.DontShowHelpText = fen.config.DontShowHelpText || *dontShowHelpText
 
 	if !fen.config.NoWrite {
 		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
 	}
 
 	if err != nil {
-		fmt.Println("Invalid config " + *configFilename)
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+
+		// Hacky, but gets the job done
+		if !strings.HasSuffix(err.Error(), "config files can only be Lua.") {
+			fmt.Println("Invalid config " + *configFilename)
+		} else if !fen.config.NoWrite {
+			fmt.Print("Generate config.lua from fenrc.json file? (This will not erase anything) [y/N] ")
+			reader := bufio.NewReader(os.Stdin)
+			confirmation, err := reader.ReadString('\n')
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
+				oldConfigPath := filepath.Join(filepath.Dir(*configFilename), "fenrc.json")
+				newConfigPath := filepath.Join(filepath.Dir(*configFilename), "config.lua")
+				fmt.Print("Generate new config file: " + newConfigPath + " ? [y/N] ")
+				reader := bufio.NewReader(os.Stdin)
+				confirmation, err := reader.ReadString('\n')
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
+					err = GenerateLuaConfigFromOldJSONConfig(oldConfigPath, newConfigPath, &fen)
+					if err != nil {
+						log.Fatal(err)
+					}
+					fmt.Println("Done! Your new config file: " + newConfigPath)
+				} else {
+					fmt.Println("Nothing done")
+				}
+			} else {
+				fmt.Println("Nothing done")
+			}
+		}
+		os.Exit(1)
+	}
+
+	flag.Parse()
+	flagPassed := func(name string) bool {
+		found := false
+		flag.Visit(func(f *flag.Flag) {
+			if f.Name == name {
+				found = true
+			}
+		})
+		return found
+	}
+
+	// Maybe clean this up at some point
+	if flagPassed("mouse") {
+		fen.config.Mouse = *mouse
+	}
+	if flagPassed("no-write") {
+		fen.config.NoWrite = *noWrite
+	}
+	if flagPassed("hidden-files") {
+		fen.config.HiddenFiles = *hiddenFiles
+	}
+	if flagPassed("print-path-on-open") {
+		fen.config.PrintPathOnOpen = *printPathOnOpen
+	}
+	if flagPassed("terminal-title") {
+		fen.config.TerminalTitle = *allowTerminalTitle
+	}
+	if flagPassed("show-help-text") {
+		fen.config.ShowHelpText = *showHelpText
 	}
 
 	app := tview.NewApplication()
@@ -131,7 +202,7 @@ func main() {
 		if event.Key() == tcell.KeyF1 || event.Rune() == '?' || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
 			helpScreen.visible = false
 			pages.RemovePage("helpscreen")
-			fen.ShowPanes()
+			fen.ShowFilepanes()
 			return nil
 		}
 		return event
@@ -266,11 +337,11 @@ func main() {
 				}
 
 				programNameToUse := inputField.GetText()
-				if programNameToUse == "" {
+				/*if programNameToUse == "" {
 					if len(programs) > 0 {
 						programNameToUse = programs[0]
 					}
-				}
+				}*/
 				fen.GoRight(app, programNameToUse)
 			})
 
@@ -481,7 +552,7 @@ func main() {
 			fen.bottomBar.TemporarilyShowTextInstead("Cut!")
 			return nil
 		} else if event.Rune() == 'z' || event.Key() == tcell.KeyBackspace {
-			fen.config.DontShowHiddenFiles = !fen.config.DontShowHiddenFiles
+			fen.config.HiddenFiles = !fen.config.HiddenFiles
 			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
 			fen.UpdatePanes()
 			fen.history.AddToHistory(fen.sel)
@@ -527,10 +598,10 @@ func main() {
 			helpScreen.visible = !helpScreen.visible
 			if helpScreen.visible {
 				pages.AddPage("helpscreen", helpScreen, true, true)
-				fen.HidePanes()
+				fen.HideFilepanes()
 			} else {
 				pages.RemovePage("helpscreen")
-				fen.ShowPanes()
+				fen.ShowFilepanes()
 			}
 			return nil
 		}
@@ -590,7 +661,7 @@ func main() {
 
 					// FIXME: CURSED
 					// We need to update the middlePane entries for GoDown() and GoUp() to work properly, atleast when deleting the bottom entry
-					fen.middlePane.SetEntries(fen.wd, fen.config.FoldersNotFirst)
+					fen.middlePane.SetEntries(fen.wd, fen.config.FoldersFirst)
 					fen.GoDown()
 					fen.GoUp()
 					fen.UpdatePanes()
@@ -612,14 +683,14 @@ func main() {
 		return event
 	})
 
-	if !fen.config.DontChangeTerminalTitle && runtime.GOOS == "linux" {
+	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
 		print("\x1b[22t")                       // Push current terminal title
 		print("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen"
 	}
-	if err := app.SetRoot(pages, true).EnableMouse(!fen.config.NoMouse).Run(); err != nil {
+	if err := app.SetRoot(pages, true).EnableMouse(fen.config.Mouse).Run(); err != nil {
 		log.Fatal(err)
 	}
-	if !fen.config.DontChangeTerminalTitle && runtime.GOOS == "linux" {
+	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
 		print("\x1b[23t") // Pop terminal title, sets it back to normal
 	}
 }
