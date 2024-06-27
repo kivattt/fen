@@ -120,6 +120,8 @@ Newlines will not show up, and do nothing. You will have to manually call it mul
 Tabs are replaced with 4 spaces so they are visible
 
 ## Writing file open scripts with Lua (Since v1.3.0)
+You can find examples in [lua-file-open-examples](lua-file-open-examples)
+
 ### Available variables:
 `fen.SelectedFiles` List of selected files to open\
 `fen.ConfigPath` Same as `fen.config_path` from config.lua\
