@@ -16,7 +16,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.3.1"
+const version = "v1.3.2"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
