@@ -4,12 +4,12 @@ go 1.21.5
 
 require (
 	github.com/gdamore/tcell/v2 v2.7.4
-	github.com/kivattt/getopt v0.0.0-20240327140735-6c39468cff24
+	github.com/kivattt/getopt v0.0.0-20240628061659-0f129a2cefaf
 	github.com/otiai10/copy v1.14.0
-	github.com/rivo/tview v0.0.0-20240402201323-fec4f00cf099
+	github.com/rivo/tview v0.0.0-20240625185742-b0a7293b8130
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 	github.com/yuin/gopher-lua v1.1.1
-	golang.org/x/sys v0.18.0
+	golang.org/x/sys v0.21.0
 	layeh.com/gopher-luar v1.0.11
 )
 
@@ -19,7 +19,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/term v0.18.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
+	golang.org/x/term v0.21.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 )

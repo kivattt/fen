@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"math"
 	"os"
 	"os/exec"
@@ -89,33 +90,37 @@ func PathWithoutEndSeparator(path string) string {
 
 // TODO: Maybe make these file functions take a fs.FileInfo from a previously done os.Stat()
 
-func EntrySize(path string, hiddenFiles bool) (string, error) {
-	stat, err := os.Stat(path)
-	if err != nil {
-		return "", err
-	}
-
-	if !stat.IsDir() {
-		return BytesToHumanReadableUnitString(uint64(stat.Size()), 2), nil
+func EntrySizeText(entryInfo fs.FileInfo, path string, hiddenFiles bool) (string, error) {
+	if !entryInfo.IsDir() {
+		return BytesToHumanReadableUnitString(uint64(entryInfo.Size()), 2), nil
 	} else {
-		files, err := os.ReadDir(path)
+		count, err := FolderFileCount(path, hiddenFiles)
 		if err != nil {
 			return "", err
 		}
 
-		if !hiddenFiles {
-			withoutHiddenFiles := []os.DirEntry{}
-			for _, e := range files {
-				if !strings.HasPrefix(e.Name(), ".") {
-					withoutHiddenFiles = append(withoutHiddenFiles, e)
-				}
-			}
+		return strconv.Itoa(count), nil
+	}
+}
 
-			files = withoutHiddenFiles
+func FolderFileCount(path string, hiddenFiles bool) (int, error) {
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return 0, err
+	}
+
+	if !hiddenFiles {
+		withoutHiddenFiles := []os.DirEntry{}
+		for _, e := range files {
+			if !strings.HasPrefix(e.Name(), ".") {
+				withoutHiddenFiles = append(withoutHiddenFiles, e)
+			}
 		}
 
-		return strconv.Itoa(len(files)), nil
+		files = withoutHiddenFiles
 	}
+
+	return len(files), nil
 }
 
 func FilePermissionsString(path string) (string, error) {

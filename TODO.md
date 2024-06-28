@@ -19,10 +19,11 @@
 - A sort of --no-unicode option, to print the character codes instead of fancy unicode characters
 - bottombar.go: Also show position string (index/len text) when alternateText is shown
 - Configuration: Matching based on file permission flags (like executables)? (Maybe not now that we have open Lua scripts
-- Handle symlinks (show them as separate colors / a " ->" after file size in filespane.go
+- Handle symlinks (show them as separate colors / a " ->" after file size in filespane.go (symlinks also mess with FoldersAtBeginning())
 - Configurable colors / respect LS\_COLORS?
 - Fix a crash (fen hanging) on something like `/proc/.../oom_score_adj`
 - Fix the bottom bar sometimes not showing info on files inside `/proc/.../map_files`
+- Need to not readdir every time something updates, it is way too slow in a folder with 6500 files
 
 - System-wide configuration file instructions
 - Make file previews not run every time the terminal is resized?

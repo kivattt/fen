@@ -16,7 +16,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.3.0"
+const version = "v1.3.1"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
@@ -33,11 +33,13 @@ func main() {
 	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "Enable mouse events")
 	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
 	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "")
+	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "Always show folders at the top")
 	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path and exit on open file")
 	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "")
 	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "Show the 'For help: ...' text")
 
 	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
+	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "Sort files (" + strings.Join(ValidSortByValues[:], ", ") + ")")
 
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)
@@ -158,6 +160,9 @@ func main() {
 	if flagPassed("hidden-files") {
 		fen.config.HiddenFiles = *hiddenFiles
 	}
+	if flagPassed("folders-first") {
+		fen.config.FoldersFirst = *foldersFirst
+	}
 	if flagPassed("print-path-on-open") {
 		fen.config.PrintPathOnOpen = *printPathOnOpen
 	}
@@ -166,6 +171,9 @@ func main() {
 	}
 	if flagPassed("show-help-text") {
 		fen.config.ShowHelpText = *showHelpText
+	}
+	if flagPassed("sort-by") {
+		fen.config.SortBy = *sortBy
 	}
 
 	app := tview.NewApplication()
@@ -661,7 +669,7 @@ func main() {
 
 					// FIXME: CURSED
 					// We need to update the middlePane entries for GoDown() and GoUp() to work properly, atleast when deleting the bottom entry
-					fen.middlePane.SetEntries(fen.wd, fen.config.FoldersFirst)
+					fen.middlePane.SetEntries(fen.wd)
 					fen.GoDown()
 					fen.GoUp()
 					fen.UpdatePanes()

@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -87,7 +89,7 @@ func (f *FenLuaGlobal) Version() string {
 	return version
 }
 
-func (fp *FilesPane) SetEntries(path string, foldersFirst bool) {
+func (fp *FilesPane) SetEntries(path string) {
 	fi, err := os.Stat(path)
 	if err != nil {
 		fp.entries = []os.DirEntry{}
@@ -121,7 +123,52 @@ func (fp *FilesPane) SetEntries(path string, foldersFirst bool) {
 		}
 	}
 
-	if foldersFirst {
+	switch fp.fen.config.SortBy {
+	case "modified":
+		slices.SortStableFunc(fp.entries, func(a, b fs.DirEntry) int {
+			aInfo, _ := a.Info()
+			bInfo, _ := b.Info()
+			if aInfo.ModTime().Before(bInfo.ModTime()) {
+				return -1
+			}
+			if aInfo.ModTime().Equal(bInfo.ModTime()) {
+				return 0
+			}
+
+			return 1
+		})
+	case "size":
+		slices.SortStableFunc(fp.entries, func(a, b fs.DirEntry) int {
+			aInfo, _ := a.Info()
+			bInfo, _ := b.Info()
+			// If folder, we consider the folder file count as bytes (though it's kind of messed up with symlinks...)
+			aSize := int(aInfo.Size())
+			if a.IsDir() {
+				aSize, err = FolderFileCount(filepath.Join(fp.fen.wd, a.Name()), fp.fen.config.HiddenFiles)
+			}
+
+			bSize := int(bInfo.Size())
+			if b.IsDir() {
+				bSize, err = FolderFileCount(filepath.Join(fp.fen.wd, b.Name()), fp.fen.config.HiddenFiles)
+			}
+
+			if aSize < bSize {
+				return -1
+			}
+
+			if aSize == bSize {
+				return 0
+			}
+			return 1
+		})
+	case "none":
+	default:
+		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")
+		fmt.Fprintln(os.Stderr, "Valid values: " + strings.Join(ValidSortByValues[:], ", "))
+		os.Exit(1)
+	}
+
+	if fp.fen.config.FoldersFirst {
 		fp.entries = FoldersAtBeginning(fp.entries)
 	}
 
@@ -304,7 +351,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		entrySizePrintedSize := 0
 		if fp.showEntrySizes {
 			var err error
-			entrySizeText, err = EntrySize(entryFullPath, fp.fen.config.HiddenFiles)
+			entryInfo, _ := entry.Info() // Maybe handle the error?
+			entrySizeText, err = EntrySizeText(entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
 			if err != nil {
 				entrySizeText = "?"
 			}

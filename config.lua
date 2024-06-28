@@ -1,4 +1,4 @@
--- All available boolean options, default values
+-- All available options, default values
 fen.ui_borders = false
 fen.no_write = false
 fen.print_path_on_open = false
@@ -7,6 +7,7 @@ fen.hidden_files = true -- Show hidden files
 fen.folders_first = true
 fen.terminal_title = true -- Set the terminal title to "fen <version>" (only on Linux)
 fen.show_help_text = true
+fen.sort_by = "none" -- "fen -h" for valid values
 
 -- The fen version string
 print(fen.version) -- Something like "v1.3.0"

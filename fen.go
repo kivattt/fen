@@ -58,7 +58,10 @@ type Config struct {
 	ShowHelpText    bool                 `lua:"show_help_text"`
 	Open            []PreviewOrOpenEntry `lua:"open"`
 	Preview         []PreviewOrOpenEntry `lua:"preview"`
+	SortBy          string               `lua:"sort_by"`
 }
+
+var ValidSortByValues = [...]string{"none", "modified", "size"}
 
 func NewConfigDefaultValues() Config {
 	return Config{
@@ -67,6 +70,7 @@ func NewConfigDefaultValues() Config {
 		FoldersFirst:  true,
 		TerminalTitle: true,
 		ShowHelpText:  true,
+		SortBy:        "none",
 	}
 }
 
@@ -119,7 +123,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 
 	if len(wdFiles) > 0 {
 		// HACKY: middlePane has to have entries so that GoTop() will work
-		fen.middlePane.SetEntries(fen.wd, fen.config.FoldersFirst)
+		fen.middlePane.SetEntries(fen.wd)
 		fen.GoTop()
 
 		if shouldSelectSpecifiedFile {
@@ -134,6 +138,8 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 }
 
 func (fen *Fen) ReadConfig(path string) error {
+	fen.config = NewConfigDefaultValues()
+
 	if !strings.HasSuffix(filepath.Base(path), ".lua") {
 		fmt.Fprintln(os.Stderr, "Warning: Config file "+path+" has no .lua file extension.\nSince v1.3.0, config files can only be Lua.")
 	}
@@ -157,7 +163,6 @@ func (fen *Fen) ReadConfig(path string) error {
 	// This is what we initially pass to config.lua
 	luaInitialConfigTable := L.NewTable()
 
-	fen.config = NewConfigDefaultValues()
 	defaultConfigReflectTypes := reflect.TypeOf(fen.config)
 	defaultConfigReflectValues := reflect.ValueOf(fen.config)
 	for i := 0; i < defaultConfigReflectValues.NumField(); i++ {
@@ -255,8 +260,8 @@ func (fen *Fen) DisableSelectingWithV() {
 }
 
 func (fen *Fen) UpdatePanes() {
-	fen.leftPane.SetEntries(filepath.Dir(fen.wd), fen.config.FoldersFirst)
-	fen.middlePane.SetEntries(fen.wd, fen.config.FoldersFirst)
+	fen.leftPane.SetEntries(filepath.Dir(fen.wd))
+	fen.middlePane.SetEntries(fen.wd)
 
 	if fen.wd == filepath.Dir(fen.wd) {
 		fen.leftPane.entries = []os.DirEntry{}
@@ -275,7 +280,7 @@ func (fen *Fen) UpdatePanes() {
 	}
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex))
-	fen.rightPane.SetEntries(fen.sel, fen.config.FoldersFirst)
+	fen.rightPane.SetEntries(fen.sel)
 
 	// Prevents showing 'empty' a second time in rightPane, if middlePane is already showing 'empty'
 	if len(fen.middlePane.entries) <= 0 {
