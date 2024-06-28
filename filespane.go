@@ -126,8 +126,12 @@ func (fp *FilesPane) SetEntries(path string) {
 	switch fp.fen.config.SortBy {
 	case "modified":
 		slices.SortStableFunc(fp.entries, func(a, b fs.DirEntry) int {
-			aInfo, _ := a.Info()
-			bInfo, _ := b.Info()
+			aInfo, aErr := a.Info()
+			bInfo, bErr := b.Info()
+			if aErr != nil || bErr != nil {
+				return 0
+			}
+
 			if aInfo.ModTime().Before(bInfo.ModTime()) {
 				return -1
 			}
@@ -139,8 +143,12 @@ func (fp *FilesPane) SetEntries(path string) {
 		})
 	case "size":
 		slices.SortStableFunc(fp.entries, func(a, b fs.DirEntry) int {
-			aInfo, _ := a.Info()
-			bInfo, _ := b.Info()
+			aInfo, aErr := a.Info()
+			bInfo, bErr := b.Info()
+			if aErr != nil || bErr != nil {
+				return 0
+			}
+
 			// If folder, we consider the folder file count as bytes (though it's kind of messed up with symlinks...)
 			aSize := int(aInfo.Size())
 			if a.IsDir() {
@@ -351,10 +359,12 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		entrySizePrintedSize := 0
 		if fp.showEntrySizes {
 			var err error
-			entryInfo, _ := entry.Info() // Maybe handle the error?
-			entrySizeText, err = EntrySizeText(entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
-			if err != nil {
-				entrySizeText = "?"
+			entryInfo, err := entry.Info()
+			if err == nil {
+				entrySizeText, err = EntrySizeText(entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
+				if err != nil {
+					entrySizeText = "?"
+				}
 			}
 
 			_, entrySizePrintedSize = tview.Print(screen, StyleToStyleTagString(style)+" "+tview.Escape(entrySizeText)+" ", x, y+i, w-1, tview.AlignRight, tcell.ColorDefault)
