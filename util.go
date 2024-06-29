@@ -182,7 +182,7 @@ func StyleToStyleTagString(style tcell.Style) string {
 	return "[" + foreground.String() + ":" + background.String() + ":" + attributesString + "]"
 }
 
-func FileColor(path string) tcell.Style {
+func FileColor(stat os.FileInfo, path string) tcell.Style {
 	imageTypes := []string{
 		".png",
 		".jpg",
@@ -263,8 +263,7 @@ func FileColor(path string) tcell.Style {
 
 	var ret tcell.Style
 
-	stat, err := os.Stat(path)
-	if err == nil {
+	if stat != nil {
 		if stat.IsDir() {
 			return ret.Foreground(tcell.ColorBlue).Bold(true)
 		} else if stat.Mode().IsRegular() {

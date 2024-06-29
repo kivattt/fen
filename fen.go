@@ -17,6 +17,7 @@ import (
 )
 
 type Fen struct {
+	app     *tview.Application
 	wd      string
 	sel     string
 	history History
@@ -82,7 +83,8 @@ type PreviewOrOpenEntry struct {
 }
 
 func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool) error {
-	fen.fileOperationsHandler = FileOperationsHandler{fen: fen, app: app}
+	fen.app = app
+	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
 	fen.helpScreenVisible = helpScreenVisible
 
 	fen.selectingWithV = false
@@ -94,6 +96,10 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	fen.leftPane = NewFilesPane(fen, false, false)
 	fen.middlePane = NewFilesPane(fen, true, false)
 	fen.rightPane = NewFilesPane(fen, false, true)
+
+	fen.leftPane.Init()
+	fen.middlePane.Init()
+	fen.rightPane.Init()
 
 	if fen.config.UiBorders {
 		fen.leftPane.SetBorder(true)
@@ -123,7 +129,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 
 	if len(wdFiles) > 0 {
 		// HACKY: middlePane has to have entries so that GoTop() will work
-		fen.middlePane.SetEntries(fen.wd)
+		fen.middlePane.ChangeDir(fen.wd, false)
 		fen.GoTop()
 
 		if shouldSelectSpecifiedFile {
@@ -132,7 +138,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	}
 
 	fen.history.AddToHistory(fen.sel)
-	fen.UpdatePanes()
+	fen.UpdatePanes(false)
 
 	return err
 }
@@ -259,31 +265,63 @@ func (fen *Fen) DisableSelectingWithV() {
 	fen.selectedBeforeSelectingWithV = []string{}
 }
 
-func (fen *Fen) UpdatePanes() {
-	fen.leftPane.SetEntries(filepath.Dir(fen.wd))
-	fen.middlePane.SetEntries(fen.wd)
+func (fen *Fen) KeepSelectionInBounds() {
+	// Don't know if necessary
+	/*if fen.middlePane.selectedEntryIndex < 0 {
+		fen.middlePane.selectedEntryIndex = 0
+	}*/
+
+	if fen.middlePane.selectedEntryIndex >= len(fen.middlePane.entries.Load().([]os.DirEntry)) {
+		if len(fen.middlePane.entries.Load().([]os.DirEntry)) > 0 {
+			fen.sel = fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries.Load().([]os.DirEntry)) - 1)
+			err := fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel)) // Duplicated from above...
+			if err != nil {
+				panic("In KeepSelectionInBounds(): " + err.Error())
+			}
+		} else {
+			fen.middlePane.SetSelectedEntryFromIndex(0)
+		}
+	}
+}
+
+// forceReadDir is used for making navigation better, like making a new file or folder selects the new path, renaming a file selecting the new path and toggling hidden files
+// Since FilterAndSortEntries overwrites filespane entries
+func (fen *Fen) UpdatePanes(forceReadDir bool) {
+	// If working directory is not accessible, go up to the first accessible parent
+	// FIXME: We need a log we can scroll through
+	// This bottomBar message would not show up due to the file watcher updating after it has appeared
+	/*if err != nil {
+		fen.bottomBar.TemporarilyShowTextInstead(fen.wd + " became non-accessible, moved to a parent")
+	}*/
+
+	// TODO: Preserve last available selection index (so it doesn't reset to the top)
+	_, err := os.Stat(fen.wd)
+	for err != nil {
+		if filepath.Dir(fen.wd) == fen.wd {
+			panic("Could not find usable parent path")
+		}
+
+		fen.wd = filepath.Dir(fen.wd)
+		_, err = os.Stat(fen.wd)
+	}
+
+	fen.leftPane.ChangeDir(filepath.Dir(fen.wd), forceReadDir)
+	fen.middlePane.ChangeDir(fen.wd, forceReadDir)
 
 	if fen.wd == filepath.Dir(fen.wd) {
-		fen.leftPane.entries = []os.DirEntry{}
+		fen.leftPane.entries.Store([]os.DirEntry{})
 	} else {
 		fen.leftPane.SetSelectedEntryFromString(filepath.Base(fen.wd))
 	}
 
 	fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel))
-
-	// FIXME: Generic bounds checking across all panes in this function
-	if fen.middlePane.selectedEntryIndex >= len(fen.middlePane.entries) {
-		if len(fen.middlePane.entries) > 0 {
-			fen.sel = fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries) - 1)
-			fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel)) // Duplicated from above...
-		}
-	}
+	fen.KeepSelectionInBounds()
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex))
-	fen.rightPane.SetEntries(fen.sel)
+	fen.rightPane.ChangeDir(fen.sel, forceReadDir)
 
 	// Prevents showing 'empty' a second time in rightPane, if middlePane is already showing 'empty'
-	if len(fen.middlePane.entries) <= 0 {
+	if len(fen.middlePane.entries.Load().([]os.DirEntry)) <= 0 {
 		fen.rightPane.parentIsEmptyFolder = false
 	}
 
@@ -292,6 +330,7 @@ func (fen *Fen) UpdatePanes() {
 		fen.rightPane.SetSelectedEntryFromIndex(0)
 	} else {
 		fen.rightPane.SetSelectedEntryFromString(filepath.Base(h))
+		fen.KeepSelectionInBounds()
 	}
 
 	fen.UpdateSelectingWithV()
@@ -350,7 +389,7 @@ func (fen *Fen) GoLeft() {
 }
 
 func (fen *Fen) GoRight(app *tview.Application, openWith string) {
-	if len(fen.middlePane.entries) <= 0 {
+	if len(fen.middlePane.entries.Load().([]os.DirEntry)) <= 0 {
 		return
 	}
 
@@ -395,8 +434,8 @@ func (fen *Fen) GoUp() {
 }
 
 func (fen *Fen) GoDown() {
-	if fen.middlePane.selectedEntryIndex+1 >= len(fen.middlePane.entries) {
-		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries)-1))
+	if fen.middlePane.selectedEntryIndex+1 >= len(fen.middlePane.entries.Load().([]os.DirEntry)) {
+		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries.Load().([]os.DirEntry))-1))
 		return
 	}
 
@@ -416,18 +455,18 @@ func (fen *Fen) GoTop() {
 }
 
 func (fen *Fen) GoMiddle() {
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex((len(fen.middlePane.entries)-1)/2))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex((len(fen.middlePane.entries.Load().([]os.DirEntry))-1)/2))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = (len(fen.middlePane.entries) - 1) / 2 // Strange, but it works
+		fen.selectingWithVEndIndex = (len(fen.middlePane.entries.Load().([]os.DirEntry)) - 1) / 2 // Strange, but it works
 	}
 }
 
 func (fen *Fen) GoBottom() {
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries)-1))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries.Load().([]os.DirEntry))-1))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = len(fen.middlePane.entries) - 1 // Strange, but it works
+		fen.selectingWithVEndIndex = len(fen.middlePane.entries.Load().([]os.DirEntry)) - 1 // Strange, but it works
 	}
 }
 
@@ -458,10 +497,10 @@ func (fen *Fen) PageUp() {
 
 func (fen *Fen) PageDown() {
 	_, _, _, height := fen.middlePane.Box.GetInnerRect()
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntryIndex+height)))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(min(len(fen.middlePane.entries.Load().([]os.DirEntry))-1, fen.middlePane.selectedEntryIndex+height)))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = min(len(fen.middlePane.entries)-1, fen.middlePane.selectedEntryIndex+height) // Strange, but it works
+		fen.selectingWithVEndIndex = min(len(fen.middlePane.entries.Load().([]os.DirEntry))-1, fen.middlePane.selectedEntryIndex+height) // Strange, but it works
 	}
 }
 
@@ -470,7 +509,7 @@ func (fen *Fen) GoSearchFirstMatch(searchTerm string) error {
 		return errors.New("Empty search term")
 	}
 
-	for _, e := range fen.middlePane.entries {
+	for _, e := range fen.middlePane.entries.Load().([]os.DirEntry) {
 		if strings.Contains(strings.ToLower(e.Name()), strings.ToLower(searchTerm)) {
 			fen.sel = filepath.Join(fen.wd, e.Name())
 			fen.selectingWithVEndIndex = fen.middlePane.GetSelectedIndexFromEntry(e.Name())

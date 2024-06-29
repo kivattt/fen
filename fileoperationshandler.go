@@ -6,8 +6,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/rivo/tview"
-
 	dirCopy "github.com/otiai10/copy"
 )
 
@@ -35,8 +33,7 @@ type FileOperation struct {
 }
 
 type FileOperationsHandler struct {
-	fen *Fen               // So we can access fen.config.NoWrite
-	app *tview.Application // For updating the screen
+	fen *Fen // So we can access fen.config.NoWrite
 
 	entries      [][]FileOperation
 	entriesMutex sync.Mutex
@@ -162,7 +159,6 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 	}
 
 	statusToSet = Completed
-	handler.app.QueueUpdateDraw(func() { handler.fen.UpdatePanes() })
 
 	return nil
 }

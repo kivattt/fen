@@ -4,7 +4,7 @@
 - Scrollable search history
 - Better scrolling
 - It sometimes exits badly, stuff is left on screen ever since async file operations were added
-- File operations async queue (with undo when applicable)
+- Interactive file operations log (with undo when applicable)
 - Make file previews async
 - Show user@something in top bar
 - Changing owner/group, chmod inside fen (probably not, since you can do it with open-with)
@@ -23,7 +23,7 @@
 - Configurable colors / respect LS\_COLORS?
 - Fix a crash (fen hanging) on something like `/proc/.../oom_score_adj`
 - Fix the bottom bar sometimes not showing info on files inside `/proc/.../map_files`
-- Need to not readdir every time something updates, it is way too slow in a folder with 6500 files
+- Reverse sort
 
 - System-wide configuration file instructions
 - Make file previews not run every time the terminal is resized?
@@ -40,7 +40,6 @@
 - Fix some hidden file toggle bugs?
 - Disallow recursive copies or whatever
 - (Maybe...) Vim/ranger stuff like `5<space>` selecting 5 files, or `5j` going down 5
-- Remove being able to delete while mid and right pane are empty? (Going into an empty folder (mid and right pane are empty), then deleting it will set selected entry on the left pane to 0 instead of matching the GoDown() when deleting in middlePane)
 - 'n' is a little too close to 'M', maybe change it?
 - Fix `history_test.go` for Windows paths
 - Fix green color for all executables (the current bitmask check doesn't work for everything)

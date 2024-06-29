@@ -9,8 +9,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
+	"sync/atomic"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/yuin/gopher-lua"
@@ -20,23 +23,110 @@ import (
 type FilesPane struct {
 	*tview.Box
 	fen                 *Fen
-	folder              string
-	entries             []os.DirEntry
+	folder              string       // Can be a path to a file
+	entries             atomic.Value // []os.DirEntry
 	selectedEntryIndex  int
 	showEntrySizes      bool
 	isRightFilesPane    bool
 	parentIsEmptyFolder bool
 	Invisible           bool
+	fileWatcher         *fsnotify.Watcher
 }
 
 func NewFilesPane(fen *Fen, showEntrySizes bool, isRightFilesPane bool) *FilesPane {
+	newWatcher, _ := fsnotify.NewWatcher()
 	return &FilesPane{
 		Box:                tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
 		fen:                fen,
 		selectedEntryIndex: 0,
 		showEntrySizes:     showEntrySizes,
 		isRightFilesPane:   isRightFilesPane,
+		fileWatcher:        newWatcher,
 	}
+}
+
+// Initializes empty entries and starts the file watcher
+func (fp *FilesPane) Init() {
+	fp.entries.Store([]os.DirEntry{})
+	go func() {
+		for {
+			select {
+			case event, ok := <-fp.fileWatcher.Events:
+				if !ok {
+					return
+				}
+
+				if event.Has(fsnotify.Create) {
+					fp.AddEntry(event.Name)
+				} else if event.Has(fsnotify.Chmod) || event.Has(fsnotify.Write) {
+					fp.UpdateEntry(event.Name)
+				} else if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
+					// TODO ?
+					// Since a Rename is immediately followed by a Create, we could maybe handle rename separately
+					// And follow the new path if selected by updating fen.sel
+					fp.RemoveEntry(event.Name)
+				} else {
+					panic("Got invalid file watcher event: " + strconv.Itoa(int(event.Op)))
+				}
+				fp.fen.app.QueueUpdateDraw(func() {
+					fp.FilterAndSortEntries()
+					fp.fen.UpdatePanes(false)
+				})
+			case _, ok := <-fp.fileWatcher.Errors:
+				if !ok {
+					return
+				}
+			}
+		}
+	}()
+}
+
+func (fp *FilesPane) AddEntry(path string) error {
+	alreadyHasEntryByThatName := slices.ContainsFunc(fp.entries.Load().([]os.DirEntry), func(e os.DirEntry) bool {
+		return e.Name() == filepath.Base(path)
+	})
+	if alreadyHasEntryByThatName {
+		return errors.New("Entry already exists") // Maybe we still want to re-stat the file
+	}
+
+	stat, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	newEntry := fs.FileInfoToDirEntry(stat)
+	fp.entries.Store(append(fp.entries.Load().([]os.DirEntry), newEntry))
+
+	return nil
+}
+
+func (fp *FilesPane) RemoveEntry(path string) error {
+	index := slices.IndexFunc(fp.entries.Load().([]os.DirEntry), func(e os.DirEntry) bool {
+		return e.Name() == filepath.Base(path)
+	})
+	if index == -1 {
+		return errors.New("Entry not found")
+	}
+
+	fp.entries.Store(append(fp.entries.Load().([]os.DirEntry)[:index], fp.entries.Load().([]os.DirEntry)[index+1:]...))
+	return nil
+}
+
+func (fp *FilesPane) UpdateEntry(path string) error {
+	index := slices.IndexFunc(fp.entries.Load().([]os.DirEntry), func(e os.DirEntry) bool {
+		return e.Name() == filepath.Base(path)
+	})
+	if index == -1 {
+		return errors.New("Entry not found")
+	}
+
+	stat, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	updatedEntry := fs.FileInfoToDirEntry(stat)
+	fp.entries.Store(append(append(fp.entries.Load().([]os.DirEntry)[:index], updatedEntry), fp.entries.Load().([]os.DirEntry)[index+1:]...))
+	return nil
 }
 
 type FenLuaGlobal struct {
@@ -89,43 +179,62 @@ func (f *FenLuaGlobal) Version() string {
 	return version
 }
 
-func (fp *FilesPane) SetEntries(path string) {
-	fi, err := os.Stat(path)
-	if err != nil {
-		fp.entries = []os.DirEntry{}
-		fp.parentIsEmptyFolder = true
-		return
+func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
+	if !forceReadDir {
+		fi, err := os.Stat(path)
+		if err != nil {
+			fp.entries.Store([]os.DirEntry{})
+			fp.parentIsEmptyFolder = true
+			fp.folder = path // We need to set the folder variable so that the "if fp.folder == path" check below won't mess up next time
+			return
+		}
+
+		if !fi.IsDir() {
+			fp.entries.Store([]os.DirEntry{})
+			fp.parentIsEmptyFolder = false
+			fp.folder = path // We need to set the folder variable so that the "if fp.folder == path" check below won't mess up next time
+			return
+		}
+
+		// path != "/" is a hacky fix so the left pane doesn't disappear when you go right from root
+		if fp.folder == path && path != "/" {
+			fp.parentIsEmptyFolder = len(fp.entries.Load().([]os.DirEntry)) <= 0
+			return
+		}
 	}
 
-	if !fi.IsDir() {
-		fp.entries = []os.DirEntry{}
-		fp.parentIsEmptyFolder = false
-		return
-	}
-
+	fp.fileWatcher.Remove(fp.folder)
 	fp.folder = path
-	fp.entries, _ = os.ReadDir(fp.folder)
+	newEntries, _ := os.ReadDir(fp.folder)
+	fp.entries.Store(newEntries)
+	fp.fileWatcher.Add(fp.folder) // This has to be after the os.ReadDir() so we have something to update
 
+	fp.FilterAndSortEntries()
+
+	fp.parentIsEmptyFolder = len(fp.entries.Load().([]os.DirEntry)) <= 0
+}
+
+func (fp *FilesPane) FilterAndSortEntries() {
 	if !fp.fen.config.HiddenFiles {
 		withoutHiddenFiles := []os.DirEntry{}
-		for _, e := range fp.entries {
+		for _, e := range fp.entries.Load().([]os.DirEntry) {
 			if !strings.HasPrefix(e.Name(), ".") {
 				withoutHiddenFiles = append(withoutHiddenFiles, e)
 			}
 		}
 
-		fp.entries = withoutHiddenFiles
+		fp.entries.Store(withoutHiddenFiles)
 
 		// TODO: Generic bounds checking function?
-		if len(fp.entries) > 0 && fp.selectedEntryIndex >= len(fp.entries) {
-			fp.selectedEntryIndex = len(fp.entries) - 1
+		if len(fp.entries.Load().([]os.DirEntry)) > 0 && fp.selectedEntryIndex >= len(fp.entries.Load().([]os.DirEntry)) {
+			fp.selectedEntryIndex = len(fp.entries.Load().([]os.DirEntry)) - 1
 			//			fp.SetSelectedEntryFromIndex(len(fp.entries) - 1)
 		}
 	}
 
 	switch fp.fen.config.SortBy {
 	case "modified":
-		slices.SortStableFunc(fp.entries, func(a, b fs.DirEntry) int {
+		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()
 			bInfo, bErr := b.Info()
 			if aErr != nil || bErr != nil {
@@ -142,7 +251,7 @@ func (fp *FilesPane) SetEntries(path string) {
 			return 1
 		})
 	case "size":
-		slices.SortStableFunc(fp.entries, func(a, b fs.DirEntry) int {
+		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()
 			bInfo, bErr := b.Info()
 			if aErr != nil || bErr != nil {
@@ -152,12 +261,12 @@ func (fp *FilesPane) SetEntries(path string) {
 			// If folder, we consider the folder file count as bytes (though it's kind of messed up with symlinks...)
 			aSize := int(aInfo.Size())
 			if a.IsDir() {
-				aSize, err = FolderFileCount(filepath.Join(fp.fen.wd, a.Name()), fp.fen.config.HiddenFiles)
+				aSize, _ = FolderFileCount(filepath.Join(fp.fen.wd, a.Name()), fp.fen.config.HiddenFiles)
 			}
 
 			bSize := int(bInfo.Size())
 			if b.IsDir() {
-				bSize, err = FolderFileCount(filepath.Join(fp.fen.wd, b.Name()), fp.fen.config.HiddenFiles)
+				bSize, _ = FolderFileCount(filepath.Join(fp.fen.wd, b.Name()), fp.fen.config.HiddenFiles)
 			}
 
 			if aSize < bSize {
@@ -172,27 +281,24 @@ func (fp *FilesPane) SetEntries(path string) {
 	case "none":
 	default:
 		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")
-		fmt.Fprintln(os.Stderr, "Valid values: " + strings.Join(ValidSortByValues[:], ", "))
+		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
 		os.Exit(1)
 	}
 
 	if fp.fen.config.FoldersFirst {
-		fp.entries = FoldersAtBeginning(fp.entries)
+		fp.entries.Store(FoldersAtBeginning(fp.entries.Load().([]os.DirEntry)))
 	}
-
-	fp.parentIsEmptyFolder = len(fp.entries) <= 0
 }
 
 func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {
-	for i, entry := range fp.entries {
+	for i, entry := range fp.entries.Load().([]os.DirEntry) {
 		if entry.Name() == entryName {
 			fp.selectedEntryIndex = i
 			return nil
 		}
 	}
 
-	fp.selectedEntryIndex = 0
-	return errors.New("No entry with that name")
+	return errors.New("No entry with name: " + entryName)
 }
 
 func (fp *FilesPane) SetSelectedEntryFromIndex(index int) {
@@ -200,7 +306,7 @@ func (fp *FilesPane) SetSelectedEntryFromIndex(index int) {
 }
 
 func (fp *FilesPane) GetSelectedEntryFromIndex(index int) string {
-	if index >= len(fp.entries) {
+	if index >= len(fp.entries.Load().([]os.DirEntry)) {
 		return ""
 	}
 
@@ -208,7 +314,7 @@ func (fp *FilesPane) GetSelectedEntryFromIndex(index int) string {
 		return ""
 	}
 
-	return fp.entries[index].Name()
+	return fp.entries.Load().([]os.DirEntry)[index].Name()
 }
 
 func (fp *FilesPane) GetSelectedPathFromIndex(index int) string {
@@ -217,7 +323,7 @@ func (fp *FilesPane) GetSelectedPathFromIndex(index int) string {
 
 // Returns -1 if nothing was found
 func (fp *FilesPane) GetSelectedIndexFromEntry(entryName string) int {
-	for i, entry := range fp.entries {
+	for i, entry := range fp.entries.Load().([]os.DirEntry) {
 		if entry.Name() == entryName {
 			return i
 		}
@@ -234,8 +340,8 @@ func (fp *FilesPane) GetTopScreenEntryIndex() int {
 		topScreenEntryIndex = fp.selectedEntryIndex - h/2
 	}
 
-	if topScreenEntryIndex >= len(fp.entries) {
-		topScreenEntryIndex = max(0, len(fp.entries)-1)
+	if topScreenEntryIndex >= len(fp.entries.Load().([]os.DirEntry)) {
+		topScreenEntryIndex = max(0, len(fp.entries.Load().([]os.DirEntry))-1)
 	}
 
 	return topScreenEntryIndex
@@ -244,8 +350,8 @@ func (fp *FilesPane) GetTopScreenEntryIndex() int {
 func (fp *FilesPane) GetBottomScreenEntryIndex() int {
 	_, _, _, h := fp.GetInnerRect()
 	bottomScreenEntryIndex := fp.GetTopScreenEntryIndex() + h - 1
-	if bottomScreenEntryIndex >= len(fp.entries) {
-		bottomScreenEntryIndex = max(0, len(fp.entries)-1)
+	if bottomScreenEntryIndex >= len(fp.entries.Load().([]os.DirEntry)) {
+		bottomScreenEntryIndex = max(0, len(fp.entries.Load().([]os.DirEntry))-1)
 	}
 
 	return bottomScreenEntryIndex
@@ -259,8 +365,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	fp.Box.DrawForSubclass(screen, fp)
 
 	x, y, w, h := fp.GetInnerRect()
-
-	if fp.parentIsEmptyFolder || !fp.isRightFilesPane && len(fp.entries) <= 0 && fp.folder != filepath.Dir(fp.folder) {
+	if fp.isRightFilesPane && fp.parentIsEmptyFolder || (!fp.isRightFilesPane && len(fp.entries.Load().([]os.DirEntry)) <= 0) && fp.folder != filepath.Dir(fp.folder) {
 		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
 		return
 	}
@@ -269,7 +374,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	stat, statErr := os.Stat(fp.fen.sel)
 	f, readErr := os.OpenFile(fp.fen.sel, os.O_RDONLY, 0)
 	f.Close()
-	if statErr == nil && stat.Mode().IsRegular() && readErr == nil && len(fp.entries) <= 0 && fp.isRightFilesPane {
+	if statErr == nil && stat.Mode().IsRegular() && readErr == nil && len(fp.entries.Load().([]os.DirEntry)) <= 0 && fp.isRightFilesPane {
 		for _, previewWith := range fp.fen.config.Preview {
 			matched := PathMatchesList(fp.fen.sel, previewWith.Match) && !PathMatchesList(fp.fen.sel, previewWith.DoNotMatch)
 			if !matched {
@@ -332,13 +437,14 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	}
 
 	scrollOffset := fp.GetTopScreenEntryIndex()
-	for i, entry := range fp.entries[scrollOffset:] {
+	for i, entry := range fp.entries.Load().([]os.DirEntry)[scrollOffset:] {
 		if i >= h {
 			break
 		}
 
 		entryFullPath := filepath.Join(fp.folder, entry.Name())
-		style := FileColor(entryFullPath)
+		entryInfo, _ := entry.Info() // This seems to immediately stat on Linux
+		style := FileColor(entryInfo, entryFullPath)
 
 		spaceForSelected := ""
 		if i+scrollOffset == fp.selectedEntryIndex {
@@ -350,8 +456,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Foreground(tcell.ColorYellow)
 		}
 
-		// Dim the entry if its in yankSelected
-		if slices.Contains(fp.fen.yankSelected, entryFullPath) {
+		entryInYankSelected := slices.Contains(fp.fen.yankSelected, entryFullPath)
+		if entryInYankSelected {
 			style = style.Dim(true)
 		}
 
@@ -372,5 +478,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		styleStr := StyleToStyleTagString(style)
 		tview.Print(screen, spaceForSelected+styleStr+" "+FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(entry.Name()), styleStr)+strings.Repeat(" ", w), x, y+i, w-1-entrySizePrintedSize, tview.AlignLeft, tcell.ColorDefault)
+
+		// You can't see which files are yanked in the FreeBSD tty terminal since dim doesn't change the color, so this makes it visible
+		// Seems like the same issue is present on Windows, in cmd
+		if (runtime.GOOS == "freebsd" || runtime.GOOS == "windows") && entryInYankSelected {
+			tview.PrintSimple(screen, "*", x, y+i)
+		}
 	}
 }

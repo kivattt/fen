@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strconv"
 
 	"github.com/gdamore/tcell/v2"
@@ -64,8 +65,9 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 	_, rightFreeBytesStrLength := tview.Print(screen, " "+tview.Escape(freeBytesStr), x, y, w, tview.AlignRight, tcell.ColorDefault)
 	rightFreeBytesStrLength-- // To ignore the leading ^ space
 
-	entriesLengthStr := strconv.Itoa(len(bottomBar.fen.middlePane.entries))
-	positionStr := strconv.Itoa(bottomBar.fen.middlePane.selectedEntryIndex+1) + "/" + entriesLengthStr
+	entriesLength := len(bottomBar.fen.middlePane.entries.Load().([]os.DirEntry))
+	entriesLengthStr := strconv.Itoa(entriesLength)
+	positionStr := strconv.Itoa(min(entriesLength, bottomBar.fen.middlePane.selectedEntryIndex+1)) + "/" + entriesLengthStr
 	positionStrMaxLength := 2*len(entriesLengthStr) + len("/")
 
 	// We multiply entriesLengthStr by 2 so that the help text won't suddenly change/move if the selected index string length changes

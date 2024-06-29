@@ -16,7 +16,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.3.2"
+const version = "v1.4.0"
 
 func main() {
 	userConfigDir, err := os.UserConfigDir()
@@ -39,7 +39,7 @@ func main() {
 	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "Show the 'For help: ...' text")
 
 	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
-	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "Sort files (" + strings.Join(ValidSortByValues[:], ", ") + ")")
+	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "Sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
 
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)
@@ -246,7 +246,7 @@ func main() {
 				fen.history.AddToHistory(fen.sel)
 			}
 
-			fen.UpdatePanes()
+			fen.UpdatePanes(false)
 			return nil, action
 		}
 
@@ -390,7 +390,7 @@ func main() {
 				fen.history.AddToHistory(fen.sel)
 			}
 
-			fen.UpdatePanes()
+			fen.UpdatePanes(false)
 			return nil
 		}
 
@@ -419,7 +419,7 @@ func main() {
 					} else {
 						// Same code as the wasMovementKey check
 						fen.history.AddToHistory(fen.sel)
-						fen.UpdatePanes()
+						fen.UpdatePanes(false)
 					}
 				})
 
@@ -432,7 +432,7 @@ func main() {
 
 			pages.AddPage("searchbox", centered(inputField, 60, 3), true, true)
 		} else if event.Rune() == 'A' {
-			for _, e := range fen.middlePane.entries {
+			for _, e := range fen.middlePane.entries.Load().([]os.DirEntry) {
 				fen.ToggleSelection(filepath.Join(fen.wd, e.Name()))
 			}
 			fen.DisableSelectingWithV()
@@ -478,7 +478,7 @@ func main() {
 						fen.history.AddToHistory(newPath)
 						fen.sel = newPath
 
-						fen.UpdatePanes()
+						fen.UpdatePanes(true)
 					} else {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't rename in no-write mode")
 					}
@@ -515,15 +515,20 @@ func main() {
 				} else if key == tcell.KeyEnter {
 					_, err := os.Stat(filepath.Join(fen.wd, inputField.GetText())) // Here to make sure we don't overwrite a file when making a new one
 					if !fen.config.NoWrite && err != nil {
+						var createFileOrFolderErr error
 						if event.Rune() == 'n' {
-							os.Create(filepath.Join(fen.wd, inputField.GetText()))
+							_, createFileOrFolderErr = os.Create(filepath.Join(fen.wd, inputField.GetText()))
 						} else if event.Rune() == 'N' {
-							os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0775)
+							createFileOrFolderErr = os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0775)
 						}
-						fen.UpdatePanes()
+
+						if createFileOrFolderErr == nil {
+							fen.sel = filepath.Join(fen.wd, inputField.GetText())
+						}
+						fen.UpdatePanes(true)
 					} else if fen.config.NoWrite {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't create new files in no-write mode")
-					} else {
+					} else if err != nil {
 						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 					}
 
@@ -562,7 +567,7 @@ func main() {
 		} else if event.Rune() == 'z' || event.Key() == tcell.KeyBackspace {
 			fen.config.HiddenFiles = !fen.config.HiddenFiles
 			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
-			fen.UpdatePanes()
+			fen.UpdatePanes(true)
 			fen.history.AddToHistory(fen.sel)
 			return nil
 		} else if event.Rune() == 'p' {
@@ -594,13 +599,13 @@ func main() {
 			fen.yankSelected = []string{}
 			fen.selected = []string{}
 
-			fen.UpdatePanes()
+			fen.UpdatePanes(false)
 			fen.bottomBar.TemporarilyShowTextInstead("Paste!")
 
 			return nil
 		} else if event.Rune() == 'V' {
 			fen.ToggleSelectingWithV()
-			fen.UpdatePanes()
+			fen.UpdatePanes(false)
 			return nil
 		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
 			helpScreen.visible = !helpScreen.visible
@@ -636,8 +641,9 @@ func main() {
 
 			if len(fen.selected) <= 0 {
 				fileToDelete = fen.sel
+				fileToDeleteInfo, _ := os.Stat(fileToDelete)
 				// When the text wraps, color styling gets reset on line breaks. I have not found a good solution yet
-				styleStr := StyleToStyleTagString(FileColor(fileToDelete))
+				styleStr := StyleToStyleTagString(FileColor(fileToDeleteInfo, fileToDelete))
 				modal.SetText("[red::d]Delete[-:-:-:-] " + styleStr + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(filepath.Base(fileToDelete)), styleStr) + "[-:-:-:-] ?")
 			} else {
 				modal.SetText("[red::d]Delete[-:-:-:-] " + tview.Escape(strconv.Itoa(len(fen.selected))) + " selected files?")
@@ -669,10 +675,10 @@ func main() {
 
 					// FIXME: CURSED
 					// We need to update the middlePane entries for GoDown() and GoUp() to work properly, atleast when deleting the bottom entry
-					fen.middlePane.SetEntries(fen.wd)
+					fen.middlePane.ChangeDir(fen.wd, false)
 					fen.GoDown()
 					fen.GoUp()
-					fen.UpdatePanes()
+					fen.UpdatePanes(false)
 				})
 
 			modal.SetBorder(true)

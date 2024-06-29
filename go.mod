@@ -3,6 +3,7 @@ module github.com/kivattt/fen
 go 1.21.5
 
 require (
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/kivattt/getopt v0.0.0-20240628061659-0f129a2cefaf
 	github.com/otiai10/copy v1.14.0
