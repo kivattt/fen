@@ -29,10 +29,19 @@ func (topBar *TopBar) Draw(screen tcell.Screen) {
 	x, y, w, _ := topBar.GetInnerRect()
 
 	path := topBar.fen.sel
-	user, _ := user.Current()
+
+	var username string
 	usernameColor := "[lime:]"
-	if user.Uid == "0" {
-		usernameColor = "[red:]"
+
+	user, err := user.Current()
+	if err != nil {
+		username = "unknown"
+		usernameColor = "[yellow:]"
+	} else {
+		username = user.Username
+		if user.Uid == "0" {
+			usernameColor = "[red:]"
+		}
 	}
 
 	pathToShow := filepath.Dir(path)
@@ -44,7 +53,7 @@ func (topBar *TopBar) Draw(screen tcell.Screen) {
 			}
 		}
 	}
-	path = "[::b]" + usernameColor + tview.Escape(user.Username) + " " +
+	path = "[::b]" + usernameColor + tview.Escape(username) + " " +
 		"[blue::B]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithEndSeparator(pathToShow)), "[blue::B]") +
 		"[white::b]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithoutEndSeparator(filepath.Base(path))), "[white::b]")
 
