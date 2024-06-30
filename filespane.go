@@ -180,8 +180,8 @@ func (f *FenLuaGlobal) Version() string {
 }
 
 func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
+	fi, err := os.Stat(path)
 	if !forceReadDir {
-		fi, err := os.Stat(path)
 		if err != nil {
 			fp.entries.Store([]os.DirEntry{})
 			fp.parentIsEmptyFolder = true
@@ -203,15 +203,19 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 		}
 	}
 
-	fp.fileWatcher.Remove(fp.folder)
-	fp.folder = path
-	newEntries, _ := os.ReadDir(fp.folder)
-	fp.entries.Store(newEntries)
-	fp.fileWatcher.Add(fp.folder) // This has to be after the os.ReadDir() so we have something to update
+	if fi.IsDir() {
+		fp.fileWatcher.Remove(fp.folder)
+		fp.folder = path
+		newEntries, _ := os.ReadDir(fp.folder)
+		fp.entries.Store(newEntries)
+		fp.fileWatcher.Add(fp.folder) // This has to be after the os.ReadDir() so we have something to update
+	} else {
+		fp.entries.Store([]os.DirEntry{})
+	}
 
 	fp.FilterAndSortEntries()
 
-	fp.parentIsEmptyFolder = len(fp.entries.Load().([]os.DirEntry)) <= 0
+	fp.parentIsEmptyFolder = fi.IsDir() && len(fp.entries.Load().([]os.DirEntry)) <= 0
 }
 
 func (fp *FilesPane) FilterAndSortEntries() {
