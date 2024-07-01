@@ -7,7 +7,7 @@ end
 
 if editor == nil or editor == "" then
 	print("Could not find text editor, quitting file open script")
-	os.exit(1)
+	goto exit
 end
 
 local function onlyHasSpaceCharacters(s)
@@ -22,9 +22,11 @@ end
 
 if onlyHasSpaceCharacters(editor) then
 	print("Environment variable EDITOR only has spaces in it, quitting file open script")
-	os.exit(2)
+	goto exit
 end
 
 for i = 1, #fen.SelectedFiles do
 	os.execute(editor.." "..fen.SelectedFiles[i])
 end
+
+::exit::
