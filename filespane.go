@@ -265,12 +265,12 @@ func (fp *FilesPane) FilterAndSortEntries() {
 			// If folder, we consider the folder file count as bytes (though it's kind of messed up with symlinks...)
 			aSize := int(aInfo.Size())
 			if a.IsDir() {
-				aSize, _ = FolderFileCount(filepath.Join(fp.fen.wd, a.Name()), fp.fen.config.HiddenFiles)
+				aSize, _ = FolderFileCount(filepath.Join(fp.folder, a.Name()), fp.fen.config.HiddenFiles)
 			}
 
 			bSize := int(bInfo.Size())
 			if b.IsDir() {
-				bSize, _ = FolderFileCount(filepath.Join(fp.fen.wd, b.Name()), fp.fen.config.HiddenFiles)
+				bSize, _ = FolderFileCount(filepath.Join(fp.folder, b.Name()), fp.fen.config.HiddenFiles)
 			}
 
 			if aSize < bSize {
