@@ -152,16 +152,6 @@ func FileLastModifiedString(path string) (string, error) {
 	return stat.ModTime().Format(time.UnixDate), nil
 }
 
-func HasSuffixFromList(str string, list []string) bool {
-	for _, e := range list {
-		if strings.HasSuffix(str, e) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func StyleToStyleTagString(style tcell.Style) string {
 	foreground, background, attributeMask := style.Decompose()
 	// https://pkg.go.dev/github.com/gdamore/tcell/v2#AttrMask
@@ -275,27 +265,37 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 		}
 	}
 
-	if HasSuffixFromList(path, imageTypes) {
+	hasSuffixFromList := func(str string, list []string) bool {
+		for _, e := range list {
+			if strings.HasSuffix(str, e) {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	if hasSuffixFromList(path, imageTypes) {
 		return ret.Foreground(tcell.ColorYellow)
 	}
 
-	if HasSuffixFromList(path, videoTypes) {
+	if hasSuffixFromList(path, videoTypes) {
 		return ret.Foreground(tcell.ColorHotPink)
 	}
 
-	if HasSuffixFromList(path, archiveTypes) {
+	if hasSuffixFromList(path, archiveTypes) {
 		return ret.Foreground(tcell.ColorRed)
 	}
 
-	if HasSuffixFromList(path, codeTypes) {
+	if hasSuffixFromList(path, codeTypes) {
 		return ret.Foreground(tcell.ColorAqua)
 	}
 
-	if HasSuffixFromList(path, audioTypes) {
+	if hasSuffixFromList(path, audioTypes) {
 		return ret.Foreground(tcell.ColorPurple)
 	}
 
-	if HasSuffixFromList(path, documentTypes) {
+	if hasSuffixFromList(path, documentTypes) {
 		return ret.Foreground(tcell.ColorGray)
 	}
 
