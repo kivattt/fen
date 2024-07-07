@@ -489,7 +489,7 @@ func (fen *Fen) GoBottomScreen() {
 
 func (fen *Fen) PageUp() {
 	_, _, _, height := fen.middlePane.Box.GetInnerRect()
-	height = max(5, height - 10) // Padding
+	height = max(5, height-10) // Padding
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(max(0, fen.middlePane.selectedEntryIndex-height)))
 
 	if fen.selectingWithV {
@@ -499,7 +499,7 @@ func (fen *Fen) PageUp() {
 
 func (fen *Fen) PageDown() {
 	_, _, _, height := fen.middlePane.Box.GetInnerRect()
-	height = max(5, height - 10) // Padding
+	height = max(5, height-10) // Padding
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(min(len(fen.middlePane.entries.Load().([]os.DirEntry))-1, fen.middlePane.selectedEntryIndex+height)))
 
 	if fen.selectingWithV {

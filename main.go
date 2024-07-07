@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-//	"runtime/pprof"
+	//	"runtime/pprof"
 	"strconv"
 	"strings"
 
@@ -20,9 +20,9 @@ import (
 const version = "v1.4.4"
 
 func main() {
-//	f, _ := os.Create("profile.prof")
-//	pprof.StartCPUProfile(f)
-//	defer pprof.StopCPUProfile()
+	//	f, _ := os.Create("profile.prof")
+	//	pprof.StartCPUProfile(f)
+	//	defer pprof.StopCPUProfile()
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
