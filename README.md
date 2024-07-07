@@ -39,10 +39,11 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `Home` or `g` to go to the top\
 `End` or `G` to go to the bottom\
 `M` Go to the middle\
+`Page Up` / `Page Down` Scroll up/down an entire page\
 `H` Go to the top of the screen\
 `L` Go to the bottom of the screen\
 `q` Quit\
-`Del` Delete file(s)\
+`Del` or `x` Delete file(s)\
 `y` Copy file(s)\
 `d` Cut file(s)\
 `p` Paste file(s)\
@@ -130,7 +131,6 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 
 # Known issues
 - Symlinks have no special distinction, a folder symlink will appear like a normal folder
-- On FreeBSD when creating a new folder, the right files pane will occasionally show something wrong (you can fix it by moving to the left, then back again)
 - On FreeBSD, when the disk is full, fen may erroneously show a very large amount of disk space available (like `18.446 EB free`), when in reality there is no available space
 - Deleting files sometimes doesn't work on Windows (due to files being open in another program?)
 - `go test` doesn't work on Windows

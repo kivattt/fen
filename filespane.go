@@ -56,6 +56,12 @@ func (fp *FilesPane) Init() {
 					return
 				}
 
+				// We need to check this since we can be stuck handling an event from a previously removed watcher
+				// All this fileWatcher stuff causes data races
+				if !strings.HasPrefix(event.Name, fp.folder) {
+					break
+				}
+
 				if event.Has(fsnotify.Create) {
 					fp.AddEntry(event.Name)
 				} else if event.Has(fsnotify.Chmod) || event.Has(fsnotify.Write) {
@@ -109,6 +115,11 @@ func (fp *FilesPane) RemoveEntry(path string) error {
 	}
 
 	fp.entries.Store(append(fp.entries.Load().([]os.DirEntry)[:index], fp.entries.Load().([]os.DirEntry)[index+1:]...))
+	fp.fen.RemoveFromSelectedAndYankSelected(path)
+	fp.fen.history.RemoveFromHistory(path)
+
+	fp.fen.history.AddToHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
+
 	return nil
 }
 
@@ -179,6 +190,7 @@ func (f *FenLuaGlobal) Version() string {
 	return version
 }
 
+// It might os.ReadDir() even if forceReadDir is false. If forceReadDir is true, it will always os.ReadDir() if path is a folder
 func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 	fi, err := os.Stat(path)
 	if !forceReadDir {
@@ -209,11 +221,11 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 		newEntries, _ := os.ReadDir(fp.folder)
 		fp.entries.Store(newEntries)
 		fp.fileWatcher.Add(fp.folder) // This has to be after the os.ReadDir() so we have something to update
+
+		fp.FilterAndSortEntries()
 	} else {
 		fp.entries.Store([]os.DirEntry{})
 	}
-
-	fp.FilterAndSortEntries()
 
 	fp.parentIsEmptyFolder = fi.IsDir() && len(fp.entries.Load().([]os.DirEntry)) <= 0
 }
@@ -228,12 +240,7 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		}
 
 		fp.entries.Store(withoutHiddenFiles)
-
-		// TODO: Generic bounds checking function?
-		if len(fp.entries.Load().([]os.DirEntry)) > 0 && fp.selectedEntryIndex >= len(fp.entries.Load().([]os.DirEntry)) {
-			fp.selectedEntryIndex = len(fp.entries.Load().([]os.DirEntry)) - 1
-			//			fp.SetSelectedEntryFromIndex(len(fp.entries) - 1)
-		}
+		fp.keepSelectionInBounds()
 	}
 
 	switch fp.fen.config.SortBy {
@@ -294,6 +301,22 @@ func (fp *FilesPane) FilterAndSortEntries() {
 	}
 }
 
+func (fp *FilesPane) keepSelectionInBounds() bool {
+	// I think Load()ing entries multiple times like this could be unsafe, but might realistically be very rare
+	if fp.selectedEntryIndex >= len(fp.entries.Load().([]os.DirEntry)) {
+		if len(fp.entries.Load().([]os.DirEntry)) > 0 {
+			fp.selectedEntryIndex = len(fp.entries.Load().([]os.DirEntry)) - 1
+		} else {
+			fp.selectedEntryIndex = 0
+		}
+
+		return true
+	}
+
+	return false
+}
+
+// Set the selected entry from entry name, on error it keeps the selection in bounds and adds the new current selection to the fen history
 func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {
 	for i, entry := range fp.entries.Load().([]os.DirEntry) {
 		if entry.Name() == entryName {
@@ -301,6 +324,9 @@ func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {
 			return nil
 		}
 	}
+
+	fp.keepSelectionInBounds()
+	fp.fen.history.AddToHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
 
 	return errors.New("No entry with name: " + entryName)
 }

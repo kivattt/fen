@@ -129,7 +129,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 
 	if len(wdFiles) > 0 {
 		// HACKY: middlePane has to have entries so that GoTop() will work
-		fen.middlePane.ChangeDir(fen.wd, false)
+		fen.middlePane.ChangeDir(fen.wd, true)
 		fen.GoTop()
 
 		if shouldSelectSpecifiedFile {
@@ -265,12 +265,13 @@ func (fen *Fen) DisableSelectingWithV() {
 	fen.selectedBeforeSelectingWithV = []string{}
 }
 
-func (fen *Fen) KeepSelectionInBounds() {
+func (fen *Fen) KeepMiddlePaneSelectionInBounds() {
 	// Don't know if necessary
 	/*if fen.middlePane.selectedEntryIndex < 0 {
 		fen.middlePane.selectedEntryIndex = 0
 	}*/
 
+	// I think Load()ing entries multiple times like this could be unsafe, but might realistically be very rare
 	if fen.middlePane.selectedEntryIndex >= len(fen.middlePane.entries.Load().([]os.DirEntry)) {
 		if len(fen.middlePane.entries.Load().([]os.DirEntry)) > 0 {
 			fen.sel = fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries.Load().([]os.DirEntry)) - 1)
@@ -315,7 +316,7 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 	}
 
 	fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel))
-	fen.KeepSelectionInBounds()
+	fen.KeepMiddlePaneSelectionInBounds()
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex))
 	fen.rightPane.ChangeDir(fen.sel, forceReadDir)
@@ -330,7 +331,7 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 		fen.rightPane.SetSelectedEntryFromIndex(0)
 	} else {
 		fen.rightPane.SetSelectedEntryFromString(filepath.Base(h))
-		fen.KeepSelectionInBounds()
+		fen.KeepMiddlePaneSelectionInBounds()
 	}
 
 	fen.UpdateSelectingWithV()
@@ -488,6 +489,7 @@ func (fen *Fen) GoBottomScreen() {
 
 func (fen *Fen) PageUp() {
 	_, _, _, height := fen.middlePane.Box.GetInnerRect()
+	height = max(5, height - 10) // Padding
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(max(0, fen.middlePane.selectedEntryIndex-height)))
 
 	if fen.selectingWithV {
@@ -497,6 +499,7 @@ func (fen *Fen) PageUp() {
 
 func (fen *Fen) PageDown() {
 	_, _, _, height := fen.middlePane.Box.GetInnerRect()
+	height = max(5, height - 10) // Padding
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(min(len(fen.middlePane.entries.Load().([]os.DirEntry))-1, fen.middlePane.selectedEntryIndex+height)))
 
 	if fen.selectingWithV {

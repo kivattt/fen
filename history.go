@@ -70,13 +70,16 @@ func (h *History) AddToHistory(path string) {
 	h.history = append([]string{path}, h.history...)
 }
 
-func (h *History) RemoveFromHistory(path string) {
+func (h *History) RemoveFromHistory(path string) error {
 	h.historyMutex.Lock()
 	defer h.historyMutex.Unlock()
 
 	if index := slices.Index(h.history, path); index != -1 {
 		h.history = append(h.history[:index], h.history[index+1:]...)
+		return nil
 	}
+
+	return errors.New("path was not found in history")
 }
 
 func (h *History) ClearHistory() {

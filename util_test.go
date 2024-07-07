@@ -73,6 +73,8 @@ func TestFilenameInvisibleCharactersAsCodeHighlighted(t *testing.T) {
 		{" a a ", ""}:               "[:darkred]\\u20[-:-:-:-]a a[:darkred]\\u20[-:-:-:-]",
 		{"●", ""}:                   "●",
 		{"\u2800", ""}:              "[:darkred]\\u2800[-:-:-:-]",
+		{"\U000e0100", ""}:          "[:darkred]\\ue0100[-:-:-:-]",
+		{"\U000e01ef", ""}:          "[:darkred]\\ue01ef[-:-:-:-]",
 	}
 
 	for input, expected := range expectedResults {

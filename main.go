@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+//	"runtime/pprof"
 	"strconv"
 	"strings"
 
@@ -16,9 +17,13 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.4.3"
+const version = "v1.4.4"
 
 func main() {
+//	f, _ := os.Create("profile.prof")
+//	pprof.StartCPUProfile(f)
+//	defer pprof.StopCPUProfile()
+
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
 	if err == nil {
@@ -30,6 +35,7 @@ func main() {
 	// When adding new flags, make sure to duplicate the name when we check flagPassed lower in this file
 	v := flag.Bool("version", false, "output version information and exit")
 	h := flag.Bool("help", false, "display this help and exit")
+	uiBorders := flag.Bool("ui-borders", defaultConfigValues.UiBorders, "Enable UI borders")
 	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "Enable mouse events")
 	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
 	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "")
@@ -151,6 +157,9 @@ func main() {
 	}
 
 	// Maybe clean this up at some point
+	if flagPassed("ui-borders") {
+		fen.config.UiBorders = *uiBorders
+	}
 	if flagPassed("mouse") {
 		fen.config.Mouse = *mouse
 	}
@@ -218,14 +227,22 @@ func main() {
 
 	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
 		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") {
-			return event, action
-		}
+			// Since `return nil, action` redraws the screen for some reason,
+			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
+			if action == tview.MouseMove {
+				return event, action
+			}
 
-		wasMovementKey := true
+			return nil, action
+		}
 
 		// Required to prevent a nil dereference crash
 		if event == nil {
 			return nil, action
+		}
+
+		if action == tview.MouseMove {
+			return event, action
 		}
 
 		switch event.Buttons() {
@@ -238,19 +255,15 @@ func main() {
 		case tcell.WheelDown:
 			fen.GoDown()
 		default:
-			wasMovementKey = false
-		}
-
-		if wasMovementKey {
-			if !(event.Buttons() == tcell.WheelLeft) {
-				fen.history.AddToHistory(fen.sel)
-			}
-
-			fen.UpdatePanes(false)
 			return nil, action
 		}
 
-		return event, action
+		if !(event.Buttons() == tcell.WheelLeft) {
+			fen.history.AddToHistory(fen.sel)
+		}
+
+		fen.UpdatePanes(false)
+		return nil, action
 	})
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -459,11 +472,6 @@ func main() {
 					return
 				} else if key == tcell.KeyEnter {
 					if !fen.config.NoWrite {
-						if strings.ContainsRune(inputField.GetText(), os.PathSeparator) {
-							pages.RemovePage("inputfield")
-							fen.bottomBar.TemporarilyShowTextInstead("Can't use slashes when renaming")
-							return
-						}
 						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
 						_, err := os.Stat(newPath)
 						if err == nil {
@@ -475,8 +483,8 @@ func main() {
 
 						fen.RemoveFromSelectedAndYankSelected(fileToRename)
 						fen.history.RemoveFromHistory(fileToRename)
-						fen.history.AddToHistory(newPath)
 						fen.sel = newPath
+						fen.history.AddToHistory(fen.sel)
 
 						fen.UpdatePanes(true)
 					} else {
@@ -530,6 +538,8 @@ func main() {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't create new files in no-write mode")
 					} else if err != nil {
 						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+					} else {
+						fen.bottomBar.TemporarilyShowTextInstead("Can't create an existing file")
 					}
 
 					pages.RemovePage("newfilemodal")
@@ -589,6 +599,12 @@ func main() {
 			} else if fen.yankType == "cut" {
 				for _, e := range fen.yankSelected {
 					newPath := FilePathUniqueNameIfAlreadyExists(filepath.Join(fen.wd, filepath.Base(e)))
+
+					// If we're cutting, then pasting the file to the same location, don't actually do anything
+					if e == filepath.Join(fen.wd, filepath.Base(e)) {
+						continue
+					}
+
 					go fen.fileOperationsHandler.QueueOperation(FileOperation{operation: Rename, path: e, newPath: newPath})
 				}
 			} else {
@@ -619,7 +635,7 @@ func main() {
 			return nil
 		}
 
-		if event.Key() == tcell.KeyDelete {
+		if event.Key() == tcell.KeyDelete || event.Rune() == 'x' {
 			modal := tview.NewModal()
 
 			modal.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
@@ -672,12 +688,7 @@ func main() {
 					}
 
 					fen.selected = []string{}
-
-					// FIXME: CURSED
-					// We need to update the middlePane entries for GoDown() and GoUp() to work properly, atleast when deleting the bottom entry
-					fen.middlePane.ChangeDir(fen.wd, false)
-					fen.GoDown()
-					fen.GoUp()
+					fen.DisableSelectingWithV()
 					fen.UpdatePanes(false)
 				})
 

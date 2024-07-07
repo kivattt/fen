@@ -117,7 +117,6 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 		if err != nil {
 			return err
 		}
-		handler.fen.history.RemoveFromHistory(fileOperation.path)
 	case Copy:
 		fi, err := os.Stat(fileOperation.path)
 		if err != nil {
