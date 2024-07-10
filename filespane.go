@@ -208,8 +208,8 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 			return
 		}
 
-		// path != "/" is a hacky fix so the left pane doesn't disappear when you go right from root
-		if fp.folder == path && path != "/" {
+		// path != filepath.Dir(path) is a hacky fix so the left pane doesn't disappear when you go right from root
+		if fp.folder == path && path != filepath.Dir(path) {
 			fp.parentIsEmptyFolder = len(fp.entries.Load().([]os.DirEntry)) <= 0
 			return
 		}
