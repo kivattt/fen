@@ -77,7 +77,7 @@ for line in io.lines(fen.SelectedFile) do
 				goto continue
 			end
 
-			if not backtickString then
+			if not backtickString and lastChar ~= '\\' then
 				if isEmphasis(lastChar) and isEmphasis(char) then
 					bold = not bold
 					italic = false
