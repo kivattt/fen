@@ -33,7 +33,7 @@ type FilesPane struct {
 	fileWatcher         *fsnotify.Watcher
 }
 
-func NewFilesPane(fen *Fen, showEntrySizes bool, isRightFilesPane bool) *FilesPane {
+func NewFilesPane(fen *Fen, showEntrySizes, isRightFilesPane bool) *FilesPane {
 	newWatcher, _ := fsnotify.NewWatcher()
 	return &FilesPane{
 		Box:                tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
