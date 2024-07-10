@@ -297,6 +297,7 @@ func main() {
 			})
 
 			modal.SetText(strconv.Itoa(fen.fileOperationsHandler.workCount) + " file operations in progress.\nQuitting can corrupt your files!")
+			fen.fileOperationsHandler.workCountMutex.Unlock()
 			modal.
 				AddButtons([]string{"Force quit", "Cancel"}).
 				SetFocus(1). // Default is "No"
@@ -306,7 +307,6 @@ func main() {
 						return
 					}
 
-					fen.fileOperationsHandler.workCountMutex.Unlock()
 					app.Stop()
 				})
 			modal.SetBorder(true)
@@ -319,7 +319,6 @@ func main() {
 
 			pages.AddPage("forcequitmodal", modal, true, true)
 			app.SetFocus(modal)
-			fen.fileOperationsHandler.workCountMutex.Unlock()
 			return nil
 		}
 
