@@ -11,7 +11,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/gdamore/tcell/v2"
@@ -31,6 +33,9 @@ type FilesPane struct {
 	parentIsEmptyFolder bool
 	Invisible           bool
 	fileWatcher         *fsnotify.Watcher
+	lastFileEventTime   time.Time
+	fileEventBatch      []fsnotify.Event
+	fileEventBatchMutex sync.Mutex
 }
 
 func NewFilesPane(fen *Fen, showEntrySizes, isRightFilesPane bool) *FilesPane {
@@ -62,22 +67,22 @@ func (fp *FilesPane) Init() {
 					break
 				}
 
-				if event.Has(fsnotify.Create) {
-					fp.AddEntry(event.Name)
-				} else if event.Has(fsnotify.Chmod) || event.Has(fsnotify.Write) {
-					fp.UpdateEntry(event.Name)
-				} else if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
-					// TODO ?
-					// Since a Rename is immediately followed by a Create, we could maybe handle rename separately
-					// And follow the new path if selected by updating fen.sel
-					fp.RemoveEntry(event.Name)
+				lastFileEventTime := fp.lastFileEventTime
+				fp.lastFileEventTime = time.Now() // I want to set this to the time before the file event is handled
+
+				// If it has been longer than FileEventInterval since the last event, immediately handle and update the screen.
+				fp.fileEventBatchMutex.Lock()
+				if fp.fen.config.FileEventIntervalMillis <= 0 || (time.Since(lastFileEventTime) > time.Duration(fp.fen.config.FileEventIntervalMillis)*time.Millisecond && len(fp.fileEventBatch) == 0) {
+					fp.fileEventBatchMutex.Unlock()
+					fp.HandleFileEvent(event)
+					fp.fen.app.QueueUpdateDraw(func() {
+						fp.FilterAndSortEntries()
+						fp.fen.UpdatePanes(false)
+					})
 				} else {
-					panic("Got invalid file watcher event: " + strconv.Itoa(int(event.Op)))
+					fp.fileEventBatch = AddEventToBatch(fp.fileEventBatch, event)
+					fp.fileEventBatchMutex.Unlock()
 				}
-				fp.fen.app.QueueUpdateDraw(func() {
-					fp.FilterAndSortEntries()
-					fp.fen.UpdatePanes(false)
-				})
 			case _, ok := <-fp.fileWatcher.Errors:
 				if !ok {
 					return
@@ -85,6 +90,74 @@ func (fp *FilesPane) Init() {
 			}
 		}
 	}()
+
+	go func() {
+		for {
+			time.Sleep(time.Duration(fp.fen.config.FileEventIntervalMillis) * time.Millisecond)
+
+			fp.fileEventBatchMutex.Lock()
+			if len(fp.fileEventBatch) == 0 {
+				fp.fileEventBatchMutex.Unlock()
+				continue
+			}
+
+			for _, e := range fp.fileEventBatch {
+				fp.HandleFileEvent(e)
+			}
+			fp.fileEventBatch = []fsnotify.Event{}
+			fp.fileEventBatchMutex.Unlock()
+
+			fp.fen.app.QueueUpdateDraw(func() {
+				fp.FilterAndSortEntries()
+				fp.fen.UpdatePanes(false)
+			})
+		}
+	}()
+}
+
+// Adds newEvent to oldEvents, removing duplicate and unecessary prior events
+func AddEventToBatch(oldEvents []fsnotify.Event, newEvent fsnotify.Event) []fsnotify.Event {
+	newEventPathIsUnique := !slices.ContainsFunc(oldEvents, func(oldEvent fsnotify.Event) bool {
+		return oldEvent.Name == newEvent.Name
+	})
+
+	if newEventPathIsUnique {
+		oldEvents = append(oldEvents, newEvent)
+		return oldEvents
+	}
+
+	if newEvent.Has(fsnotify.Remove) {
+		// File was removed, remove all prior events
+		oldEvents = slices.DeleteFunc(oldEvents, func(oldEvent fsnotify.Event) bool {
+			return oldEvent.Name == newEvent.Name
+		})
+	}
+
+	// Remove any duplicate events
+	oldEvents = slices.DeleteFunc(oldEvents, func(oldEvent fsnotify.Event) bool {
+		return oldEvent.Has(newEvent.Op) && oldEvent.Name == newEvent.Name
+	})
+
+	oldEvents = append(oldEvents, newEvent)
+
+	return oldEvents
+}
+
+func (fp *FilesPane) HandleFileEvent(event fsnotify.Event) error {
+	if event.Has(fsnotify.Create) {
+		return fp.AddEntry(event.Name)
+	}
+
+	if event.Has(fsnotify.Chmod) || event.Has(fsnotify.Write) {
+		return fp.UpdateEntry(event.Name)
+	}
+
+	if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
+		// Maybe we could follow new rename paths if selected by updating fen.sel?
+		return fp.RemoveEntry(event.Name)
+	}
+
+	panic("Got invalid file watcher event: " + strconv.Itoa(int(event.Op)))
 }
 
 func (fp *FilesPane) AddEntry(path string) error {

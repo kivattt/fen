@@ -146,7 +146,8 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 			}
 			defer destination.Close()
 
-			_, err = io.Copy(destination, source)
+			buf := make([]byte, 8*32*1024) // 8 times larger buffer size than io.Copy()
+			_, err = io.CopyBuffer(destination, source, buf)
 			if err != nil {
 				return err
 			}

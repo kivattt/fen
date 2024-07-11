@@ -8,6 +8,7 @@ fen.folders_first = true
 fen.terminal_title = true -- Set the terminal title to "fen <version>" (only on Linux)
 fen.show_help_text = true
 fen.sort_by = "none" -- "fen -h" for valid values
+fen.file_event_interval_ms = 300 -- How often to update the screen on file events, if set to 0, it updates on every event
 
 -- The fen version string
 print(fen.version) -- Something like "v1.3.0"

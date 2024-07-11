@@ -25,7 +25,6 @@
 - Fix the bottom bar sometimes not showing info on files inside `/proc/.../map_files`
 - Reverse sort
 - Replace github.com/otiai10/copy with my own recursive folder copying
-- When we eventually batch file events, remove duplicate events until the last one is left like Write
 
 - System-wide configuration file instructions
 - Make file previews not run every time the terminal is resized?

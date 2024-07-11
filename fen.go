@@ -49,29 +49,31 @@ type Fen struct {
 const luaTagName = "lua"
 
 type Config struct {
-	UiBorders       bool                 `lua:"ui_borders"`
-	Mouse           bool                 `lua:"mouse"`
-	NoWrite         bool                 `lua:"no_write"`
-	HiddenFiles     bool                 `lua:"hidden_files"`
-	FoldersFirst    bool                 `lua:"folders_first"`
-	PrintPathOnOpen bool                 `lua:"print_path_on_open"`
-	TerminalTitle   bool                 `lua:"terminal_title"`
-	ShowHelpText    bool                 `lua:"show_help_text"`
-	Open            []PreviewOrOpenEntry `lua:"open"`
-	Preview         []PreviewOrOpenEntry `lua:"preview"`
-	SortBy          string               `lua:"sort_by"`
+	UiBorders               bool                 `lua:"ui_borders"`
+	Mouse                   bool                 `lua:"mouse"`
+	NoWrite                 bool                 `lua:"no_write"`
+	HiddenFiles             bool                 `lua:"hidden_files"`
+	FoldersFirst            bool                 `lua:"folders_first"`
+	PrintPathOnOpen         bool                 `lua:"print_path_on_open"`
+	TerminalTitle           bool                 `lua:"terminal_title"`
+	ShowHelpText            bool                 `lua:"show_help_text"`
+	Open                    []PreviewOrOpenEntry `lua:"open"`
+	Preview                 []PreviewOrOpenEntry `lua:"preview"`
+	SortBy                  string               `lua:"sort_by"`
+	FileEventIntervalMillis int                  `lua:"file_event_interval_ms"`
 }
 
 var ValidSortByValues = [...]string{"none", "modified", "size"}
 
 func NewConfigDefaultValues() Config {
 	return Config{
-		Mouse:         true,
-		HiddenFiles:   true,
-		FoldersFirst:  true,
-		TerminalTitle: true,
-		ShowHelpText:  true,
-		SortBy:        "none",
+		Mouse:                   true,
+		HiddenFiles:             true,
+		FoldersFirst:            true,
+		TerminalTitle:           true,
+		ShowHelpText:            true,
+		SortBy:                  "none",
+		FileEventIntervalMillis: 300,
 	}
 }
 
