@@ -237,6 +237,9 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 		".lua",
 		".vim",
 		".java",
+		".ps1",
+		".bat",
+		".vbs",
 	}
 
 	documentTypes := []string{
@@ -267,7 +270,7 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 
 	hasSuffixFromList := func(str string, list []string) bool {
 		for _, e := range list {
-			if strings.HasSuffix(str, e) {
+			if strings.HasSuffix(strings.ToLower(str), strings.ToLower(e)) {
 				return true
 			}
 		}
