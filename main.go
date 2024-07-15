@@ -43,6 +43,7 @@ func main() {
 	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path and exit on open file")
 	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "")
 	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "Show the 'For help: ...' text")
+	selectPaths := flag.Bool("select", false, "Select PATHS")
 
 	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
 	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "Sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
@@ -52,6 +53,7 @@ func main() {
 	getopt.Aliases(
 		"v", "version",
 		"h", "help",
+		//		"s", "select", // This doesn't work for some reason
 	)
 
 	err = getopt.CommandLine.Parse(os.Args[1:])
@@ -65,7 +67,7 @@ func main() {
 	}
 
 	if *h {
-		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTIONS] [PATH]")
+		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTIONS] [FILES]")
 		fmt.Println("Terminal file manager")
 		fmt.Println()
 		getopt.PrintDefaults()
@@ -143,6 +145,16 @@ func main() {
 			}
 		}
 		os.Exit(1)
+	}
+
+	// We have to check *selectPaths before flag.Parse()
+	if *selectPaths {
+		for _, arg := range getopt.CommandLine.Args() {
+			pathAbsolute, err := filepath.Abs(arg)
+			if err == nil { // TODO: Add an error msg to the log when an invalid path was specified
+				fen.EnableSelection(pathAbsolute)
+			}
+		}
 	}
 
 	flag.Parse()
