@@ -239,7 +239,9 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 		".java",
 		".ps1",
 		".bat",
+		".vb",
 		".vbs",
+		".vbscript",
 	}
 
 	documentTypes := []string{
@@ -254,18 +256,9 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 		".txt",
 	}
 
-	var ret tcell.Style
-
-	if stat != nil {
-		if stat.IsDir() {
-			return ret.Foreground(tcell.ColorBlue).Bold(true)
-		} else if stat.Mode().IsRegular() {
-			if stat.Mode()&0111 != 0 {
-				return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
-			}
-		} else {
-			return ret.Foreground(tcell.ColorDarkGray)
-		}
+	windowsExecutableTypes := []string{
+		".exe",
+		".msi",
 	}
 
 	hasSuffixFromList := func(str string, list []string) bool {
@@ -276,6 +269,20 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 		}
 
 		return false
+	}
+
+	var ret tcell.Style
+
+	if stat != nil {
+		if stat.IsDir() {
+			return ret.Foreground(tcell.ColorBlue).Bold(true)
+		} else if stat.Mode().IsRegular() {
+			if stat.Mode()&0111 != 0 || (runtime.GOOS == "windows" && hasSuffixFromList(path, windowsExecutableTypes)) { // Executable file
+				return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
+			}
+		} else {
+			return ret.Foreground(tcell.ColorDarkGray)
+		}
 	}
 
 	if hasSuffixFromList(path, imageTypes) {
