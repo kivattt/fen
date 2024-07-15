@@ -45,7 +45,7 @@ type Fen struct {
 
 // gluamapper lets you use Go variables like "UiBorders", using the name "ui_borders".
 // I happen to like this, but since I can't set the "fen" global to the actual Config value,
-// we have to define them manually with a new table where I use these to look up the names
+// we have to define them manually with a new table where I use these struct tags to look up the names
 const luaTagName = "lua"
 
 type Config struct {
@@ -66,6 +66,7 @@ type Config struct {
 var ValidSortByValues = [...]string{"none", "modified", "size"}
 
 func NewConfigDefaultValues() Config {
+	// Anything not specified here will have the default value for its type, e.g. false for booleans
 	return Config{
 		Mouse:                   true,
 		HiddenFiles:             true,
