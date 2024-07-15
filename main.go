@@ -48,6 +48,7 @@ func main() {
 
 	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
 	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "Sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
+	sortReverse := flag.Bool("sort-reverse", defaultConfigValues.SortReverse, "Reverse sort")
 
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)
@@ -199,6 +200,9 @@ func main() {
 	}
 	if flagPassed("sort-by") {
 		fen.config.SortBy = *sortBy
+	}
+	if flagPassed("sort-reverse") {
+		fen.config.SortReverse = *sortReverse
 	}
 
 	app := tview.NewApplication()

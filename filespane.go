@@ -334,6 +334,9 @@ func (fp *FilesPane) FilterAndSortEntries() {
 
 			return 1
 		})
+		if fp.fen.config.SortReverse {
+			slices.Reverse(fp.entries.Load().([]os.DirEntry))
+		}
 	case "size":
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()
@@ -362,6 +365,9 @@ func (fp *FilesPane) FilterAndSortEntries() {
 			}
 			return 1
 		})
+		if fp.fen.config.SortReverse {
+			slices.Reverse(fp.entries.Load().([]os.DirEntry))
+		}
 	case "none":
 	default:
 		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")

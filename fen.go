@@ -61,6 +61,7 @@ type Config struct {
 	Open                    []PreviewOrOpenEntry `lua:"open"`
 	Preview                 []PreviewOrOpenEntry `lua:"preview"`
 	SortBy                  string               `lua:"sort_by"`
+	SortReverse             bool                 `lua:"sort_reverse"`
 	FileEventIntervalMillis int                  `lua:"file_event_interval_ms"`
 }
 

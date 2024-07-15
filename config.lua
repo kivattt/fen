@@ -9,6 +9,7 @@ fen.terminal_title = true -- Only applies to Linux, sets the terminal title to "
 fen.show_hostname = true -- Only applies to Linux, shows username@hostname in the top left
 fen.show_help_text = true
 fen.sort_by = "none" -- "fen -h" for valid values
+fen.sort_reverse = false
 fen.file_event_interval_ms = 300 -- How often to update the screen on file events, if set to 0, it updates on every event
 
 -- The fen version string
