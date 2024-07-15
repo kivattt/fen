@@ -115,7 +115,7 @@ func (fp *FilesPane) Init() {
 	}()
 }
 
-// Adds newEvent to oldEvents, removing duplicate and unecessary prior events
+// Adds newEvent to oldEvents, removing duplicate and unnecessary prior events
 func AddEventToBatch(oldEvents []fsnotify.Event, newEvent fsnotify.Event) []fsnotify.Event {
 	newEventPathIsUnique := !slices.ContainsFunc(oldEvents, func(oldEvent fsnotify.Event) bool {
 		return oldEvent.Name == newEvent.Name
