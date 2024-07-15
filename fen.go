@@ -57,6 +57,7 @@ type Config struct {
 	PrintPathOnOpen         bool                 `lua:"print_path_on_open"`
 	TerminalTitle           bool                 `lua:"terminal_title"`
 	ShowHelpText            bool                 `lua:"show_help_text"`
+	ShowHostname            bool                 `lua:"show_hostname"`
 	Open                    []PreviewOrOpenEntry `lua:"open"`
 	Preview                 []PreviewOrOpenEntry `lua:"preview"`
 	SortBy                  string               `lua:"sort_by"`
@@ -73,6 +74,7 @@ func NewConfigDefaultValues() Config {
 		FoldersFirst:            true,
 		TerminalTitle:           true,
 		ShowHelpText:            true,
+		ShowHostname:            true,
 		SortBy:                  "none",
 		FileEventIntervalMillis: 300,
 	}

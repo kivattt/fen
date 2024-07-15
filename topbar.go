@@ -53,9 +53,18 @@ func (topBar *TopBar) Draw(screen tcell.Screen) {
 			}
 		}
 	}
-	path = "[::b]" + usernameColor + tview.Escape(username) + " " +
+
+	textToShow := "[::b]" + usernameColor + tview.Escape(username)
+	if topBar.fen.config.ShowHostname && runtime.GOOS == "linux" {
+		hostname, err := os.Hostname()
+		if err == nil {
+			textToShow += tview.Escape("@" + hostname)
+		}
+	}
+
+	textToShow += " " +
 		"[blue::B]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithEndSeparator(pathToShow)), "[blue::B]") +
 		"[white::b]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithoutEndSeparator(filepath.Base(path))), "[white::b]")
 
-	tview.Print(screen, path, x, y, w, tview.AlignLeft, tcell.ColorBlue)
+	tview.Print(screen, textToShow, x, y, w, tview.AlignLeft, tcell.ColorBlue)
 }

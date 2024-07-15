@@ -43,6 +43,7 @@ func main() {
 	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path and exit on open file")
 	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "")
 	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "Show the 'For help: ...' text")
+	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "Show username@hostname in the top-left on Linux")
 	selectPaths := flag.Bool("select", false, "Select PATHS")
 
 	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
@@ -192,6 +193,9 @@ func main() {
 	}
 	if flagPassed("show-help-text") {
 		fen.config.ShowHelpText = *showHelpText
+	}
+	if flagPassed("show-hostname") {
+		fen.config.ShowHostname = *showHostname
 	}
 	if flagPassed("sort-by") {
 		fen.config.SortBy = *sortBy
