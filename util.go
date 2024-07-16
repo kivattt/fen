@@ -152,24 +152,200 @@ func FileLastModifiedString(path string) (string, error) {
 	return stat.ModTime().Format(time.UnixDate), nil
 }
 
+// This map inverted: https://github.com/gdamore/tcell/blob/88b9c25c3c5ee48b611dfeca9a2e9cf07812c35e/color.go#L851
+var colorToNamesMap = map[tcell.Color]string{
+	tcell.ColorBlack:                "black",
+	tcell.ColorMaroon:               "maroon",
+	tcell.ColorGreen:                "green",
+	tcell.ColorOlive:                "olive",
+	tcell.ColorNavy:                 "navy",
+	tcell.ColorPurple:               "purple",
+	tcell.ColorTeal:                 "teal",
+	tcell.ColorSilver:               "silver",
+	tcell.ColorGray:                 "gray",
+	tcell.ColorRed:                  "red",
+	tcell.ColorLime:                 "lime",
+	tcell.ColorYellow:               "yellow",
+	tcell.ColorBlue:                 "blue",
+	tcell.ColorFuchsia:              "fuchsia",
+	tcell.ColorAqua:                 "aqua",
+	tcell.ColorWhite:                "white",
+	tcell.ColorAliceBlue:            "aliceblue",
+	tcell.ColorAntiqueWhite:         "antiquewhite",
+	tcell.ColorAquaMarine:           "aquamarine",
+	tcell.ColorAzure:                "azure",
+	tcell.ColorBeige:                "beige",
+	tcell.ColorBisque:               "bisque",
+	tcell.ColorBlanchedAlmond:       "blanchedalmond",
+	tcell.ColorBlueViolet:           "blueviolet",
+	tcell.ColorBrown:                "brown",
+	tcell.ColorBurlyWood:            "burlywood",
+	tcell.ColorCadetBlue:            "cadetblue",
+	tcell.ColorChartreuse:           "chartreuse",
+	tcell.ColorChocolate:            "chocolate",
+	tcell.ColorCoral:                "coral",
+	tcell.ColorCornflowerBlue:       "cornflowerblue",
+	tcell.ColorCornsilk:             "cornsilk",
+	tcell.ColorCrimson:              "crimson",
+	tcell.ColorDarkBlue:             "darkblue",
+	tcell.ColorDarkCyan:             "darkcyan",
+	tcell.ColorDarkGoldenrod:        "darkgoldenrod",
+	tcell.ColorDarkGray:             "darkgray",
+	tcell.ColorDarkGreen:            "darkgreen",
+	tcell.ColorDarkKhaki:            "darkkhaki",
+	tcell.ColorDarkMagenta:          "darkmagenta",
+	tcell.ColorDarkOliveGreen:       "darkolivegreen",
+	tcell.ColorDarkOrange:           "darkorange",
+	tcell.ColorDarkOrchid:           "darkorchid",
+	tcell.ColorDarkRed:              "darkred",
+	tcell.ColorDarkSalmon:           "darksalmon",
+	tcell.ColorDarkSeaGreen:         "darkseagreen",
+	tcell.ColorDarkSlateBlue:        "darkslateblue",
+	tcell.ColorDarkSlateGray:        "darkslategray",
+	tcell.ColorDarkTurquoise:        "darkturquoise",
+	tcell.ColorDarkViolet:           "darkviolet",
+	tcell.ColorDeepPink:             "deeppink",
+	tcell.ColorDeepSkyBlue:          "deepskyblue",
+	tcell.ColorDimGray:              "dimgray",
+	tcell.ColorDodgerBlue:           "dodgerblue",
+	tcell.ColorFireBrick:            "firebrick",
+	tcell.ColorFloralWhite:          "floralwhite",
+	tcell.ColorForestGreen:          "forestgreen",
+	tcell.ColorGainsboro:            "gainsboro",
+	tcell.ColorGhostWhite:           "ghostwhite",
+	tcell.ColorGold:                 "gold",
+	tcell.ColorGoldenrod:            "goldenrod",
+	tcell.ColorGreenYellow:          "greenyellow",
+	tcell.ColorHoneydew:             "honeydew",
+	tcell.ColorHotPink:              "hotpink",
+	tcell.ColorIndianRed:            "indianred",
+	tcell.ColorIndigo:               "indigo",
+	tcell.ColorIvory:                "ivory",
+	tcell.ColorKhaki:                "khaki",
+	tcell.ColorLavender:             "lavender",
+	tcell.ColorLavenderBlush:        "lavenderblush",
+	tcell.ColorLawnGreen:            "lawngreen",
+	tcell.ColorLemonChiffon:         "lemonchiffon",
+	tcell.ColorLightBlue:            "lightblue",
+	tcell.ColorLightCoral:           "lightcoral",
+	tcell.ColorLightCyan:            "lightcyan",
+	tcell.ColorLightGoldenrodYellow: "lightgoldenrodyellow",
+	tcell.ColorLightGray:            "lightgray",
+	tcell.ColorLightGreen:           "lightgreen",
+	tcell.ColorLightPink:            "lightpink",
+	tcell.ColorLightSalmon:          "lightsalmon",
+	tcell.ColorLightSeaGreen:        "lightseagreen",
+	tcell.ColorLightSkyBlue:         "lightskyblue",
+	tcell.ColorLightSlateGray:       "lightslategray",
+	tcell.ColorLightSteelBlue:       "lightsteelblue",
+	tcell.ColorLightYellow:          "lightyellow",
+	tcell.ColorLimeGreen:            "limegreen",
+	tcell.ColorLinen:                "linen",
+	tcell.ColorMediumAquamarine:     "mediumaquamarine",
+	tcell.ColorMediumBlue:           "mediumblue",
+	tcell.ColorMediumOrchid:         "mediumorchid",
+	tcell.ColorMediumPurple:         "mediumpurple",
+	tcell.ColorMediumSeaGreen:       "mediumseagreen",
+	tcell.ColorMediumSlateBlue:      "mediumslateblue",
+	tcell.ColorMediumSpringGreen:    "mediumspringgreen",
+	tcell.ColorMediumTurquoise:      "mediumturquoise",
+	tcell.ColorMediumVioletRed:      "mediumvioletred",
+	tcell.ColorMidnightBlue:         "midnightblue",
+	tcell.ColorMintCream:            "mintcream",
+	tcell.ColorMistyRose:            "mistyrose",
+	tcell.ColorMoccasin:             "moccasin",
+	tcell.ColorNavajoWhite:          "navajowhite",
+	tcell.ColorOldLace:              "oldlace",
+	tcell.ColorOliveDrab:            "olivedrab",
+	tcell.ColorOrange:               "orange",
+	tcell.ColorOrangeRed:            "orangered",
+	tcell.ColorOrchid:               "orchid",
+	tcell.ColorPaleGoldenrod:        "palegoldenrod",
+	tcell.ColorPaleGreen:            "palegreen",
+	tcell.ColorPaleTurquoise:        "paleturquoise",
+	tcell.ColorPaleVioletRed:        "palevioletred",
+	tcell.ColorPapayaWhip:           "papayawhip",
+	tcell.ColorPeachPuff:            "peachpuff",
+	tcell.ColorPeru:                 "peru",
+	tcell.ColorPink:                 "pink",
+	tcell.ColorPlum:                 "plum",
+	tcell.ColorPowderBlue:           "powderblue",
+	tcell.ColorRebeccaPurple:        "rebeccapurple",
+	tcell.ColorRosyBrown:            "rosybrown",
+	tcell.ColorRoyalBlue:            "royalblue",
+	tcell.ColorSaddleBrown:          "saddlebrown",
+	tcell.ColorSalmon:               "salmon",
+	tcell.ColorSandyBrown:           "sandybrown",
+	tcell.ColorSeaGreen:             "seagreen",
+	tcell.ColorSeashell:             "seashell",
+	tcell.ColorSienna:               "sienna",
+	tcell.ColorSkyblue:              "skyblue",
+	tcell.ColorSlateBlue:            "slateblue",
+	tcell.ColorSlateGray:            "slategray",
+	tcell.ColorSnow:                 "snow",
+	tcell.ColorSpringGreen:          "springgreen",
+	tcell.ColorSteelBlue:            "steelblue",
+	tcell.ColorTan:                  "tan",
+	tcell.ColorThistle:              "thistle",
+	tcell.ColorTomato:               "tomato",
+	tcell.ColorTurquoise:            "turquoise",
+	tcell.ColorViolet:               "violet",
+	tcell.ColorWheat:                "wheat",
+	tcell.ColorWhiteSmoke:           "whitesmoke",
+	tcell.ColorYellowGreen:          "yellowgreen",
+	// Duplicate keys
+	/*
+	   tcell.ColorGray:                "grey",
+	   tcell.ColorDimGray:             "dimgrey",
+	   tcell.ColorDarkGray:            "darkgrey",
+	   tcell.ColorDarkSlateGray:       "darkslategrey",
+	   tcell.ColorLightGray:           "lightgrey",
+	   tcell.ColorLightSlateGray:      "lightslategrey",
+	   tcell.ColorSlateGray:           "slategrey",
+	*/
+}
+
+// https://github.com/gdamore/tcell/blob/88b9c25c3c5ee48b611dfeca9a2e9cf07812c35e/color.go#L1021
+func colorToString(color tcell.Color) string {
+	if !color.Valid() {
+		switch color {
+		case tcell.ColorNone:
+			return "none"
+		case tcell.ColorDefault:
+			return "default"
+		case tcell.ColorReset:
+			return "reset"
+		}
+		return ""
+	}
+
+	ret := colorToNamesMap[color]
+	if ret == "" {
+		return color.CSS()
+	}
+	return ret
+}
+
 func StyleToStyleTagString(style tcell.Style) string {
 	foreground, background, attributeMask := style.Decompose()
 	// https://pkg.go.dev/github.com/gdamore/tcell/v2#AttrMask
-	attributeStyleTagNameLookup := "blrudis"
-	attributesString := ""
+	attributeStyleTagNameLookup := []byte{'b', 'l', 'r', 'u', 'd', 'i', 's'}
+
+	var attributesStringBuilder strings.Builder
 	if attributeMask != 0 {
 		for i := 0; i < len(attributeStyleTagNameLookup); i++ {
 			if attributeMask&(1<<i) != 0 {
-				attributesString += string(attributeStyleTagNameLookup[i])
+				attributesStringBuilder.WriteByte(attributeStyleTagNameLookup[i])
 			}
 		}
 	}
 
+	attributesString := attributesStringBuilder.String()
 	if attributesString == "" {
-		return "[" + foreground.String() + ":" + background.String() + "]"
+		return "[" + colorToString(foreground) + ":" + colorToString(background) + "]"
 	}
 
-	return "[" + foreground.String() + ":" + background.String() + ":" + attributesString + "]"
+	return "[" + colorToString(foreground) + ":" + colorToString(background) + ":" + attributesString + "]"
 }
 
 func FileColor(stat os.FileInfo, path string) tcell.Style {
