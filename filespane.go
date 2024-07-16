@@ -570,6 +570,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Dim(true)
 		}
 
+		styleStr := StyleToStyleTagString(style)
+
 		entrySizeText := ""
 		entrySizePrintedSize := 0
 		if fp.showEntrySizes {
@@ -582,10 +584,9 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				}
 			}
 
-			_, entrySizePrintedSize = tview.Print(screen, StyleToStyleTagString(style)+" "+tview.Escape(entrySizeText)+" ", x, y+i, w-1, tview.AlignRight, tcell.ColorDefault)
+			_, entrySizePrintedSize = tview.Print(screen, styleStr+" "+tview.Escape(entrySizeText)+" ", x, y+i, w-1, tview.AlignRight, tcell.ColorDefault)
 		}
 
-		styleStr := StyleToStyleTagString(style)
 		tview.Print(screen, spaceForSelected+styleStr+" "+FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(entry.Name()), styleStr)+strings.Repeat(" ", w), x, y+i, w-1-entrySizePrintedSize, tview.AlignLeft, tcell.ColorDefault)
 
 		// You can't see which files are yanked in the FreeBSD tty terminal since dim doesn't change the color, so this makes it visible
