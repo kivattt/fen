@@ -642,6 +642,9 @@ func main() {
 			fen.ToggleSelectingWithV()
 			fen.UpdatePanes(false)
 			return nil
+		} else if event.Key() == tcell.KeyEscape {
+			fen.DisableSelectingWithV()
+			fen.UpdatePanes(false)
 		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
 			helpScreen.visible = !helpScreen.visible
 			if helpScreen.visible {
