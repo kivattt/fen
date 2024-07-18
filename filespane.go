@@ -223,13 +223,6 @@ type FenLuaGlobal struct {
 }
 
 func (f *FenLuaGlobal) Print(text string, x, y, maxWidth, align int, color tcell.Color) int {
-	if x < 0 || x > f.Width {
-		return 0
-	}
-	if y < 0 || y >= f.Height {
-		return 0
-	}
-
 	text = strings.ReplaceAll(text, "\t", "    ")
 	_, widthPrinted := tview.Print(f.screen, text, x+f.x, y+f.y, maxWidth, align, color)
 	return widthPrinted
