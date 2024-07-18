@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
+
 	//	"runtime/pprof"
 	"strconv"
 	"strings"
@@ -17,7 +19,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.5.3"
+const version = "v1.5.4"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -245,6 +247,8 @@ func main() {
 		return event
 	})
 
+	lastWheelUpTime := time.Now()
+	lastWheelDownTime := time.Now()
 	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
 		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") {
 			// Since `return nil, action` redraws the screen for some reason,
@@ -271,9 +275,19 @@ func main() {
 		case tcell.WheelRight:
 			fen.GoRight(app, "")
 		case tcell.WheelUp:
-			fen.GoUp()
+			if time.Since(lastWheelUpTime) > time.Duration(30*time.Millisecond) {
+				fen.GoUp()
+			} else {
+				fen.GoUp(fen.config.ScrollSpeed)
+			}
+			lastWheelUpTime = time.Now()
 		case tcell.WheelDown:
-			fen.GoDown()
+			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
+				fen.GoDown()
+			} else {
+				fen.GoDown(fen.config.ScrollSpeed)
+			}
+			lastWheelDownTime = time.Now()
 		default:
 			return nil, action
 		}

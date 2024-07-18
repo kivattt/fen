@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"os/user"
 	"strings"
 
@@ -78,16 +79,22 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 	username, groupname, err := FileUserAndGroupName(helpScreen.fen.sel)
 
 	topUser, _ := user.Current()
-	topUsernameColor := "[lime:]"
+	topUsernameColor := "[lime::b]"
 	if topUser.Uid == "0" {
-		topUsernameColor = "[red:]"
+		topUsernameColor = "[red::b]"
+	}
+
+	hostname := ""
+	if helpScreen.fen.config.ShowHostname {
+		hostname, _ = os.Hostname()
+		hostname += " " // So the length includes the preceeding '@' symbol from the topbar
 	}
 
 	tview.Print(screen, topUsernameColor+"|[-:-:-:-]", x, y+1, w, tview.AlignLeft, tcell.ColorDefault)
-	tview.Print(screen, "[blue:]|", x+len(topUser.Username)+1, y+1, w, tview.AlignLeft, tcell.ColorDefault)
+	tview.Print(screen, "[blue::b]|", x+len(topUser.Username)+1+len(hostname), y+1, w, tview.AlignLeft, tcell.ColorDefault)
 
 	tview.Print(screen, topUsernameColor+"|[-:-:-:-]", x, y+2, w, tview.AlignLeft, tcell.ColorDefault)
-	tview.Print(screen, "[blue:]Path", x+len(topUser.Username)+1, y+2, w, tview.AlignLeft, tcell.ColorDefault)
+	tview.Print(screen, "[blue::b]Path", x+len(topUser.Username)+1+len(hostname), y+2, w, tview.AlignLeft, tcell.ColorDefault)
 
 	tview.Print(screen, topUsernameColor+"User[-:-:-:-]", x, y+3, w, tview.AlignLeft, tcell.ColorDefault)
 
@@ -109,18 +116,22 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 			break
 		}
 
-		var keyBindingsStr strings.Builder
+		keybindingsStrLengthWithoutStyleTags := 0
+		var keyBindingsStrBuilder strings.Builder
 		for i, keyBinding := range e.KeyBindings {
-			keyBindingsStr.WriteString("[blue:]" + keyBinding + "[default:]")
+			keyBindingsStrBuilder.WriteString("[blue:]" + keyBinding + "[default:]")
+			keybindingsStrLengthWithoutStyleTags += len(keyBinding)
+
 			if i < len(e.KeyBindings)-1 {
-				keyBindingsStr.WriteString(" or ")
+				keyBindingsStrBuilder.WriteString(" or ")
+				keybindingsStrLengthWithoutStyleTags += len(" or ")
 			}
 		}
 		xPos := x + w/2 - (longestDescriptionLength+15)/2
 		if xPos < len("|         User:Group")+1 {
 			xPos = len("|         User:Group") + 1
 		}
-		tview.Print(screen, keyBindingsStr.String(), xPos, y+dY+controlsYOffset, w, tview.AlignLeft, tcell.ColorDefault)
+		tview.Print(screen, " "+keyBindingsStrBuilder.String()+strings.Repeat(" ", 15-keybindingsStrLengthWithoutStyleTags), xPos-1, y+dY+controlsYOffset, w, tview.AlignLeft, tcell.ColorDefault)
 		tview.Print(screen, e.Description, xPos+15, y+dY+controlsYOffset, w, tview.AlignLeft, tcell.ColorDefault)
 	}
 

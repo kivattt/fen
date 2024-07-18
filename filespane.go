@@ -563,6 +563,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		if slices.Contains(fp.fen.selected, entryFullPath) {
 			spaceForSelected = " "
 			style = style.Foreground(tcell.ColorYellow)
+			style = style.Bold(false) // FileColor() makes folders and executables bold
 		}
 
 		entryInYankSelected := slices.Contains(fp.fen.yankSelected, entryFullPath)

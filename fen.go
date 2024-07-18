@@ -49,20 +49,22 @@ type Fen struct {
 const luaTagName = "lua"
 
 type Config struct {
-	UiBorders               bool                 `lua:"ui_borders"`
-	Mouse                   bool                 `lua:"mouse"`
-	NoWrite                 bool                 `lua:"no_write"`
-	HiddenFiles             bool                 `lua:"hidden_files"`
-	FoldersFirst            bool                 `lua:"folders_first"`
-	PrintPathOnOpen         bool                 `lua:"print_path_on_open"`
-	TerminalTitle           bool                 `lua:"terminal_title"`
-	ShowHelpText            bool                 `lua:"show_help_text"`
-	ShowHostname            bool                 `lua:"show_hostname"`
-	Open                    []PreviewOrOpenEntry `lua:"open"`
-	Preview                 []PreviewOrOpenEntry `lua:"preview"`
-	SortBy                  string               `lua:"sort_by"`
-	SortReverse             bool                 `lua:"sort_reverse"`
-	FileEventIntervalMillis int                  `lua:"file_event_interval_ms"`
+	UiBorders                      bool                 `lua:"ui_borders"`
+	Mouse                          bool                 `lua:"mouse"`
+	NoWrite                        bool                 `lua:"no_write"`
+	HiddenFiles                    bool                 `lua:"hidden_files"`
+	FoldersFirst                   bool                 `lua:"folders_first"`
+	PrintPathOnOpen                bool                 `lua:"print_path_on_open"`
+	TerminalTitle                  bool                 `lua:"terminal_title"`
+	ShowHelpText                   bool                 `lua:"show_help_text"`
+	ShowHostname                   bool                 `lua:"show_hostname"`
+	Open                           []PreviewOrOpenEntry `lua:"open"`
+	Preview                        []PreviewOrOpenEntry `lua:"preview"`
+	SortBy                         string               `lua:"sort_by"`
+	SortReverse                    bool                 `lua:"sort_reverse"`
+	FileEventIntervalMillis        int                  `lua:"file_event_interval_ms"`
+	AlwaysShowJobAndSelectionCount bool                 `lua:"always_show_job_and_selection_count"`
+	ScrollSpeed                    int                  `lua:"scroll_speed"`
 }
 
 var ValidSortByValues = [...]string{"none", "modified", "size"}
@@ -78,6 +80,7 @@ func NewConfigDefaultValues() Config {
 		ShowHostname:            true,
 		SortBy:                  "none",
 		FileEventIntervalMillis: 300,
+		ScrollSpeed:             2,
 	}
 }
 
@@ -427,29 +430,39 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 	fen.selectedBeforeSelectingWithV = []string{}
 }
 
-func (fen *Fen) GoUp() {
-	if fen.middlePane.selectedEntryIndex-1 < 0 {
+func (fen *Fen) GoUp(numEntries ...int) {
+	numEntriesToMove := 1
+	if len(numEntries) > 0 {
+		numEntriesToMove = max(1, numEntries[0])
+	}
+
+	if fen.middlePane.selectedEntryIndex-numEntriesToMove < 0 {
 		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
 		return
 	}
 
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex-1))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex-numEntriesToMove))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = fen.middlePane.selectedEntryIndex - 1 // Strange, but it works
+		fen.selectingWithVEndIndex = fen.middlePane.selectedEntryIndex - numEntriesToMove // Strange, but it works
 	}
 }
 
-func (fen *Fen) GoDown() {
-	if fen.middlePane.selectedEntryIndex+1 >= len(fen.middlePane.entries.Load().([]os.DirEntry)) {
+func (fen *Fen) GoDown(numEntries ...int) {
+	numEntriesToMove := 1
+	if len(numEntries) > 0 {
+		numEntriesToMove = max(1, numEntries[0])
+	}
+
+	if fen.middlePane.selectedEntryIndex+numEntriesToMove >= len(fen.middlePane.entries.Load().([]os.DirEntry)) {
 		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries.Load().([]os.DirEntry))-1))
 		return
 	}
 
-	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex+1))
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex+numEntriesToMove))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = fen.middlePane.selectedEntryIndex + 1 // Strange, but it works
+		fen.selectingWithVEndIndex = fen.middlePane.selectedEntryIndex + numEntriesToMove // Strange, but it works
 	}
 }
 

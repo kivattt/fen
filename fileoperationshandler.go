@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strconv"
 	"sync"
 
 	dirCopy "github.com/otiai10/copy"
@@ -68,12 +69,13 @@ func (handler *FileOperationsHandler) QueueOperation(fileOperation FileOperation
 func (handler *FileOperationsHandler) decrementWorkCount() {
 	handler.workCountMutex.Lock()
 	handler.workCount--
+	if handler.workCount < 0 {
+		panic("Tried to decrement work count to below 0: " + strconv.Itoa(handler.workCount))
+	}
 	handler.workCountMutex.Unlock()
 }
 
 func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, batchIndex, index int) error {
-	defer handler.decrementWorkCount()
-
 	var statusToSet Status = Failed
 	defer func() {
 		handler.entriesMutex.Lock()
@@ -82,6 +84,7 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 	}()
 
 	if handler.fen.config.NoWrite {
+		handler.decrementWorkCount()
 		return errors.New("NoWrite is enabled, will not do anything")
 	}
 
@@ -90,58 +93,69 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 	}
 
 	if fileOperation.path == "" {
+		handler.decrementWorkCount()
 		return errors.New("Empty path")
 	}
 
 	_, err := os.Stat(fileOperation.path)
 	if err != nil {
+		handler.decrementWorkCount()
 		return err
 	}
 
 	switch fileOperation.operation {
 	case Rename:
 		if fileOperation.newPath == "" {
+			handler.decrementWorkCount()
 			return errors.New("Empty newPath")
 		}
 
 		_, err := os.Stat(fileOperation.newPath)
 		if err == nil {
+			handler.decrementWorkCount()
 			return errors.New("Can't rename to an existing file")
 		}
 		err = os.Rename(fileOperation.path, fileOperation.newPath)
 		if err != nil {
+			handler.decrementWorkCount()
 			return err
 		}
 	case Delete:
 		err := os.RemoveAll(fileOperation.path)
 		if err != nil {
+			handler.decrementWorkCount()
 			return err
 		}
 	case Copy:
 		fi, err := os.Stat(fileOperation.path)
 		if err != nil {
+			handler.decrementWorkCount()
 			return err
 		}
 
 		if fi.IsDir() {
 			err := os.Mkdir(fileOperation.newPath, 0755)
 			if err != nil {
+				handler.decrementWorkCount()
 				return err
 			}
 
 			err = dirCopy.Copy(fileOperation.path, fileOperation.newPath)
 			if err != nil {
+				handler.decrementWorkCount()
 				return err
 			}
 		} else if fi.Mode().IsRegular() {
 			source, err := os.Open(fileOperation.path)
 			if err != nil {
+				handler.decrementWorkCount()
 				return err
 			}
 			defer source.Close()
 
 			destination, err := os.Create(fileOperation.newPath)
 			if err != nil {
+				handler.decrementWorkCount()
 				return err
 			}
 			defer destination.Close()
@@ -149,6 +163,7 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 			buf := make([]byte, 8*32*1024) // 8 times larger buffer size than io.Copy()
 			_, err = io.CopyBuffer(destination, source, buf)
 			if err != nil {
+				handler.decrementWorkCount()
 				return err
 			}
 
@@ -157,6 +172,11 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 	default:
 		panic("doOperation got an invalid operation")
 	}
+
+	handler.decrementWorkCount()
+	// This is only here to update the jobcount text in the bottombar with the correct workCount value
+	// This update will probably be close in time with the file watcher update preceeding it, which can look bad (atleast on xterm...)
+	handler.fen.app.QueueUpdateDraw(func() {})
 
 	statusToSet = Completed
 

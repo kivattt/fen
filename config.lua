@@ -11,6 +11,8 @@ fen.show_help_text = true
 fen.sort_by = "none" -- "fen -h" for valid values
 fen.sort_reverse = false
 fen.file_event_interval_ms = 300 -- How often to update the screen on file events, if set to 0, it updates on every event
+fen.always_show_job_and_selection_count = false -- Shows the blue and yellow numbers in the bottom right even if they are 0
+fen.scroll_speed = 2 -- When scrolling faster than 30ms per scroll, scroll this many entries
 
 -- The fen version string
 print(fen.version) -- Something like "v1.3.0"

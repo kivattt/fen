@@ -39,12 +39,10 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	freeBytesStr += " free"
 
+	alternateTextToUse := bottomBar.alternateText
 	if bottomBar.alternateText != "" {
 		tview.Print(screen, "[teal:]"+tview.Escape(bottomBar.alternateText), x, y, w, tview.AlignLeft, tcell.ColorDefault)
-		// We still want to see the disk space left
-		tview.Print(screen, tview.Escape(freeBytesStr), x, y, w, tview.AlignRight, tcell.ColorDefault)
 		bottomBar.alternateText = ""
-		return
 	}
 
 	username, groupname, err := FileUserAndGroupName(bottomBar.fen.sel)
@@ -61,7 +59,10 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 		noWriteEnabledText = " [red::r]no-write"
 	}
 
-	_, leftLength := tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
+	leftLength := 0
+	if alternateTextToUse == "" {
+		_, leftLength = tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
+	}
 	_, rightFreeBytesStrLength := tview.Print(screen, " "+tview.Escape(freeBytesStr), x, y, w, tview.AlignRight, tcell.ColorDefault)
 	rightFreeBytesStrLength-- // To ignore the leading ^ space
 
@@ -72,15 +73,51 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	// We multiply entriesLengthStr by 2 so that the help text won't suddenly change/move if the selected index string length changes
 	rightLength := rightFreeBytesStrLength + positionStrMaxLength + 1 // For positioning the help text
-	spaceForHelpText := w - leftLength - rightLength
 
 	positionStrXPos := w - rightFreeBytesStrLength - len(positionStr) - 1
 	positionStrLowerXPos := w - rightFreeBytesStrLength - positionStrMaxLength - 1
 	positionStrHasNoSpace := positionStrLowerXPos < leftLength+1
 
+	jobCountStr := ""
+	bottomBar.fen.fileOperationsHandler.workCountMutex.Lock()
+	if bottomBar.fen.config.AlwaysShowJobAndSelectionCount || bottomBar.fen.fileOperationsHandler.workCount > 0 {
+		jobCountStr = strconv.Itoa(bottomBar.fen.fileOperationsHandler.workCount)
+	}
+	bottomBar.fen.fileOperationsHandler.workCountMutex.Unlock()
+
+	selectedCountStr := ""
+	if bottomBar.fen.config.AlwaysShowJobAndSelectionCount || len(bottomBar.fen.selected) > 0 {
+		jobCountStr += " "
+		selectedCountStr = strconv.Itoa(len(bottomBar.fen.selected))
+	}
+
+	jobCountAndSelectedCountStrHasNoSpace := positionStrLowerXPos-1-len(jobCountStr)-len(selectedCountStr) < leftLength+1
+
+	jobCountAndSelectedCountStrPrintedLength := 0
+	if !jobCountAndSelectedCountStrHasNoSpace {
+		// Dim job count when its 0
+		jobCountStrAttributes := ""
+		if jobCountStr == "0 " { // Job count string has a trailing space in it
+			jobCountStrAttributes = "d"
+		}
+
+		// Dim selected count when its 0
+		selectedCountStrAttributes := ""
+		if selectedCountStr == "0" {
+			selectedCountStrAttributes = "d"
+		}
+
+		_, jobCountAndSelectedCountStrPrintedLength = tview.Print(screen, "[blue::"+jobCountStrAttributes+"]"+jobCountStr+"[-:-:-:-][yellow::"+selectedCountStrAttributes+"]"+selectedCountStr, positionStrLowerXPos-1-len(jobCountStr)-len(selectedCountStr), y, w, tview.AlignLeft, tcell.ColorDefault)
+		if jobCountAndSelectedCountStrPrintedLength > 0 {
+			jobCountAndSelectedCountStrPrintedLength += 1
+		}
+	}
+
+	spaceForHelpText := w - leftLength - rightLength - jobCountAndSelectedCountStrPrintedLength
+
 	if !bottomBar.fen.config.ShowHelpText || *bottomBar.fen.helpScreenVisible {
 		if !positionStrHasNoSpace {
-			tview.Print(screen, tview.Escape(positionStr), positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
+			tview.Print(screen, positionStr, positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
 		}
 		return
 	}
@@ -94,7 +131,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	if spaceForHelpText-1 > len(helpTextAlternatives[len(helpTextAlternatives)-1]) {
 		if !positionStrHasNoSpace {
-			tview.Print(screen, tview.Escape(positionStr), positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
+			tview.Print(screen, positionStr, positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
 		}
 	} else {
 		// We hide the positionStr to give enough space for the help text
@@ -103,7 +140,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 		// Show positionStr anyway if the help text has no chance of being shown even with the positionStr hidden
 		if spaceForHelpText-1 <= len(helpTextAlternatives[len(helpTextAlternatives)-1]) {
 			if !positionStrHasNoSpace {
-				tview.Print(screen, tview.Escape(positionStr), positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
+				tview.Print(screen, positionStr, positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
 			}
 			return
 		}
@@ -133,5 +170,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 		helpTextXPos = x + leftLength
 	}
 
-	tview.Print(screen, "[::d]"+helpText, helpTextXPos, y, spaceForHelpText, tview.AlignLeft, tcell.ColorDefault)
+	if alternateTextToUse == "" {
+		tview.Print(screen, "[::d]"+helpText, helpTextXPos, y, spaceForHelpText, tview.AlignLeft, tcell.ColorDefault)
+	}
 }
