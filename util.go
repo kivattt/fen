@@ -566,9 +566,21 @@ type FenOpenWithLuaGlobal struct {
 	RuntimeOS     string
 }
 
+// Returns the keys of theMap, order not guaranteed
+func MapStringBoolKeys(theMap map[string]bool) []string {
+	ret := make([]string, len(theMap))
+	i := 0
+	for k := range theMap {
+		ret[i] = k
+		i++
+	}
+	return ret
+}
+
 func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 	if fen.config.PrintPathOnOpen && openWith == "" {
 		app.Stop()
+
 		if len(fen.selected) <= 0 {
 			if strings.ContainsRune(fen.sel, '\n') {
 				fmt.Fprintln(os.Stderr, "The file you've selected has a newline (0x0a) in it's filename, exiting...")
@@ -576,13 +588,15 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 			}
 			fmt.Println(fen.sel)
 		} else {
-			for _, selectedFile := range fen.selected {
+			for selectedFile := range fen.selected {
 				if strings.ContainsRune(selectedFile, '\n') {
 					fmt.Fprintln(os.Stderr, "A file you've selected has a newline (0x0a) in it's filename, exiting...")
 					return
 				}
 			}
-			fmt.Println(strings.Join(fen.selected, "\n"))
+			for selectedFile := range fen.selected {
+				fmt.Println(selectedFile)
+			}
 		}
 		return
 	}
@@ -617,7 +631,7 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 				}
 
 				if len(fen.selected) > 0 {
-					fenOpenWithLuaGlobal.SelectedFiles = fen.selected
+					fenOpenWithLuaGlobal.SelectedFiles = MapStringBoolKeys(fen.selected)
 				} else {
 					fenOpenWithLuaGlobal.SelectedFiles = []string{fen.sel}
 				}
@@ -647,7 +661,7 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 			if len(fen.selected) <= 0 {
 				cmd = exec.Command(programName, append(programArguments, fen.sel)...)
 			} else {
-				cmd = exec.Command(programName, append(programArguments, fen.selected...)...)
+				cmd = exec.Command(programName, append(programArguments, MapStringBoolKeys(fen.selected)...)...)
 			}
 			cmd.Dir = fen.wd
 			cmd.Stdin = os.Stdin

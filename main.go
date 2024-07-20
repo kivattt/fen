@@ -19,7 +19,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.5.4"
+const version = "v1.5.5"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -337,6 +337,7 @@ func main() {
 				SetFocus(1). // Default is "No"
 				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 					pages.RemovePage("forcequitmodal")
+
 					if buttonIndex != 0 {
 						return
 					}
@@ -485,10 +486,11 @@ func main() {
 			return nil
 		} else if event.Rune() == 'D' {
 			if len(fen.selected) > 0 || len(fen.yankSelected) > 0 {
-				fen.selected = []string{}
-				fen.yankSelected = []string{}
+				fen.selected = make(map[string]bool)
+				fen.yankSelected = make(map[string]bool)
 				fen.bottomBar.TemporarilyShowTextInstead("Deselected and un-yanked!")
 			}
+
 			fen.DisableSelectingWithV()
 			return nil
 		} else if event.Rune() == 'a' {
@@ -500,6 +502,7 @@ func main() {
 				SetFieldWidth(48)
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
+
 				if key == tcell.KeyEscape {
 					pages.RemovePage("inputfield")
 					return
@@ -550,6 +553,7 @@ func main() {
 			}
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
+
 				if key == tcell.KeyEscape {
 					pages.RemovePage("newfilemodal")
 					return
@@ -592,19 +596,29 @@ func main() {
 		} else if event.Rune() == 'y' {
 			fen.yankType = "copy"
 			if len(fen.selected) <= 0 {
-				fen.yankSelected = []string{fen.sel}
+				fen.yankSelected = map[string]bool{fen.sel: true}
 			} else {
-				fen.yankSelected = fen.selected
+				// We have to do this to copy fen.selected, and not a reference to it
+				fen.yankSelected = make(map[string]bool)
+				for k, v := range fen.selected {
+					fen.yankSelected[k] = v
+				}
 			}
+
 			fen.bottomBar.TemporarilyShowTextInstead("Yank!")
 			return nil
 		} else if event.Rune() == 'd' {
 			fen.yankType = "cut"
 			if len(fen.selected) <= 0 {
-				fen.yankSelected = []string{fen.sel}
+				fen.yankSelected = map[string]bool{fen.sel: true}
 			} else {
-				fen.yankSelected = fen.selected
+				// We have to do this to copy fen.selected, and not a reference to it
+				fen.yankSelected = make(map[string]bool)
+				for k, v := range fen.selected {
+					fen.yankSelected[k] = v
+				}
 			}
+
 			fen.bottomBar.TemporarilyShowTextInstead("Cut!")
 			return nil
 		} else if event.Rune() == 'z' || event.Key() == tcell.KeyBackspace {
@@ -625,12 +639,12 @@ func main() {
 			}
 
 			if fen.yankType == "copy" {
-				for _, e := range fen.yankSelected {
+				for e := range fen.yankSelected {
 					newPath := FilePathUniqueNameIfAlreadyExists(filepath.Join(fen.wd, filepath.Base(e)))
 					go fen.fileOperationsHandler.QueueOperation(FileOperation{operation: Copy, path: e, newPath: newPath})
 				}
 			} else if fen.yankType == "cut" {
-				for _, e := range fen.yankSelected {
+				for e := range fen.yankSelected {
 					newPath := FilePathUniqueNameIfAlreadyExists(filepath.Join(fen.wd, filepath.Base(e)))
 
 					// If we're cutting, then pasting the file to the same location, don't actually do anything
@@ -645,8 +659,11 @@ func main() {
 			}
 
 			// Reset selection after paste
-			fen.yankSelected = []string{}
-			fen.selected = []string{}
+			fen.yankSelected = make(map[string]bool)
+
+			fen.selected = make(map[string]bool)
+
+			fen.DisableSelectingWithV()
 
 			fen.UpdatePanes(false)
 			fen.bottomBar.TemporarilyShowTextInstead("Paste!")
@@ -706,6 +723,7 @@ func main() {
 				SetFocus(1). // Default is "No"
 				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 					pages.RemovePage("deletemodal")
+
 					if buttonIndex != 0 {
 						return
 					}
@@ -718,12 +736,13 @@ func main() {
 					if len(fen.selected) <= 0 {
 						go fen.fileOperationsHandler.QueueOperation(FileOperation{operation: Delete, path: fileToDelete})
 					} else {
-						for _, filePath := range fen.selected {
+						for filePath := range fen.selected {
 							go fen.fileOperationsHandler.QueueOperation(FileOperation{operation: Delete, path: filePath})
 						}
 					}
 
-					fen.selected = []string{}
+					fen.selected = make(map[string]bool)
+
 					fen.DisableSelectingWithV()
 					fen.UpdatePanes(false)
 				})
@@ -745,13 +764,13 @@ func main() {
 	})
 
 	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
-		print("\x1b[22t")                       // Push current terminal title
-		print("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen"
+		fmt.Print("\x1b[22t")                       // Push current terminal title
+		fmt.Print("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen"
 	}
 	if err := app.SetRoot(pages, true).EnableMouse(fen.config.Mouse).Run(); err != nil {
 		log.Fatal(err)
 	}
 	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
-		print("\x1b[23t") // Pop terminal title, sets it back to normal
+		fmt.Print("\x1b[23t") // Pop terminal title, sets it back to normal
 	}
 }

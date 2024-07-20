@@ -10,8 +10,8 @@ fen.show_hostname = true -- Does not apply to Windows, shows username@hostname i
 fen.show_help_text = true
 fen.sort_by = "none" -- "fen -h" for valid values
 fen.sort_reverse = false
-fen.file_event_interval_ms = 300 -- How often to update the screen on file events, if set to 0, it updates on every event
-fen.always_show_job_and_selection_count = false -- Shows the blue and yellow numbers in the bottom right even if they are 0
+fen.file_event_interval_ms = 300 -- How often to update the screen on file events (and job count updates), if set to 0, it updates on every event
+fen.always_show_info_numbers = false -- Shows the blue, green and yellow numbers in the bottom right even when they are 0
 fen.scroll_speed = 2 -- When scrolling faster than 30ms per scroll, scroll this many entries
 
 -- The fen version string

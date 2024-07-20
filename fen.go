@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"slices"
 	"strings"
 
 	"github.com/rivo/tview"
@@ -22,14 +21,14 @@ type Fen struct {
 	sel     string
 	history History
 
-	selected     []string
-	yankSelected []string
+	selected     map[string]bool
+	yankSelected map[string]bool
 	yankType     string // "", "copy", "cut"
 
 	selectingWithV               bool
 	selectingWithVStartIndex     int
 	selectingWithVEndIndex       int
-	selectedBeforeSelectingWithV []string
+	selectedBeforeSelectingWithV map[string]bool
 
 	config                Config
 	fileOperationsHandler FileOperationsHandler
@@ -49,22 +48,22 @@ type Fen struct {
 const luaTagName = "lua"
 
 type Config struct {
-	UiBorders                      bool                 `lua:"ui_borders"`
-	Mouse                          bool                 `lua:"mouse"`
-	NoWrite                        bool                 `lua:"no_write"`
-	HiddenFiles                    bool                 `lua:"hidden_files"`
-	FoldersFirst                   bool                 `lua:"folders_first"`
-	PrintPathOnOpen                bool                 `lua:"print_path_on_open"`
-	TerminalTitle                  bool                 `lua:"terminal_title"`
-	ShowHelpText                   bool                 `lua:"show_help_text"`
-	ShowHostname                   bool                 `lua:"show_hostname"`
-	Open                           []PreviewOrOpenEntry `lua:"open"`
-	Preview                        []PreviewOrOpenEntry `lua:"preview"`
-	SortBy                         string               `lua:"sort_by"`
-	SortReverse                    bool                 `lua:"sort_reverse"`
-	FileEventIntervalMillis        int                  `lua:"file_event_interval_ms"`
-	AlwaysShowJobAndSelectionCount bool                 `lua:"always_show_job_and_selection_count"`
-	ScrollSpeed                    int                  `lua:"scroll_speed"`
+	UiBorders               bool                 `lua:"ui_borders"`
+	Mouse                   bool                 `lua:"mouse"`
+	NoWrite                 bool                 `lua:"no_write"`
+	HiddenFiles             bool                 `lua:"hidden_files"`
+	FoldersFirst            bool                 `lua:"folders_first"`
+	PrintPathOnOpen         bool                 `lua:"print_path_on_open"`
+	TerminalTitle           bool                 `lua:"terminal_title"`
+	ShowHelpText            bool                 `lua:"show_help_text"`
+	ShowHostname            bool                 `lua:"show_hostname"`
+	Open                    []PreviewOrOpenEntry `lua:"open"`
+	Preview                 []PreviewOrOpenEntry `lua:"preview"`
+	SortBy                  string               `lua:"sort_by"`
+	SortReverse             bool                 `lua:"sort_reverse"`
+	FileEventIntervalMillis int                  `lua:"file_event_interval_ms"`
+	AlwaysShowInfoNumbers   bool                 `lua:"always_show_info_numbers"`
+	ScrollSpeed             int                  `lua:"scroll_speed"`
 }
 
 var ValidSortByValues = [...]string{"none", "modified", "size"}
@@ -96,7 +95,13 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
 	fen.helpScreenVisible = helpScreenVisible
 
-	fen.selectingWithV = false
+	if fen.selected == nil {
+		fen.selected = map[string]bool{}
+	}
+
+	fen.yankSelected = map[string]bool{}
+
+	fen.selectedBeforeSelectingWithV = map[string]bool{}
 
 	fen.wd = path
 
@@ -262,7 +267,13 @@ func (fen *Fen) EnableSelectingWithV() {
 	fen.selectingWithV = true
 	fen.selectingWithVStartIndex = fen.middlePane.selectedEntryIndex
 	fen.selectingWithVEndIndex = fen.selectingWithVStartIndex
-	fen.selectedBeforeSelectingWithV = fen.selected
+
+	// We have to do this to copy fen.selected, and not a reference to it
+	fen.selectedBeforeSelectingWithV = make(map[string]bool)
+
+	for k, v := range fen.selected {
+		fen.selectedBeforeSelectingWithV[k] = v
+	}
 }
 
 func (fen *Fen) DisableSelectingWithV() {
@@ -271,7 +282,7 @@ func (fen *Fen) DisableSelectingWithV() {
 	}
 
 	fen.selectingWithV = false
-	fen.selectedBeforeSelectingWithV = []string{}
+	fen.selectedBeforeSelectingWithV = make(map[string]bool)
 }
 
 func (fen *Fen) KeepMiddlePaneSelectionInBounds() {
@@ -359,30 +370,27 @@ func (fen *Fen) ShowFilepanes() {
 }
 
 func (fen *Fen) RemoveFromSelectedAndYankSelected(path string) {
-	if index := slices.Index(fen.selected, path); index != -1 {
-		fen.selected = append(fen.selected[:index], fen.selected[index+1:]...)
-	}
-
-	if index := slices.Index(fen.yankSelected, path); index != -1 {
-		fen.yankSelected = append(fen.yankSelected[:index], fen.yankSelected[index+1:]...)
-	}
+	delete(fen.selected, path)
+	delete(fen.yankSelected, path)
 }
 
 func (fen *Fen) ToggleSelection(filePath string) {
-	if index := slices.Index(fen.selected, filePath); index != -1 {
-		fen.selected = append(fen.selected[:index], fen.selected[index+1:]...)
+	_, exists := fen.selected[filePath]
+
+	if exists {
+		delete(fen.selected, filePath)
 		return
 	}
 
-	fen.selected = append(fen.selected, filePath)
+	fen.selected[filePath] = true
 }
 
 func (fen *Fen) EnableSelection(filePath string) {
-	if index := slices.Index(fen.selected, filePath); index != -1 {
-		return
+	if fen.selected == nil {
+		fen.selected = map[string]bool{}
 	}
 
-	fen.selected = append(fen.selected, filePath)
+	fen.selected[filePath] = true
 }
 
 func (fen *Fen) GoLeft() {
@@ -394,8 +402,7 @@ func (fen *Fen) GoLeft() {
 	fen.sel = fen.wd
 	fen.wd = filepath.Dir(fen.wd)
 
-	fen.selectingWithV = false
-	fen.selectedBeforeSelectingWithV = []string{}
+	fen.DisableSelectingWithV()
 }
 
 func (fen *Fen) GoRight(app *tview.Application, openWith string) {
@@ -423,11 +430,11 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 
 	if err != nil {
 		// FIXME
+		// Uhh.. fix what?
 		fen.sel = filepath.Join(fen.wd, fen.rightPane.GetSelectedEntryFromIndex(0))
 	}
 
-	fen.selectingWithV = false
-	fen.selectedBeforeSelectingWithV = []string{}
+	fen.DisableSelectingWithV()
 }
 
 func (fen *Fen) GoUp(numEntries ...int) {
@@ -436,16 +443,18 @@ func (fen *Fen) GoUp(numEntries ...int) {
 		numEntriesToMove = max(1, numEntries[0])
 	}
 
+	defer func() {
+		if fen.selectingWithV {
+			fen.selectingWithVEndIndex = max(0, fen.middlePane.selectedEntryIndex-numEntriesToMove)
+		}
+	}()
+
 	if fen.middlePane.selectedEntryIndex-numEntriesToMove < 0 {
 		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
 		return
 	}
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex-numEntriesToMove))
-
-	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = fen.middlePane.selectedEntryIndex - numEntriesToMove // Strange, but it works
-	}
 }
 
 func (fen *Fen) GoDown(numEntries ...int) {
@@ -454,23 +463,25 @@ func (fen *Fen) GoDown(numEntries ...int) {
 		numEntriesToMove = max(1, numEntries[0])
 	}
 
+	defer func() {
+		if fen.selectingWithV {
+			fen.selectingWithVEndIndex = min(len(fen.middlePane.entries.Load().([]os.DirEntry))-1, fen.middlePane.selectedEntryIndex+numEntriesToMove)
+		}
+	}()
+
 	if fen.middlePane.selectedEntryIndex+numEntriesToMove >= len(fen.middlePane.entries.Load().([]os.DirEntry)) {
 		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries.Load().([]os.DirEntry))-1))
 		return
 	}
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex+numEntriesToMove))
-
-	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = fen.middlePane.selectedEntryIndex + numEntriesToMove // Strange, but it works
-	}
 }
 
 func (fen *Fen) GoTop() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = 0 // Strange, but it works
+		fen.selectingWithVEndIndex = 0
 	}
 }
 
@@ -478,7 +489,7 @@ func (fen *Fen) GoMiddle() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex((len(fen.middlePane.entries.Load().([]os.DirEntry))-1)/2))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = (len(fen.middlePane.entries.Load().([]os.DirEntry)) - 1) / 2 // Strange, but it works
+		fen.selectingWithVEndIndex = (len(fen.middlePane.entries.Load().([]os.DirEntry)) - 1) / 2
 	}
 }
 
@@ -486,7 +497,7 @@ func (fen *Fen) GoBottom() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries.Load().([]os.DirEntry))-1))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = len(fen.middlePane.entries.Load().([]os.DirEntry)) - 1 // Strange, but it works
+		fen.selectingWithVEndIndex = len(fen.middlePane.entries.Load().([]os.DirEntry)) - 1
 	}
 }
 
@@ -494,7 +505,7 @@ func (fen *Fen) GoTopScreen() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.GetTopScreenEntryIndex()))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = fen.middlePane.GetTopScreenEntryIndex() // Strange, but it works
+		fen.selectingWithVEndIndex = fen.middlePane.GetTopScreenEntryIndex()
 	}
 }
 
@@ -502,7 +513,7 @@ func (fen *Fen) GoBottomScreen() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.GetBottomScreenEntryIndex()))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = fen.middlePane.GetBottomScreenEntryIndex() // Strange, but it works
+		fen.selectingWithVEndIndex = fen.middlePane.GetBottomScreenEntryIndex()
 	}
 }
 
@@ -512,7 +523,7 @@ func (fen *Fen) PageUp() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(max(0, fen.middlePane.selectedEntryIndex-height)))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = max(0, fen.middlePane.selectedEntryIndex-height) // Strange, but it works
+		fen.selectingWithVEndIndex = max(0, fen.middlePane.selectedEntryIndex-height)
 	}
 }
 
@@ -522,7 +533,7 @@ func (fen *Fen) PageDown() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(min(len(fen.middlePane.entries.Load().([]os.DirEntry))-1, fen.middlePane.selectedEntryIndex+height)))
 
 	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = min(len(fen.middlePane.entries.Load().([]os.DirEntry))-1, fen.middlePane.selectedEntryIndex+height) // Strange, but it works
+		fen.selectingWithVEndIndex = min(len(fen.middlePane.entries.Load().([]os.DirEntry))-1, fen.middlePane.selectedEntryIndex+height)
 	}
 }
 
@@ -547,10 +558,18 @@ func (fen *Fen) UpdateSelectingWithV() {
 		return
 	}
 
+	fen.selectingWithVStartIndex = min(len(fen.middlePane.entries.Load().([]os.DirEntry))-1, max(0, fen.selectingWithVStartIndex))
+	fen.selectingWithVEndIndex = min(len(fen.middlePane.entries.Load().([]os.DirEntry))-1, max(0, fen.selectingWithVEndIndex))
+
 	minIndex := min(fen.selectingWithVStartIndex, fen.selectingWithVEndIndex)
 	maxIndex := max(fen.selectingWithVStartIndex, fen.selectingWithVEndIndex)
 
-	fen.selected = fen.selectedBeforeSelectingWithV
+	// We have to do this to copy fen.selectedBeforeSelectingWithV, and not a reference to it
+	fen.selected = make(map[string]bool)
+	for k, v := range fen.selectedBeforeSelectingWithV {
+		fen.selected[k] = v
+	}
+
 	for i := minIndex; i <= maxIndex; i++ {
 		fen.EnableSelection(fen.middlePane.GetSelectedPathFromIndex(i))
 	}

@@ -130,6 +130,7 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 `fen.Version` fen version string
 
 # Known issues
+- fen may crash in the middle of deleting files due to a data race, most commonly when deleting a lot of files (like 4000)
 - Symlinks have no special distinction, a folder symlink will appear like a normal folder
 - On FreeBSD, when the disk is full, fen may erroneously show a very large amount of disk space available (like `18.446 EB free`), when in reality there is no available space
 - Deleting files sometimes doesn't work on Windows (due to files being open in another program?)

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/gdamore/tcell/v2"
@@ -81,6 +83,36 @@ func TestFilenameInvisibleCharactersAsCodeHighlighted(t *testing.T) {
 		got := FilenameInvisibleCharactersAsCodeHighlighted(input[0], input[1])
 		if got != expected {
 			t.Fatalf("Expected " + expected + ", but got " + got)
+		}
+	}
+}
+
+func TestMapStringBoolKeys(t *testing.T) {
+	theMap := map[string]bool{
+		"1":     true,
+		"2":     true,
+		"3":     true,
+		"hello": true,
+		"":      true,
+	}
+
+	expectedValues := []string{
+		"1",
+		"2",
+		"3",
+		"hello",
+		"",
+	}
+
+	keys := MapStringBoolKeys(theMap)
+
+	if len(keys) != len(expectedValues) {
+		t.Fatal("Expected a length of " + strconv.Itoa(len(expectedValues)) + ", but got " + strconv.Itoa(len(keys)))
+	}
+
+	for _, expectedValue := range expectedValues {
+		if !slices.Contains(keys, expectedValue) {
+			t.Fatal("Result did not contain " + expectedValue)
 		}
 	}
 }

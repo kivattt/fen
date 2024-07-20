@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"os/user"
+	"runtime"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -85,7 +86,7 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 	}
 
 	hostname := ""
-	if helpScreen.fen.config.ShowHostname {
+	if helpScreen.fen.config.ShowHostname && runtime.GOOS != "windows" {
 		hostname, _ = os.Hostname()
 		hostname += " " // So the length includes the preceeding '@' symbol from the topbar
 	}

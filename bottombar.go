@@ -51,8 +51,12 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 		fileOwners = " " + UsernameWithColor(username) + ":" + GroupnameWithColor(groupname)
 	}
 	filePermissions, _ := FilePermissionsString(bottomBar.fen.sel)
-	fileLastModified, _ := FileLastModifiedString(bottomBar.fen.sel)
-	text := "[teal:]" + filePermissions + fileOwners + " [default:]" + fileLastModified
+	text := "[teal:]" + filePermissions + fileOwners
+
+	if !*bottomBar.fen.helpScreenVisible {
+		fileLastModified, _ := FileLastModifiedString(bottomBar.fen.sel)
+		text += " [default:]" + fileLastModified
+	}
 
 	noWriteEnabledText := ""
 	if bottomBar.fen.config.NoWrite {
@@ -79,41 +83,76 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 	positionStrHasNoSpace := positionStrLowerXPos < leftLength+1
 
 	jobCountStr := ""
+	jobCountStrAttributes := "d"
 	bottomBar.fen.fileOperationsHandler.workCountMutex.Lock()
-	if bottomBar.fen.config.AlwaysShowJobAndSelectionCount || bottomBar.fen.fileOperationsHandler.workCount > 0 {
+	if bottomBar.fen.config.AlwaysShowInfoNumbers || bottomBar.fen.fileOperationsHandler.workCount > 0 {
 		jobCountStr = strconv.Itoa(bottomBar.fen.fileOperationsHandler.workCount)
+		if bottomBar.fen.fileOperationsHandler.workCount > 0 {
+			jobCountStrAttributes = ""
+		}
+
+		if *bottomBar.fen.helpScreenVisible {
+			jobCountStr += " jobs"
+		}
 	}
 	bottomBar.fen.fileOperationsHandler.workCountMutex.Unlock()
 
-	selectedCountStr := ""
-	if bottomBar.fen.config.AlwaysShowJobAndSelectionCount || len(bottomBar.fen.selected) > 0 {
+	yankCountStr := ""
+	yankCountStrAttributes := "d"
+	if bottomBar.fen.config.AlwaysShowInfoNumbers || len(bottomBar.fen.yankSelected) > 0 {
 		jobCountStr += " "
+
+		yankCountStr = strconv.Itoa(len(bottomBar.fen.yankSelected))
+		if len(bottomBar.fen.yankSelected) > 0 {
+			yankCountStrAttributes = ""
+
+			if bottomBar.fen.yankType == "copy" {
+				yankCountStr += "y"
+			} else if bottomBar.fen.yankType == "cut" {
+				yankCountStr += "d"
+			} else if bottomBar.fen.yankType != "" {
+				panic("yankType was not \"copy\" or \"cut\"")
+			}
+		}
+
+		if *bottomBar.fen.helpScreenVisible {
+			yankCountStr += " yanked"
+		}
+	}
+
+	selectedCountStr := ""
+	selectedCountStrAttributes := "d"
+	if bottomBar.fen.config.AlwaysShowInfoNumbers || len(bottomBar.fen.selected) > 0 {
+		yankCountStr += " "
+
 		selectedCountStr = strconv.Itoa(len(bottomBar.fen.selected))
-	}
-
-	jobCountAndSelectedCountStrHasNoSpace := positionStrLowerXPos-1-len(jobCountStr)-len(selectedCountStr) < leftLength+1
-
-	jobCountAndSelectedCountStrPrintedLength := 0
-	if !jobCountAndSelectedCountStrHasNoSpace {
-		// Dim job count when its 0
-		jobCountStrAttributes := ""
-		if jobCountStr == "0 " { // Job count string has a trailing space in it
-			jobCountStrAttributes = "d"
+		if len(bottomBar.fen.selected) > 0 {
+			selectedCountStrAttributes = ""
 		}
 
-		// Dim selected count when its 0
-		selectedCountStrAttributes := ""
-		if selectedCountStr == "0" {
-			selectedCountStrAttributes = "d"
-		}
-
-		_, jobCountAndSelectedCountStrPrintedLength = tview.Print(screen, "[blue::"+jobCountStrAttributes+"]"+jobCountStr+"[-:-:-:-][yellow::"+selectedCountStrAttributes+"]"+selectedCountStr, positionStrLowerXPos-1-len(jobCountStr)-len(selectedCountStr), y, w, tview.AlignLeft, tcell.ColorDefault)
-		if jobCountAndSelectedCountStrPrintedLength > 0 {
-			jobCountAndSelectedCountStrPrintedLength += 1
+		if *bottomBar.fen.helpScreenVisible {
+			selectedCountStr += " selected"
 		}
 	}
 
-	spaceForHelpText := w - leftLength - rightLength - jobCountAndSelectedCountStrPrintedLength
+	var countStringsHasNoSpace bool
+	if bottomBar.fen.config.ShowHelpText && !*bottomBar.fen.helpScreenVisible {
+		// We add 1 extra to hackily prevent the countStrings from showing up to the left of the helpText (might not work with different FileLastModifiedString() lengths)
+		countStringsHasNoSpace = positionStrLowerXPos-1-len(jobCountStr)-len(selectedCountStr)-len(yankCountStr) < leftLength+1+1
+	} else {
+		countStringsHasNoSpace = positionStrLowerXPos-1-len(jobCountStr)-len(selectedCountStr)-len(yankCountStr) < leftLength+1
+	}
+
+	countStringsPrintedLength := 0
+	if !countStringsHasNoSpace && !positionStrHasNoSpace {
+		_, countStringsPrintedLength = tview.Print(screen, "[blue::"+jobCountStrAttributes+"]"+jobCountStr+"[-:-:-:-][#00ff00::"+yankCountStrAttributes+"]"+yankCountStr+"[-:-:-:-][yellow::"+selectedCountStrAttributes+"]"+selectedCountStr, positionStrLowerXPos-1-len(jobCountStr)-len(selectedCountStr)-len(yankCountStr), y, w, tview.AlignLeft, tcell.ColorDefault)
+
+		if countStringsPrintedLength > 0 {
+			countStringsPrintedLength += 1
+		}
+	}
+
+	spaceForHelpText := w - leftLength - rightLength - countStringsPrintedLength
 
 	if !bottomBar.fen.config.ShowHelpText || *bottomBar.fen.helpScreenVisible {
 		if !positionStrHasNoSpace {
@@ -134,8 +173,8 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 			tview.Print(screen, positionStr, positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
 		}
 	} else {
-		// We hide the positionStr to give enough space for the help text
-		spaceForHelpText += rightLength - rightFreeBytesStrLength
+		// We hide the countStrings and positionStr to give enough space for the help text
+		spaceForHelpText += rightLength + countStringsPrintedLength - rightFreeBytesStrLength
 
 		// Show positionStr anyway if the help text has no chance of being shown even with the positionStr hidden
 		if spaceForHelpText-1 <= len(helpTextAlternatives[len(helpTextAlternatives)-1]) {

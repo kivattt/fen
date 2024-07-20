@@ -188,7 +188,7 @@ func (fp *FilesPane) RemoveEntry(path string) error {
 	}
 
 	fp.entries.Store(append(fp.entries.Load().([]os.DirEntry)[:index], fp.entries.Load().([]os.DirEntry)[index+1:]...))
-	fp.fen.RemoveFromSelectedAndYankSelected(path)
+	fp.fen.RemoveFromSelectedAndYankSelected(path) // FIXME: Panic when deleting 4000 files
 	fp.fen.history.RemoveFromHistory(path)
 
 	fp.fen.history.AddToHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
@@ -420,6 +420,11 @@ func (fp *FilesPane) GetSelectedEntryFromIndex(index int) string {
 }
 
 func (fp *FilesPane) GetSelectedPathFromIndex(index int) string {
+	entryFromIndex := fp.GetSelectedEntryFromIndex(index)
+	if entryFromIndex == "" {
+		return ""
+	}
+
 	return filepath.Join(fp.folder, fp.GetSelectedEntryFromIndex(index))
 }
 
@@ -459,6 +464,13 @@ func (fp *FilesPane) GetBottomScreenEntryIndex() int {
 	return bottomScreenEntryIndex
 }
 
+func (fp *FilesPane) CanOpenFile(path string) bool {
+	// We let the Go garbage collector close the file, because manually calling .Close() on it can be really slow, atleast on Linux
+	// It seems to only get up to about 7 duplicate file descriptors for a single path at a time
+	_, readErr := os.OpenFile(path, os.O_RDONLY, 0)
+	return readErr == nil
+}
+
 func (fp *FilesPane) Draw(screen tcell.Screen) {
 	if fp.Invisible {
 		return
@@ -474,9 +486,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 	// File previews
 	stat, statErr := os.Stat(fp.fen.sel)
-	f, readErr := os.OpenFile(fp.fen.sel, os.O_RDONLY, 0)
-	f.Close()
-	if statErr == nil && stat.Mode().IsRegular() && readErr == nil && len(fp.entries.Load().([]os.DirEntry)) <= 0 && fp.isRightFilesPane {
+	if fp.isRightFilesPane && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
 		for _, previewWith := range fp.fen.config.Preview {
 			matched := PathMatchesList(fp.fen.sel, previewWith.Match) && !PathMatchesList(fp.fen.sel, previewWith.DoNotMatch)
 			if !matched {
@@ -553,13 +563,15 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Reverse(true)
 		}
 
-		if slices.Contains(fp.fen.selected, entryFullPath) {
+		_, contains := fp.fen.selected[entryFullPath]
+
+		if contains {
 			spaceForSelected = " "
 			style = style.Foreground(tcell.ColorYellow)
 			style = style.Bold(false) // FileColor() makes folders and executables bold
 		}
 
-		entryInYankSelected := slices.Contains(fp.fen.yankSelected, entryFullPath)
+		_, entryInYankSelected := fp.fen.yankSelected[entryFullPath]
 		if entryInYankSelected {
 			style = style.Dim(true)
 		}
@@ -583,10 +595,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		tview.Print(screen, spaceForSelected+styleStr+" "+FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(entry.Name()), styleStr)+strings.Repeat(" ", w), x, y+i, w-1-entrySizePrintedSize, tview.AlignLeft, tcell.ColorDefault)
 
-		// You can't see which files are yanked in the FreeBSD tty terminal since dim doesn't change the color, so this makes it visible
-		// Seems like the same issue is present on Windows, in cmd
-		if (runtime.GOOS == "freebsd" || runtime.GOOS == "windows") && entryInYankSelected {
-			tview.PrintSimple(screen, "*", x, y+i)
+		if entryInYankSelected {
+			tview.Print(screen, "[::b]*", x, y+i, w, tview.AlignLeft, tcell.ColorWhite)
 		}
 	}
 }

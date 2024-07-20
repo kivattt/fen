@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	dirCopy "github.com/otiai10/copy"
 )
@@ -41,6 +42,9 @@ type FileOperationsHandler struct {
 
 	workCount      int
 	workCountMutex sync.Mutex
+
+	lastWorkCountUpdate      time.Time
+	lastWorkCountUpdateMutex sync.Mutex
 }
 
 func (handler *FileOperationsHandler) QueueOperations(batch []FileOperation) {
@@ -174,9 +178,15 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 	}
 
 	handler.decrementWorkCount()
-	// This is only here to update the jobcount text in the bottombar with the correct workCount value
-	// This update will probably be close in time with the file watcher update preceeding it, which can look bad (atleast on xterm...)
-	handler.fen.app.QueueUpdateDraw(func() {})
+
+	handler.lastWorkCountUpdateMutex.Lock()
+	if time.Since(handler.lastWorkCountUpdate) > time.Duration(handler.fen.config.FileEventIntervalMillis*int(time.Millisecond)) {
+		// This is only here to update the jobcount text in the bottombar with the correct workCount value
+		// This update will probably be close in time with the file watcher update preceeding it, which can look bad (atleast on xterm...)
+		handler.fen.app.QueueUpdateDraw(func() {})
+		handler.lastWorkCountUpdate = time.Now()
+	}
+	handler.lastWorkCountUpdateMutex.Unlock()
 
 	statusToSet = Completed
 
