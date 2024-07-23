@@ -182,7 +182,7 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 	handler.lastWorkCountUpdateMutex.Lock()
 	if time.Since(handler.lastWorkCountUpdate) > time.Duration(handler.fen.config.FileEventIntervalMillis*int(time.Millisecond)) {
 		// This is only here to update the jobcount text in the bottombar with the correct workCount value
-		// This update will probably be close in time with the file watcher update preceeding it, which can look bad (atleast on xterm...)
+		// This update will probably be close in time with the file watcher update preceding it, which can look bad (atleast on xterm...)
 		handler.fen.app.QueueUpdateDraw(func() {})
 		handler.lastWorkCountUpdate = time.Now()
 	}

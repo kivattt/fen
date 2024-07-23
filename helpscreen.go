@@ -88,7 +88,7 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 	hostname := ""
 	if helpScreen.fen.config.ShowHostname && runtime.GOOS != "windows" {
 		hostname, _ = os.Hostname()
-		hostname += " " // So the length includes the preceeding '@' symbol from the topbar
+		hostname += " " // So the length includes the preceding '@' symbol from the topbar
 	}
 
 	tview.Print(screen, topUsernameColor+"|[-:-:-:-]", x, y+1, w, tview.AlignLeft, tcell.ColorDefault)
