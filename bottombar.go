@@ -26,8 +26,9 @@ func (bottomBar *BottomBar) TemporarilyShowTextInstead(text string) {
 }
 
 func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
-	bottomBar.Box.SetBackgroundColor(tcell.ColorBlack)
-	bottomBar.Box.DrawForSubclass(screen, bottomBar)
+	// Since we want the background to be black anyway, we can avoid "clearing" the box
+	//bottomBar.Box.SetBackgroundColor(tcell.ColorBlack)
+	//bottomBar.Box.DrawForSubclass(screen, bottomBar)
 
 	x, y, w, _ := bottomBar.GetInnerRect()
 
