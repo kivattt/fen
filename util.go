@@ -348,98 +348,99 @@ func StyleToStyleTagString(style tcell.Style) string {
 	return "[" + colorToString(foreground) + ":" + colorToString(background) + ":" + attributesString + "]"
 }
 
+// These file extensions have to be lowercase because we match for that
+var imageTypes = []string{
+	".png",
+	".jpg",
+	".jpeg",
+	".jfif",
+	".flif",
+	".tiff",
+	".gif",
+	".webp",
+	".bmp",
+}
+
+var videoTypes = []string{
+	".mp4",
+	".webm",
+	".mkv",
+	".mov",
+	".avi",
+	".flv",
+}
+
+var audioTypes = []string{
+	".wav",
+	".flac",
+	".mp3",
+	".ogg",
+	".m4a",
+}
+
+var archiveTypes = []string{
+	".zip",
+	".jar",
+	".kra",
+
+	// https://en.wikipedia.org/wiki/Tar_(computing)
+	".tar.bz2", ".tb2", ".tbz", ".tbz2", ".tz2",
+	".tar.gz", ".taz", ".tgz",
+	".tar.lz",
+	".tar.lzma", ".tlz",
+	".tar.lzo",
+	".tar.xz", ".tz", ".taz",
+	".tar.zst", ".tzst",
+}
+
+var codeTypes = []string{
+	".go",
+	".cpp",
+	".cxx",
+	".hpp",
+	".hxx",
+	".h",
+	".c",
+	".cc",
+	".py",
+	".sh",
+	".bash",
+	".js",
+	".jsx",
+	".ts",
+	".tsx",
+	".rs",
+	".lua",
+	".vim",
+	".java",
+	".ps1",
+	".bat",
+	".vb",
+	".vbs",
+	".vbscript",
+}
+
+var documentTypes = []string{
+	".md",
+	".pdf",
+	".epub",
+	".docx",
+	".doc",
+	".odg",
+	".fodg",
+	".otg",
+	".txt",
+}
+
+var windowsExecutableTypes = []string{
+	".exe",
+	".msi",
+}
+
 func FileColor(stat os.FileInfo, path string) tcell.Style {
-	imageTypes := []string{
-		".png",
-		".jpg",
-		".jpeg",
-		".jfif",
-		".flif",
-		".tiff",
-		".gif",
-		".webp",
-		".bmp",
-	}
-
-	videoTypes := []string{
-		".mp4",
-		".webm",
-		".mkv",
-		".mov",
-		".avi",
-		".flv",
-	}
-
-	audioTypes := []string{
-		".wav",
-		".flac",
-		".mp3",
-		".ogg",
-		".m4a",
-	}
-
-	archiveTypes := []string{
-		".zip",
-		".jar",
-		".kra",
-
-		// https://en.wikipedia.org/wiki/Tar_(computing)
-		".tar.bz2", ".tb2", ".tbz", ".tbz2", ".tz2",
-		".tar.gz", ".taz", ".tgz",
-		".tar.lz",
-		".tar.lzma", ".tlz",
-		".tar.lzo",
-		".tar.xz", ".tZ", ".taZ",
-		".tar.zst", ".tzst",
-	}
-
-	codeTypes := []string{
-		".go",
-		".cpp",
-		".cxx",
-		".hpp",
-		".hxx",
-		".h",
-		".c",
-		".cc",
-		".py",
-		".sh",
-		".bash",
-		".js",
-		".jsx",
-		".ts",
-		".tsx",
-		".rs",
-		".lua",
-		".vim",
-		".java",
-		".ps1",
-		".bat",
-		".vb",
-		".vbs",
-		".vbscript",
-	}
-
-	documentTypes := []string{
-		".md",
-		".pdf",
-		".epub",
-		".docx",
-		".doc",
-		".odg",
-		".fodg",
-		".otg",
-		".txt",
-	}
-
-	windowsExecutableTypes := []string{
-		".exe",
-		".msi",
-	}
-
 	hasSuffixFromList := func(str string, list []string) bool {
 		for _, e := range list {
-			if strings.HasSuffix(strings.ToLower(str), strings.ToLower(e)) {
+			if strings.HasSuffix(strings.ToLower(str), e) {
 				return true
 			}
 		}
