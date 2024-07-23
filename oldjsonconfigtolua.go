@@ -39,14 +39,12 @@ type previewWithEntry struct {
 func GenerateLuaConfigFromOldJSONConfig(oldJSONConfigPath, newLuaConfigPath string, fen *Fen) error {
 	bytes, err := os.ReadFile(oldJSONConfigPath)
 	if err != nil {
-		fmt.Println("skibidi 1")
 		return err
 	}
 
 	var config oldConfig
 	err = json.Unmarshal(bytes, &config)
 	if err != nil {
-		fmt.Println("skibidi 2")
 		return err
 	}
 
@@ -57,7 +55,6 @@ func GenerateLuaConfigFromOldJSONConfig(oldJSONConfigPath, newLuaConfigPath stri
 
 	newConfigFile, err := os.Create(newLuaConfigPath)
 	if err != nil {
-		fmt.Println("skibidi 3")
 		return err
 	}
 
