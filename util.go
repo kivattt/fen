@@ -846,3 +846,63 @@ func FilenameInvisibleCharactersAsCodeHighlighted(filename, defaultStyle string)
 	}
 	return ret.String()
 }
+
+// Returns the length printed
+func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y, maxWidth int, filename string, style tcell.Style) int {
+	if filename == "" {
+		panic("PrintFilenameInvisibleCharactersAsCodeHighlighted got empty filename")
+	}
+
+	leadingInvisibleOrNonPrintableCharLength := 0
+	for _, c := range filename {
+		if isInvisible(c) {
+			leadingInvisibleOrNonPrintableCharLength++
+		} else {
+			break
+		}
+	}
+
+	trailingInvisibleOrNonPrintableCharLength := 0
+	filenameRunes := []rune(filename)
+	for i := len(filenameRunes) - 1; i >= leadingInvisibleOrNonPrintableCharLength; i-- {
+		c := filenameRunes[i]
+		if isInvisible(c) {
+			trailingInvisibleOrNonPrintableCharLength++
+		} else {
+			break
+		}
+	}
+
+	offset := 0
+	for i, c := range filename {
+		if offset >= maxWidth-1 {
+			break
+		}
+
+		// Use printable codes for leading and trailing invisible or non-printable runes
+		if i < leadingInvisibleOrNonPrintableCharLength || len(filename)-i <= trailingInvisibleOrNonPrintableCharLength {
+			printableCode := RuneToPrintableCode(c)
+			for _, character := range printableCode {
+				screen.SetContent(x+offset, y, character, nil, style.Background(tcell.ColorDarkRed))
+				offset++
+			}
+
+			continue
+		}
+
+		// For the rest, don't use printable codes for space
+		if c != ' ' && isInvisible(c) {
+			printableCode := RuneToPrintableCode(c)
+			for _, character := range printableCode {
+				screen.SetContent(x+offset, y, character, nil, style.Background(tcell.ColorDarkRed))
+				offset++
+			}
+			continue
+		}
+
+		screen.SetContent(x+offset, y, c, nil, style)
+		offset++
+	}
+
+	return offset
+}

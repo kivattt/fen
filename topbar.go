@@ -24,8 +24,6 @@ func NewTopBar(fen *Fen) *TopBar {
 }
 
 func (topBar *TopBar) Draw(screen tcell.Screen) {
-	topBar.Box.DrawForSubclass(screen, topBar)
-
 	x, y, w, _ := topBar.GetInnerRect()
 
 	path := topBar.fen.sel

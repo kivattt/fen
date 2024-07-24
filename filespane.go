@@ -472,11 +472,14 @@ func (fp *FilesPane) CanOpenFile(path string) bool {
 }
 
 func (fp *FilesPane) Draw(screen tcell.Screen) {
+	/*start := time.Now()
+	defer func(){
+		println(strconv.FormatInt(time.Since(start).Milliseconds(), 10) + "ms")
+	}()*/
+
 	if fp.Invisible {
 		return
 	}
-
-	fp.Box.DrawForSubclass(screen, fp)
 
 	x, y, w, h := fp.GetInnerRect()
 	if fp.isRightFilesPane && fp.parentIsEmptyFolder || (!fp.isRightFilesPane && len(fp.entries.Load().([]os.DirEntry)) <= 0) && fp.folder != filepath.Dir(fp.folder) {
@@ -576,7 +579,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Dim(true)
 		}
 
-		styleStr := StyleToStyleTagString(style)
+		//styleStr := StyleToStyleTagString(style)
 
 		entrySizeText := ""
 		entrySizePrintedSize := 0
@@ -590,10 +593,28 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				}
 			}
 
-			_, entrySizePrintedSize = tview.Print(screen, styleStr+" "+tview.Escape(entrySizeText)+" ", x, y+i, w-1, tview.AlignRight, tcell.ColorDefault)
+			entrySizeText = " " + entrySizeText + " "
+			for j := 0; j < len(entrySizeText); j++ {
+				screen.SetContent(x+w-len(entrySizeText)+j-1, y+i, rune(entrySizeText[j]), nil, style)
+			}
+
+			entrySizePrintedSize = len(entrySizeText)
+
+			//_, entrySizePrintedSize = tview.Print(screen, styleStr+"[:default] "+tview.Escape(entrySizeText)+" ", x, y+i, w-1, tview.AlignRight, tcell.ColorDefault)
 		}
 
-		tview.Print(screen, spaceForSelected+styleStr+" "+FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(entry.Name()), styleStr)+strings.Repeat(" ", w), x, y+i, w-1-entrySizePrintedSize, tview.AlignLeft, tcell.ColorDefault)
+		//tview.Print(screen, spaceForSelected+styleStr+" "+FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(entry.Name()), styleStr)+strings.Repeat(" ", w), x, y+i, w-1-entrySizePrintedSize, tview.AlignLeft, tcell.ColorDefault)
+		xToUse := x
+		if spaceForSelected != "" {
+			screen.SetContent(xToUse, y+i, ' ', nil, tcell.StyleDefault)
+			xToUse++
+		}
+		screen.SetContent(xToUse, y+i, ' ', nil, style)
+		xToUse++
+		leftSizePrinted := PrintFilenameInvisibleCharactersAsCodeHighlighted(screen, xToUse, y+i, w-1-entrySizePrintedSize, entry.Name(), style)
+		for j := 0; j < w-1-leftSizePrinted-entrySizePrintedSize-(xToUse-x); j++ {
+			screen.SetContent(xToUse+leftSizePrinted+j, y+i, ' ', nil, style)
+		}
 
 		if entryInYankSelected {
 			tview.Print(screen, "[::b]*", x, y+i, w, tview.AlignLeft, tcell.ColorWhite)

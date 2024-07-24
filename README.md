@@ -131,6 +131,8 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 
 # Known issues
 - fen may crash in the middle of deleting files due to a data race, most commonly when deleting a lot of files (like 4000)
+- File previews are ran synchronously, which means they slow down fen
+- fen intentionally does not handle Unicode "grapheme clusters" (like chinese text) in filenames correctly for performance reasons. You need to manually build fen with the replace directive for my [tcell fork](https://github.com/kivattt/tcell-naively-faster) in the go.mod file removed to show them correctly
 - Symlinks have no special distinction, a folder symlink will appear like a normal folder
 - On FreeBSD, when the disk is full, fen may erroneously show a very large amount of disk space available (like `18.446 EB free`), when in reality there is no available space
 - Deleting files sometimes doesn't work on Windows (due to files being open in another program?)

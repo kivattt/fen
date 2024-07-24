@@ -19,12 +19,14 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.5.5"
+const version = "v1.5.6"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
 	//	pprof.StartCPUProfile(f)
 	//	defer pprof.StopCPUProfile()
+
+	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
@@ -370,8 +372,10 @@ func main() {
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
+			inputField.SetBackgroundColor(tcell.ColorBlack)
 
-			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
+			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
 
 			programs, descriptions := ProgramsAndDescriptionsForFile(&fen)
 			programsList := NewOpenWithList(&programs, &descriptions)
@@ -405,6 +409,7 @@ func main() {
 				AddItem(programsList, len(programs), 1, false)
 
 			flex.SetBorder(true)
+			flex.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 
 			pages.AddPage("openwith", centered(flex, 60, inputFieldHeight+2+len(programs)), true, true)
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
@@ -471,9 +476,11 @@ func main() {
 				})
 
 			inputField.SetBorder(true)
+			inputField.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
+			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
 
@@ -533,10 +540,12 @@ func main() {
 			})
 
 			inputField.SetBorder(true)
+			inputField.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
-			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
+			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
 
 			pages.AddPage("inputfield", centered(inputField, 60, 3), true, true)
 			app.SetFocus(inputField)
@@ -585,10 +594,13 @@ func main() {
 			})
 
 			inputField.SetBorder(true)
+			inputField.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
-			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
+
+			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
 
 			pages.AddPage("newfilemodal", centered(inputField, 60, 3), true, true)
 			app.SetFocus(inputField)

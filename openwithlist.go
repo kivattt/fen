@@ -24,6 +24,7 @@ func (openWithList *OpenWithList) Draw(screen tcell.Screen) {
 		panic("In openwithlist.go Draw(): Length of programs and descriptions weren't the same")
 	}
 
+	openWithList.Box.SetBackgroundColor(tcell.ColorBlack)
 	openWithList.Box.DrawForSubclass(screen, openWithList)
 
 	x, y, w, _ := openWithList.GetInnerRect()

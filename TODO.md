@@ -25,6 +25,7 @@
 - Fix the bottom bar sometimes not showing info on files inside `/proc/.../map_files`
 - Reverse sort
 - Replace github.com/otiai10/copy with my own recursive folder copying
+- Cache folder size (file count)
 
 - System-wide configuration file instructions
 - Make file previews not run every time the terminal is resized?
