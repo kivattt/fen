@@ -23,7 +23,6 @@
 - Configurable colors / respect LS\_COLORS?
 - Fix a crash (fen hanging) on something like `/proc/.../oom_score_adj`
 - Fix the bottom bar sometimes not showing info on files inside `/proc/.../map_files`
-- Reverse sort
 - Replace github.com/otiai10/copy with my own recursive folder copying
 - Cache folder size (file count)
 
