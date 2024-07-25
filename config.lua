@@ -1,5 +1,5 @@
 -- All available options, default values
-fen.ui_borders = false
+fen.ui_borders = false -- When set to true it will slow down fen a little
 fen.no_write = false
 fen.print_path_on_open = false
 fen.mouse = true

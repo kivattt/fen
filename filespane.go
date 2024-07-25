@@ -481,6 +481,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		return
 	}
 
+	if fp.fen.config.UiBorders {
+		// TODO: Make a custom border drawing so it runs faster
+		fp.Box.DrawForSubclass(screen, fp)
+	}
+
 	x, y, w, h := fp.GetInnerRect()
 	if fp.isRightFilesPane && fp.parentIsEmptyFolder || (!fp.isRightFilesPane && len(fp.entries.Load().([]os.DirEntry)) <= 0) && fp.folder != filepath.Dir(fp.folder) {
 		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
