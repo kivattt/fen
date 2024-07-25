@@ -19,7 +19,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.5.6"
+const version = "v1.5.7"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -698,9 +698,7 @@ func main() {
 				fen.ShowFilepanes()
 			}
 			return nil
-		}
-
-		if event.Key() == tcell.KeyDelete || event.Rune() == 'x' {
+		} else if event.Key() == tcell.KeyDelete || event.Rune() == 'x' {
 			modal := tview.NewModal()
 
 			modal.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
@@ -770,6 +768,8 @@ func main() {
 			pages.AddPage("deletemodal", modal, true, true)
 			app.SetFocus(modal)
 			return nil
+		} else if event.Key() == tcell.KeyF5 {
+			app.Sync()
 		}
 
 		return event

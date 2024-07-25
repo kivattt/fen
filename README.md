@@ -55,7 +55,8 @@ Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to ca
 `z` or `Backspace` Toggle hidden files\
 `V` Start selecting by moving\
 `n` Create a new file\
-`N` Create a new folder
+`N` Create a new folder\
+`F5` Sync the screen, fixes broken output that can be caused by running a command, or filenames with certain Unicode characters
 
 # Configuration
 You can find a complete example config in the [config.lua](config.lua) file\

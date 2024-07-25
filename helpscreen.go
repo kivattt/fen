@@ -51,6 +51,7 @@ var helpScreenControlsList = []control{
 	{KeyBindings: []string{"V"}, Description: "Start selecting by moving"},
 	{KeyBindings: []string{"D"}, Description: "Deselect all, and un-yank"},
 	{KeyBindings: []string{"z", "Backspace"}, Description: "Toggle hidden files"},
+	{KeyBindings: []string{"F5"}, Description: "Sync the screen"},
 }
 
 func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
