@@ -39,20 +39,20 @@ func main() {
 	// When adding new flags, make sure to duplicate the name when we check flagPassed lower in this file
 	v := flag.Bool("version", false, "output version information and exit")
 	h := flag.Bool("help", false, "display this help and exit")
-	uiBorders := flag.Bool("ui-borders", defaultConfigValues.UiBorders, "Enable UI borders")
-	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "Enable mouse events")
+	uiBorders := flag.Bool("ui-borders", defaultConfigValues.UiBorders, "enable UI borders")
+	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "enable mouse events")
 	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
 	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "")
-	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "Always show folders at the top")
-	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path and exit on open file")
+	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "always show folders at the top")
+	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit on open file")
 	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "")
-	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "Show the 'For help: ...' text")
-	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "Show username@hostname in the top-left on Linux")
-	selectPaths := flag.Bool("select", false, "Select PATHS")
+	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "show the 'For help: ...' text")
+	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "show username@hostname in the top-left on Linux")
+	selectPaths := flag.Bool("select", false, "select PATHS")
 
 	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
-	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "Sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
-	sortReverse := flag.Bool("sort-reverse", defaultConfigValues.SortReverse, "Reverse sort")
+	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
+	sortReverse := flag.Bool("sort-reverse", defaultConfigValues.SortReverse, "reverse sort")
 
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)
@@ -776,13 +776,13 @@ func main() {
 	})
 
 	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
-		fmt.Print("\x1b[22t")                       // Push current terminal title
-		fmt.Print("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen"
+		os.Stderr.WriteString("\x1b[22t")                       // Push current terminal title
+		os.Stderr.WriteString("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen"
 	}
 	if err := app.SetRoot(pages, true).EnableMouse(fen.config.Mouse).Run(); err != nil {
 		log.Fatal(err)
 	}
 	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
-		fmt.Print("\x1b[23t") // Pop terminal title, sets it back to normal
+		os.Stderr.WriteString("\x1b[23t") // Pop terminal title, sets it back to normal
 	}
 }
