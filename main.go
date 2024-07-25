@@ -44,7 +44,8 @@ func main() {
 	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
 	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "")
 	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "always show folders at the top")
-	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit on open file")
+	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit when opening file(s)")
+	printFolderOnExit := flag.Bool("print-folder-on-exit", false, "output the current working folder in fen on exit")
 	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "")
 	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "show the 'For help: ...' text")
 	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "show username@hostname in the top-left on Linux")
@@ -784,5 +785,9 @@ func main() {
 	}
 	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
 		os.Stderr.WriteString("\x1b[23t") // Pop terminal title, sets it back to normal
+	}
+
+	if *printFolderOnExit {
+		fmt.Println(filepath.Dir(fen.sel))
 	}
 }
