@@ -93,6 +93,20 @@ If "script" is set, "program" will be ignored in the same preview entry.\
 "script" can not be a list like "program" can, because we want to see syntax errors when writing lua code instead of falling back to anything.\
 The "script" key has to be an absolute file path
 
+# Changing directory
+You can change the current working directory to the one in fen on exit:
+```bash
+cd $(fen --print-folder-on-exit)
+```
+
+You can alias fen to do this every time you open it by adding this to your `.bashrc`:
+```bash
+cd_fen() {
+    cd $(fen --print-folder-on-exit)
+}
+alias fen=cd_fen
+```
+
 # Lua scripting
 fen uses [gopher-lua](https://github.com/yuin/gopher-lua) as its Lua runtime.
 
