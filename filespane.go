@@ -494,7 +494,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 	// File previews
 	stat, statErr := os.Stat(fp.fen.sel)
-	if fp.isRightFilesPane && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
+	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
 		for _, previewWith := range fp.fen.config.Preview {
 			matched := PathMatchesList(fp.fen.sel, previewWith.Match) && !PathMatchesList(fp.fen.sel, previewWith.DoNotMatch)
 			if !matched {
