@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -19,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.5.9"
+const version = "v1.6.0"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -253,7 +254,7 @@ func main() {
 	lastWheelUpTime := time.Now()
 	lastWheelDownTime := time.Now()
 	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("gotofolder") {
 			// Since `return nil, action` redraws the screen for some reason,
 			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
 			if action == tview.MouseMove {
@@ -303,8 +304,10 @@ func main() {
 		return nil, action
 	})
 
+	enterWillSelectAutoCompleteInGotoFolder := false
+
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("gotofolder") {
 			return event
 		}
 
@@ -768,6 +771,129 @@ func main() {
 
 			pages.AddPage("deletemodal", modal, true, true)
 			app.SetFocus(modal)
+			return nil
+		} else if event.Rune() == 'c' {
+			inputField := tview.NewInputField().
+				SetLabel(" Goto folder: ").
+				SetPlaceholder("Relative or absolute path, case-sensitive").
+				SetFieldWidth(43)
+
+			getPathToUse := func(inputFieldText string) (string, error) {
+				pathToUse := filepath.Clean(inputFieldText)
+				if !filepath.IsAbs(pathToUse) {
+					pathToUse, err = filepath.Abs(filepath.Join(fen.wd, pathToUse))
+					if err != nil {
+						return "", err
+					}
+				}
+
+				stat, err := os.Stat(pathToUse)
+				if err != nil {
+					return "", errors.New("No such folder \"" + pathToUse + "\"")
+				}
+
+				// FIXME: Go up parent paths until a folder is found to clean up this code
+				if !stat.IsDir() {
+					stat, err = os.Stat(filepath.Dir(pathToUse))
+					if err != nil || !stat.IsDir() {
+						return "", errors.New("No such folder \"" + filepath.Dir(pathToUse) + "\"")
+					} else {
+						pathToUse = filepath.Dir(pathToUse)
+					}
+				}
+
+				return pathToUse, nil
+			}
+
+			inputField.SetDoneFunc(func(key tcell.Key) {
+				if key == tcell.KeyEscape {
+					pages.RemovePage("gotofolder")
+					return
+				} else if key == tcell.KeyEnter {
+					if inputField.GetText() == "" {
+						pages.RemovePage("gotofolder")
+						return
+					}
+
+					pathToUse, err := getPathToUse(inputField.GetText())
+					if err != nil {
+						pages.RemovePage("gotofolder")
+						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+						return
+					}
+
+					// FIXME: When going to ".." it doesn't do the same thing as fen.GoLeft, doesn't set fen.sel correctly
+					fen.wd = pathToUse
+					if filepath.Dir(fen.sel) != filepath.Clean(fen.sel) {
+						fen.history.AddToHistory(fen.sel)
+					}
+					fen.UpdatePanes(false)
+					fen.bottomBar.TemporarilyShowTextInstead("Moved to folder: \"" + pathToUse + "\"")
+
+					pages.RemovePage("gotofolder")
+					return
+				}
+			})
+
+			inputField.SetAutocompleteFunc(func(currentText string) (entries []string) {
+				if !enterWillSelectAutoCompleteInGotoFolder {
+					return []string{}
+				}
+
+				//				h, err := os.ReadDir(filepath.Dir(currentText))
+				var pathToUse string
+				if !filepath.IsAbs(currentText) {
+					pathToUse, err = filepath.Abs(filepath.Join(fen.wd, pathToUse))
+					if err != nil {
+						return []string{}
+					}
+				} else {
+					pathToUse = filepath.Dir(currentText)
+				}
+
+				h, err := os.ReadDir(pathToUse)
+				if err != nil {
+					return []string{}
+				}
+
+				var ret []string
+				for _, e := range h {
+					if e.IsDir() {
+						if !fen.config.HiddenFiles && strings.HasPrefix(e.Name(), ".") {
+							continue
+						}
+						ret = append(ret, filepath.Join(pathToUse, e.Name())+string(os.PathSeparator))
+					}
+				}
+				return ret
+			})
+			inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+				if event.Key() == tcell.KeyTab {
+					enterWillSelectAutoCompleteInGotoFolder = true
+					return tcell.NewEventKey(tcell.KeyDown, 'j', tcell.ModNone)
+				} else if event.Key() == tcell.KeyBacktab {
+					enterWillSelectAutoCompleteInGotoFolder = true
+					return tcell.NewEventKey(tcell.KeyUp, 'k', tcell.ModNone)
+				}
+
+				return event
+			})
+
+			inputField.SetAutocompleteStyles(tcell.ColorBlack, tcell.StyleDefault.Foreground(tcell.ColorBlue).Bold(true).Background(tcell.ColorBlack), tcell.StyleDefault.Foreground(tcell.ColorBlue).Bold(true).Background(tcell.ColorWhite))
+
+			inputField.SetTitleColor(tcell.ColorDefault)
+			inputField.SetFieldBackgroundColor(tcell.ColorGray)
+			inputField.SetFieldTextColor(tcell.ColorBlack)
+			inputField.SetBackgroundColor(tcell.ColorBlack)
+			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
+			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
+			inputField.SetBorder(true)
+			inputField.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
+
+			enterWillSelectAutoCompleteInGotoFolder = false
+			pages.AddPage("gotofolder", centered(inputField, 60, 3), true, true)
+			app.SetFocus(inputField)
 			return nil
 		} else if event.Key() == tcell.KeyF5 {
 			app.Sync()

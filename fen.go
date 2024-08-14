@@ -329,7 +329,7 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 	fen.leftPane.ChangeDir(filepath.Dir(fen.wd), forceReadDir)
 	fen.middlePane.ChangeDir(fen.wd, forceReadDir)
 
-	if fen.wd == filepath.Dir(fen.wd) {
+	if filepath.Clean(fen.wd) == filepath.Dir(fen.wd) {
 		fen.leftPane.entries.Store([]os.DirEntry{})
 	} else {
 		fen.leftPane.SetSelectedEntryFromString(filepath.Base(fen.wd))
@@ -395,7 +395,7 @@ func (fen *Fen) EnableSelection(filePath string) {
 
 func (fen *Fen) GoLeft() {
 	// Not sure if this is necessary
-	if filepath.Dir(fen.wd) == fen.wd {
+	if filepath.Dir(fen.wd) == filepath.Clean(fen.wd) {
 		return
 	}
 

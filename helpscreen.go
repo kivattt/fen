@@ -39,6 +39,7 @@ var helpScreenControlsList = []control{
 	{KeyBindings: []string{"a"}, Description: "Rename a file"},
 	{KeyBindings: []string{"Del", "x"}, Description: "Delete file"},
 	{KeyBindings: []string{"/", "^F"}, Description: "Search"},
+	{KeyBindings: []string{"c"}, Description: "Goto folder"},
 
 	{KeyBindings: []string{"Home", "g"}, Description: "Go to the top"},
 	{KeyBindings: []string{"End", "G"}, Description: "Go to the bottom"},
