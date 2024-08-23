@@ -9,8 +9,8 @@ github.com/kivattt/getopt v0.0.0-20240628061659-0f129a2cefaf h1:FmYQ9SaWSbyC/71h
 github.com/kivattt/getopt v0.0.0-20240628061659-0f129a2cefaf/go.mod h1:XbVdQu8SHHjoqISPmGcFvHQ8xFuutDrbc4pdw1US62s=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1 h1:+kTjmvCYTLoEb7evW3UoJM3lMaV+TQKaVzAou2xMoqw=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1/go.mod h1:2tg6gQmD3C2WJK0NBUrWnjIV6nSjv+j5w/+monQdfVI=
-github.com/kivattt/tview v1.0.2 h1:QPoUhh9wQ03dnT71+vtFaz/9zwnF9ZPlz9Q/754A86w=
-github.com/kivattt/tview v1.0.2/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
+github.com/kivattt/tview v1.0.3 h1:J4SMyyC3KTkrRIYoIDqgvWLhDs7jKV/dl1Dgcx0PHYU=
+github.com/kivattt/tview v1.0.3/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/mattn/go-runewidth v0.0.15/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=

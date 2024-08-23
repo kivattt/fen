@@ -610,7 +610,7 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 	programsAndFallbacks, descriptions := ProgramsAndDescriptionsForFile(fen)
 	if openWith != "" {
 		programsAndFallbacks = append([]string{openWith}, programsAndFallbacks...)
-		descriptions = append([]string{"hi"}, descriptions...)
+		descriptions = append([]string{""}, descriptions...) // We need a description for any program, checked in the if below
 	}
 
 	if len(programsAndFallbacks) != len(descriptions) {

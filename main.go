@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.6.0"
+const version = "v1.6.1"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -231,13 +231,13 @@ func main() {
 	pages := tview.NewPages().
 		AddPage("flex", flex, true, true)
 
-	centered := func(p tview.Primitive, width, height int) tview.Primitive {
+	centered := func(p tview.Primitive, height int) tview.Primitive {
 		return tview.NewFlex().
 			AddItem(nil, 0, 1, false).
 			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 				AddItem(nil, 0, 1, false).
 				AddItem(p, height, 1, true).
-				AddItem(nil, 0, 1, false), width, 1, true).
+				AddItem(nil, 0, 1, false), 0, 2, true).
 			AddItem(nil, 0, 1, false)
 	}
 
@@ -371,7 +371,7 @@ func main() {
 		} else if event.Key() == tcell.KeyCtrlSpace || event.Key() == tcell.KeyCtrlN {
 			inputField := tview.NewInputField().
 				SetLabel(" Open with: ").
-				SetFieldWidth(45)
+				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
@@ -415,7 +415,7 @@ func main() {
 			flex.SetBorder(true)
 			flex.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 
-			pages.AddPage("openwith", centered(flex, 60, inputFieldHeight+2+len(programs)), true, true)
+			pages.AddPage("openwith", centered(flex, inputFieldHeight+2+len(programs)), true, true)
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
 			fen.GoUp()
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
@@ -454,7 +454,7 @@ func main() {
 			inputField := tview.NewInputField().
 				SetLabel(" Search: ").
 				SetPlaceholder("case-insensitive").
-				SetFieldWidth(48)
+				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
 			inputField.SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
 				return lastChar != '/' // FIXME: Hack to prevent the slash appearing in the search inputfield by just disallowing them
@@ -488,7 +488,7 @@ func main() {
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
 
-			pages.AddPage("searchbox", centered(inputField, 60, 3), true, true)
+			pages.AddPage("searchbox", centered(inputField, 3), true, true)
 		} else if event.Rune() == 'A' {
 			for _, e := range fen.middlePane.entries.Load().([]os.DirEntry) {
 				fen.ToggleSelection(filepath.Join(fen.wd, e.Name()))
@@ -510,7 +510,7 @@ func main() {
 			inputField := tview.NewInputField().
 				SetLabel(" Rename: ").
 				SetText(filepath.Base(fileToRename)).
-				SetFieldWidth(48)
+				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
 
@@ -551,16 +551,15 @@ func main() {
 			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
 
-			pages.AddPage("inputfield", centered(inputField, 60, 3), true, true)
+			pages.AddPage("inputfield", centered(inputField, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'n' || event.Rune() == 'N' {
 			inputField := tview.NewInputField().
-				SetFieldWidth(44)
+				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
 			if event.Rune() == 'n' {
 				inputField.SetLabel(" New file: ")
-				inputField.SetFieldWidth(46) // TODO: Maybe there's an auto-size for tview inputfield based on label length?
 			} else if event.Rune() == 'N' {
 				inputField.SetLabel(" New folder: ")
 			}
@@ -606,7 +605,7 @@ func main() {
 			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
 
-			pages.AddPage("newfilemodal", centered(inputField, 60, 3), true, true)
+			pages.AddPage("newfilemodal", centered(inputField, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'y' {
@@ -776,7 +775,7 @@ func main() {
 			inputField := tview.NewInputField().
 				SetLabel(" Goto folder: ").
 				SetPlaceholder("Relative or absolute path, case-sensitive").
-				SetFieldWidth(43)
+				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
 			getPathToUse := func(inputFieldText string) (string, error) {
 				pathToUse := filepath.Clean(inputFieldText)
@@ -840,7 +839,6 @@ func main() {
 					return []string{}
 				}
 
-				//				h, err := os.ReadDir(filepath.Dir(currentText))
 				var pathToUse string
 				if !filepath.IsAbs(currentText) {
 					pathToUse, err = filepath.Abs(filepath.Join(fen.wd, pathToUse))
@@ -851,13 +849,13 @@ func main() {
 					pathToUse = filepath.Dir(currentText)
 				}
 
-				h, err := os.ReadDir(pathToUse)
+				dir, err := os.ReadDir(pathToUse)
 				if err != nil {
 					return []string{}
 				}
 
 				var ret []string
-				for _, e := range h {
+				for _, e := range dir {
 					if e.IsDir() {
 						if !fen.config.HiddenFiles && strings.HasPrefix(e.Name(), ".") {
 							continue
@@ -892,7 +890,8 @@ func main() {
 			inputField.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 
 			enterWillSelectAutoCompleteInGotoFolder = false
-			pages.AddPage("gotofolder", centered(inputField, 60, 3), true, true)
+
+			pages.AddPage("gotofolder", centered(inputField, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Key() == tcell.KeyF5 {

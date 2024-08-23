@@ -4,7 +4,7 @@ go 1.21.5
 
 replace github.com/gdamore/tcell/v2 => github.com/kivattt/tcell-naively-faster/v2 v2.0.1
 
-replace github.com/rivo/tview => github.com/kivattt/tview v1.0.2
+replace github.com/rivo/tview => github.com/kivattt/tview v1.0.3
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0
