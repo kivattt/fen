@@ -579,7 +579,7 @@ func MapStringBoolKeys(theMap map[string]bool) []string {
 }
 
 func OpenFile(fen *Fen, app *tview.Application, openWith string) {
-	if fen.config.PrintPathOnOpen && openWith == "" {
+	if fen.config.PrintPathOnOpen {
 		app.Stop()
 
 		if len(fen.selected) <= 0 {

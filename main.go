@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.6.1"
+const version = "v1.6.2"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -400,11 +400,11 @@ func main() {
 				}
 
 				programNameToUse := inputField.GetText()
-				/*if programNameToUse == "" {
+				if programNameToUse == "" {
 					if len(programs) > 0 {
 						programNameToUse = programs[0]
 					}
-				}*/
+				}
 				fen.GoRight(app, programNameToUse)
 			})
 
