@@ -419,6 +419,10 @@ func (fp *FilesPane) GetSelectedEntryFromIndex(index int) string {
 	return fp.entries.Load().([]os.DirEntry)[index].Name()
 }
 
+func (fp *FilesPane) ClampEntryIndex(index int) int {
+	return max(0, min(len(fp.entries.Load().([]os.DirEntry))-1, index))
+}
+
 func (fp *FilesPane) GetSelectedPathFromIndex(index int) string {
 	entryFromIndex := fp.GetSelectedEntryFromIndex(index)
 	if entryFromIndex == "" {
@@ -558,6 +562,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 	scrollOffset := fp.GetTopScreenEntryIndex()
 	for i, entry := range fp.entries.Load().([]os.DirEntry)[scrollOffset:] {
+		// We don't draw at the bottom row of the screen, since it's occupied by the bottomBar
 		if i >= h {
 			break
 		}

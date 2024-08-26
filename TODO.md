@@ -23,6 +23,14 @@
 - Replace github.com/otiai10/copy with my own recursive folder copying
 - Cache folder size (file count)
 
+- Ctrl+Right arrow goes to end of history
+- File list mode ("flattened mode", "flattened folder view" ?)
+  - Recursive directory iterator in separate thread updating the entries
+  - Color change in UI, like (red? maybe something friendlier...) background for the topbar
+  - Probably some text letting you know file list mode is enabled
+  - Make middlePane take up the entire screen?
+  - Show more file info in filespane drawing
+
 - System-wide configuration file instructions
 - Make file previews not run every time the terminal is resized?
 - Installation instructions for Windows in the README

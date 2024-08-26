@@ -32,7 +32,7 @@ go build
 ```
 
 # Controls
-Arrow keys, hjkl or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
+Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
 
 `?` or `F1` Toggle help menu\
 `Ctrl + Space` or `Ctrl + n` Open file(s) with specific program\

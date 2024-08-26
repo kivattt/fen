@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.6.2"
+const version = "v1.6.3"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -274,6 +274,24 @@ func main() {
 		}
 
 		switch event.Buttons() {
+		case tcell.Button1:
+			x, y, w, h := fen.middlePane.GetInnerRect()
+			mouseX, mouseY := event.Position()
+
+			if mouseY < y || mouseY > h { // We don't check > y+h so clicking the bottom row of the screen is ignored
+				break
+			}
+
+			if mouseX < x {
+				fen.GoLeft()
+			} else if mouseX > x+w {
+				fen.GoRight(app, "")
+			} else {
+				fen.GoIndex(fen.middlePane.ClampEntryIndex(mouseY - y + fen.middlePane.GetTopScreenEntryIndex()))
+				// We need to call this here even though its being called at the end?
+				// Probably because of history shenanigans that are solved by SetSelectedEntryFromString() which is at some point called in UpdatePanes()
+				fen.UpdatePanes(false)
+			}
 		case tcell.WheelLeft:
 			fen.GoLeft()
 		case tcell.WheelRight:
@@ -296,7 +314,7 @@ func main() {
 			return nil, action
 		}
 
-		if !(event.Buttons() == tcell.WheelLeft) {
+		if event.Buttons() != tcell.WheelLeft {
 			fen.history.AddToHistory(fen.sel)
 		}
 
@@ -728,7 +746,26 @@ func main() {
 				styleStr := StyleToStyleTagString(FileColor(fileToDeleteInfo, fileToDelete))
 				modal.SetText("[red::d]Delete[-:-:-:-] " + styleStr + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(filepath.Base(fileToDelete)), styleStr) + "[-:-:-:-] ?")
 			} else {
-				modal.SetText("[red::d]Delete[-:-:-:-] " + tview.Escape(strconv.Itoa(len(fen.selected))) + " selected files?")
+				selectedFromMultipleFolders := false
+
+				var firstFolderFound string
+				for path := range fen.selected {
+					if firstFolderFound == "" {
+						firstFolderFound = filepath.Dir(path)
+						continue
+					}
+
+					if filepath.Dir(path) != firstFolderFound {
+						selectedFromMultipleFolders = true
+						break
+					}
+				}
+
+				if selectedFromMultipleFolders {
+					modal.SetText("[red::d]Delete[-:-:-:-] " + tview.Escape(strconv.Itoa(len(fen.selected))) + " selected files [:red]from multiple folders[-:-:-:-] ?")
+				} else {
+					modal.SetText("[red::d]Delete[-:-:-:-] " + tview.Escape(strconv.Itoa(len(fen.selected))) + " selected files ?")
+				}
 			}
 
 			modal.

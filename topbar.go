@@ -52,17 +52,18 @@ func (topBar *TopBar) Draw(screen tcell.Screen) {
 		}
 	}
 
-	textToShow := "[::b]" + usernameColor + tview.Escape(username)
+	usernameAndHostname := "[::b]" + usernameColor + tview.Escape(username)
 	if topBar.fen.config.ShowHostname && runtime.GOOS != "windows" {
 		hostname, err := os.Hostname()
 		if err == nil {
-			textToShow += tview.Escape("@" + hostname)
+			usernameAndHostname += tview.Escape("@" + hostname)
 		}
 	}
 
-	textToShow += " " +
-		"[blue::b]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithEndSeparator(pathToShow)), "[blue::b]") +
+	_, usernameAndHostnameLength := tview.Print(screen, usernameAndHostname, x, y, w, tview.AlignLeft, tcell.ColorBlue)
+
+	pathText := "[blue::b]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithEndSeparator(pathToShow)), "[blue::b]") +
 		"[white::b]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithoutEndSeparator(filepath.Base(path))), "[white::b]")
 
-	tview.Print(screen, textToShow, x, y, w, tview.AlignLeft, tcell.ColorBlue)
+	tview.Print(screen, pathText, x+1+usernameAndHostnameLength, y, w, tview.AlignLeft, tcell.ColorBlue)
 }

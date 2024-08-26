@@ -477,6 +477,15 @@ func (fen *Fen) GoDown(numEntries ...int) {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex+numEntriesToMove))
 }
 
+// Does not do bounds checking, be careful!
+func (fen *Fen) GoIndex(index int) {
+	fen.sel = fen.middlePane.GetSelectedEntryFromIndex(index)
+
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = index
+	}
+}
+
 func (fen *Fen) GoTop() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
 
