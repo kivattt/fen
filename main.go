@@ -211,7 +211,7 @@ func main() {
 		fen.config.ShowHostname = *showHostname
 	}
 
-	fen.effectiveShowHomePathAsTilde = true
+	fen.effectiveShowHomePathAsTilde = fen.config.ShowHomePathAsTilde
 	if flagPassed("show-home-path-as-tilde") {
 		fen.effectiveShowHomePathAsTilde = *showHomePathAsTilde
 		fen.config.ShowHomePathAsTilde = *showHomePathAsTilde
