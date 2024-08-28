@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.6.3"
+const version = "v1.6.4"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -47,9 +47,15 @@ func main() {
 	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "always show folders at the top")
 	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit when opening file(s)")
 	printFolderOnExit := flag.Bool("print-folder-on-exit", false, "output the current working folder in fen on exit")
-	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "")
+	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "change terminal title to 'fen "+version+"' while open")
 	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "show the 'For help: ...' text")
-	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "show username@hostname in the top-left on Linux")
+	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "show username@hostname in the top-left")
+
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		userHomeDir = "the home directory"
+	}
+	showHomePathAsTilde := flag.Bool("show-home-path-as-tilde", defaultConfigValues.ShowHomePathAsTilde, "replaces "+userHomeDir+" with the ~ symbol (not on Windows)")
 	selectPaths := flag.Bool("select", false, "select PATHS")
 
 	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
@@ -204,6 +210,12 @@ func main() {
 	if flagPassed("show-hostname") {
 		fen.config.ShowHostname = *showHostname
 	}
+
+	fen.effectiveShowHomePathAsTilde = true
+	if flagPassed("show-home-path-as-tilde") {
+		fen.effectiveShowHomePathAsTilde = *showHomePathAsTilde
+		fen.config.ShowHomePathAsTilde = *showHomePathAsTilde
+	}
 	if flagPassed("sort-by") {
 		fen.config.SortBy = *sortBy
 	}
@@ -270,6 +282,22 @@ func main() {
 		}
 
 		if action == tview.MouseMove {
+			if !fen.config.ShowHomePathAsTilde || runtime.GOOS == "windows" {
+				return event, action
+			}
+
+			_, mouseY := event.Position()
+			if mouseY == 0 {
+				if fen.effectiveShowHomePathAsTilde {
+					fen.effectiveShowHomePathAsTilde = false
+					return nil, action
+				}
+			} else {
+				if !fen.effectiveShowHomePathAsTilde {
+					fen.effectiveShowHomePathAsTilde = true
+					return nil, action
+				}
+			}
 			return event, action
 		}
 

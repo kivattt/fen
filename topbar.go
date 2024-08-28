@@ -43,7 +43,7 @@ func (topBar *TopBar) Draw(screen tcell.Screen) {
 	}
 
 	pathToShow := filepath.Dir(path)
-	if runtime.GOOS == "linux" {
+	if topBar.fen.effectiveShowHomePathAsTilde && runtime.GOOS != "windows" {
 		homeDir, err := os.UserHomeDir()
 		if err == nil {
 			if strings.HasPrefix(pathToShow, homeDir) {
