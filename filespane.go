@@ -361,6 +361,22 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		if fp.fen.config.SortReverse {
 			slices.Reverse(fp.entries.Load().([]os.DirEntry))
 		}
+	case "file-extension":
+		// Also sorts folders based on file extension, kind of weird
+		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
+			aExt := strings.ToLower(filepath.Ext(a.Name()))
+			bExt := strings.ToLower(filepath.Ext(b.Name()))
+
+			if aExt == bExt {
+				return 0
+			}
+
+			if aExt < bExt {
+				return -1
+			}
+
+			return 1
+		})
 	case "none":
 	default:
 		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")
@@ -622,7 +638,12 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		screen.SetContent(xToUse, y+i, ' ', nil, style)
 		xToUse++
 		leftSizePrinted := PrintFilenameInvisibleCharactersAsCodeHighlighted(screen, xToUse, y+i, w-1-entrySizePrintedSize, entry.Name(), style)
-		for j := 0; j < w-1-leftSizePrinted-entrySizePrintedSize-(xToUse-x); j++ {
+
+		widthOffset := 0
+		if fp.isRightFilesPane {
+			widthOffset = 1
+		}
+		for j := 0; j < w-1-leftSizePrinted-entrySizePrintedSize-(xToUse-x)+widthOffset; j++ {
 			screen.SetContent(xToUse+leftSizePrinted+j, y+i, ' ', nil, style)
 		}
 

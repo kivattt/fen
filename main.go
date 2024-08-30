@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.6.4"
+const version = "v1.6.5"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -125,8 +125,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 
 		// Hacky, but gets the job done
-		if !strings.HasSuffix(err.Error(), "config files can only be Lua.") {
-			fmt.Println("Invalid config " + *configFilename)
+		if !strings.HasSuffix(err.Error(), "config files can only be Lua.\n") {
+			fmt.Println("Invalid config '" + *configFilename + "', exiting")
 		} else if !fen.config.NoWrite {
 			fmt.Print("Generate config.lua from fenrc.json file? (This will not erase anything) [y/N] ")
 			reader := bufio.NewReader(os.Stdin)

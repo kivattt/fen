@@ -69,13 +69,12 @@ type Config struct {
 	ScrollSpeed             int                  `lua:"scroll_speed"`
 }
 
-var ValidSortByValues = [...]string{"none", "modified", "size"}
+var ValidSortByValues = [...]string{"none", "modified", "size", "file-extension"}
 
 func NewConfigDefaultValues() Config {
 	// Anything not specified here will have the default value for its type, e.g. false for booleans
 	return Config{
 		Mouse:                   true,
-		HiddenFiles:             true,
 		FoldersFirst:            true,
 		TerminalTitle:           true,
 		ShowHelpText:            true,
@@ -165,7 +164,7 @@ func (fen *Fen) ReadConfig(path string) error {
 	fen.config = NewConfigDefaultValues()
 
 	if !strings.HasSuffix(filepath.Base(path), ".lua") {
-		fmt.Fprintln(os.Stderr, "Warning: Config file "+path+" has no .lua file extension.\nSince v1.3.0, config files can only be Lua.")
+		fmt.Fprintln(os.Stderr, "Warning: Config file "+path+" has no .lua file extension.\nSince v1.3.0, config files can only be Lua.\n")
 	}
 
 	_, err := os.Stat(path)
@@ -173,7 +172,7 @@ func (fen *Fen) ReadConfig(path string) error {
 		oldJSONConfigPath := filepath.Join(filepath.Dir(path), "fenrc.json")
 		_, err := os.Stat(oldJSONConfigPath)
 		if err == nil {
-			return errors.New("Could not find " + path + ", but found " + oldJSONConfigPath + "\nSince v1.3.0, config files can only be Lua.")
+			return errors.New("Could not find " + path + ", but found " + oldJSONConfigPath + "\nSince v1.3.0, config files can only be Lua.\n")
 		}
 
 		// We don't want to exit if there is no config file
@@ -233,7 +232,7 @@ func (fen *Fen) ReadConfig(path string) error {
 		// If ToUpperCamelCase did nothing, it indicates the use of a fen.config Go name instead of the intended Lua name
 		if originalName == newName {
 			// Since we unfortunately can't just return err like in ReadConfig(), let's just replicate the behaviour of handling the error from main.go
-			fmt.Println("Invalid config " + path)
+			fmt.Println("Invalid config '" + path + "', exiting")
 			err := errors.New("Invalid fen global variable name: " + originalName)
 			log.Fatal(err)
 		}

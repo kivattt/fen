@@ -29,6 +29,7 @@ var helpScreenControlsList = []control{
 	{KeyBindings: []string{"?", "F1"}, Description: "Toggle help menu (you are here!)"},
 	{KeyBindings: []string{"q"}, Description: "Quit fen"},
 
+	{KeyBindings: []string{"z", "Backspace"}, Description: "Toggle hidden files"},
 	{KeyBindings: []string{"^Space", "^N"}, Description: "Open file(s) with specific program"},
 
 	{KeyBindings: []string{"n"}, Description: "Create a new file"},
@@ -51,7 +52,6 @@ var helpScreenControlsList = []control{
 	{KeyBindings: []string{"A"}, Description: "Flip selection in folder (select all files)"},
 	{KeyBindings: []string{"V"}, Description: "Start selecting by moving"},
 	{KeyBindings: []string{"D"}, Description: "Deselect all, and un-yank"},
-	{KeyBindings: []string{"z", "Backspace"}, Description: "Toggle hidden files"},
 	{KeyBindings: []string{"F5"}, Description: "Sync the screen"},
 }
 

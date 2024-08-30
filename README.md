@@ -35,6 +35,8 @@ go build
 Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
 
 `?` or `F1` Toggle help menu\
+`q` Quit fen\
+`z` or `Backspace` Toggle hidden files\
 `Ctrl + Space` or `Ctrl + n` Open file(s) with specific program\
 `Home` or `g` to go to the top\
 `End` or `G` to go to the bottom\
@@ -42,7 +44,6 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `Page Up` / `Page Down` Scroll up/down an entire page\
 `H` Go to the top of the screen\
 `L` Go to the bottom of the screen\
-`q` Quit\
 `Del` or `x` Delete file(s)\
 `y` Copy file(s)\
 `d` Cut file(s)\
@@ -53,14 +54,13 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `A` Flip selection in folder (select all files)\
 `D` Deselect all, and un-yank\
 `a` Rename a file\
-`z` or `Backspace` Toggle hidden files\
 `V` Start selecting by moving\
 `n` Create a new file\
 `N` Create a new folder\
 `F5` Sync the screen, fixes broken output that can be caused by running a command, or filenames with certain Unicode characters
 
 # Configuration
-You can find a complete example config in the [config.lua](config.lua) file\
+You can find a complete default config with extra examples in the [config.lua](config.lua) file\
 For a full config folder example, see [my personal config](https://github.com/kivattt/dotfiles/blob/main/.config/fen/config.lua)
 
 Linux/FreeBSD: `~/.config/fen/config.lua` or `$XDG_CONFIG_HOME/fen/config.lua` if `$XDG_CONFIG_HOME` set\
