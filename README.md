@@ -14,7 +14,10 @@ Works for Linux, macOS, FreeBSD and Windows
 
 # Try it out now!
 ```
-go run github.com/kivattt/fen@latest
+git clone https://github.com/kivattt/fen
+cd fen
+go build
+./fen
 ```
 
 # Installing on Linux/FreeBSD
@@ -23,12 +26,6 @@ Download the latest version in the [Releases](https://github.com/kivattt/fen/rel
 Alternatively:
 ```
 sudo -i GOBIN=/usr/local/bin go install github.com/kivattt/fen@latest
-```
-
-# Building
-```
-go build
-./fen
 ```
 
 # Controls
