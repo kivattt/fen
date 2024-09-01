@@ -495,8 +495,25 @@ func main() {
 			fen.UpdatePanes(false)
 			return nil
 		}
-
-		if event.Rune() == '/' || event.Key() == tcell.KeyCtrlF {
+		if event.Rune() == '1' {
+			fen.EnterShortcut(0)
+		} else if event.Rune() == '2' {
+			fen.EnterShortcut(1)
+		} else if event.Rune() == '3' {
+			fen.EnterShortcut(2)
+		} else if event.Rune() == '4' {
+			fen.EnterShortcut(3)
+		} else if event.Rune() == '5' {
+			fen.EnterShortcut(4)
+		} else if event.Rune() == '6' {
+			fen.EnterShortcut(5)
+		} else if event.Rune() == '7' {
+			fen.EnterShortcut(6)
+		} else if event.Rune() == '8' {
+			fen.EnterShortcut(7)
+		} else if event.Rune() == '9' {
+			fen.EnterShortcut(8)
+		} else if event.Rune() == '/' || event.Key() == tcell.KeyCtrlF {
 			inputField := tview.NewInputField().
 				SetLabel(" Search: ").
 				SetPlaceholder("case-insensitive").
