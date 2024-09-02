@@ -17,7 +17,7 @@ Works for Linux, macOS, FreeBSD and Windows
 git clone https://github.com/kivattt/fen
 cd fen
 go build # Install Go: https://go.dev/dl/
-./fen
+./fen # fen.exe on Windows
 ```
 
 # Installing on Linux/FreeBSD
