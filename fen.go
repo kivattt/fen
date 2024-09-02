@@ -69,6 +69,8 @@ type Config struct {
 	ScrollSpeed             int                  `lua:"scroll_speed"`
 }
 
+var userHomeDir, _ = os.UserHomeDir()
+var Bookmarks = [9]string{userHomeDir, userHomeDir + "/Documents", userHomeDir + "/Desktop", userHomeDir + "/Downloads", userHomeDir + "/Music", userHomeDir + "/Pictures", userHomeDir + "/Videos", "/Users", "/"}
 var ValidSortByValues = [...]string{"none", "modified", "size", "file-extension"}
 
 func NewConfigDefaultValues() Config {
@@ -585,4 +587,15 @@ func (fen *Fen) UpdateSelectingWithV() {
 	for i := minIndex; i <= maxIndex; i++ {
 		fen.EnableSelection(fen.middlePane.GetSelectedPathFromIndex(i))
 	}
+}
+
+func (fen *Fen) EnterShortcut(BMNumber int) {
+	pathToUse := Bookmarks[BMNumber]
+	fen.wd = pathToUse
+
+	if filepath.Dir(fen.sel) != filepath.Clean(fen.sel) {
+		fen.history.AddToHistory(fen.sel)
+	}
+	fen.UpdatePanes(false)
+	fen.bottomBar.TemporarilyShowTextInstead("Moved to bookmark: \"" + pathToUse + "\"")
 }

@@ -55,6 +55,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `n` Create a new file\
 `N` Create a new folder\
 `F5` Sync the screen, fixes broken output that can be caused by running a command, or filenames with certain Unicode characters
+`1-9` To enter a Bookmark
 
 # Configuration
 You can find a complete default config with extra examples in the [config.lua](config.lua) file\
