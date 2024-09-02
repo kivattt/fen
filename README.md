@@ -54,7 +54,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `V` Start selecting by moving\
 `n` Create a new file\
 `N` Create a new folder\
-`F5` Sync the screen, fixes broken output that can be caused by running a command, or filenames with certain Unicode characters
+`F5` Sync the screen, fixes broken output that can be caused by running a command, or filenames with certain Unicode characters\
 `0-9` Go to a configured bookmark
 
 # Configuration
