@@ -53,7 +53,7 @@ var helpScreenControlsList = []control{
 	{KeyBindings: []string{"V"}, Description: "Start selecting by moving"},
 	{KeyBindings: []string{"D"}, Description: "Deselect all, and un-yank"},
 	{KeyBindings: []string{"F5"}, Description: "Sync the screen"},
-	{KeyBindings: []string{"1-9"}, Description: "Enter a bookmark"},
+	{KeyBindings: []string{"0-9"}, Description: "Go to a configured bookmark"},
 }
 
 func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {

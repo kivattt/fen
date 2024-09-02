@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/rivo/tview"
@@ -67,10 +68,9 @@ type Config struct {
 	FileEventIntervalMillis int                  `lua:"file_event_interval_ms"`
 	AlwaysShowInfoNumbers   bool                 `lua:"always_show_info_numbers"`
 	ScrollSpeed             int                  `lua:"scroll_speed"`
+	Bookmarks               [10]string           `lua:"bookmarks"`
 }
 
-var userHomeDir, _ = os.UserHomeDir()
-var Bookmarks = [9]string{userHomeDir, userHomeDir + "/Documents", userHomeDir + "/Desktop", userHomeDir + "/Downloads", userHomeDir + "/Music", userHomeDir + "/Pictures", userHomeDir + "/Videos", "/Users", "/"}
 var ValidSortByValues = [...]string{"none", "modified", "size", "file-extension"}
 
 func NewConfigDefaultValues() Config {
@@ -208,6 +208,10 @@ func (fen *Fen) ReadConfig(path string) error {
 	}
 	luaInitialConfigTable.RawSetString("version", lua.LString(version))
 	luaInitialConfigTable.RawSetString("runtime_os", lua.LString(runtime.GOOS))
+	userHomeDir, err := os.UserHomeDir()
+	if err == nil {
+		luaInitialConfigTable.RawSetString("home_path", lua.LString(PathWithEndSeparator(userHomeDir)))
+	}
 	L.SetGlobal("fen", luaInitialConfigTable)
 
 	err = L.DoFile(path)
@@ -589,13 +593,49 @@ func (fen *Fen) UpdateSelectingWithV() {
 	}
 }
 
-func (fen *Fen) EnterShortcut(BMNumber int) {
-	pathToUse := Bookmarks[BMNumber]
-	fen.wd = pathToUse
+func (fen *Fen) GoBookmark(bookmarkNumber int) error {
+	if bookmarkNumber < 0 || bookmarkNumber > 9 {
+		panic("Invalid bookmark number")
+	}
+
+	// This is so that pressing '0' uses the 10th bookmark index from config.lua
+	if bookmarkNumber == 0 {
+		bookmarkNumber = 9
+	} else {
+		bookmarkNumber--
+	}
+
+	pathToUse := fen.config.Bookmarks[bookmarkNumber]
+	if pathToUse == "" {
+		return errors.New("No path configured for bookmark " + strconv.Itoa(bookmarkNumber+1))
+	}
+
+	pathToUse = filepath.Clean(pathToUse)
+	if !filepath.IsAbs(pathToUse) {
+		var err error
+		pathToUse, err = filepath.Abs(filepath.Join(fen.wd, pathToUse))
+		if err != nil {
+			return err
+		}
+	}
+
+	stat, err := os.Stat(pathToUse)
+	if err != nil {
+		return errors.New("No such folder or file \"" + pathToUse + "\"")
+	}
+
+	if !stat.IsDir() {
+		fen.wd = filepath.Dir(pathToUse)
+		fen.sel = pathToUse
+	} else {
+		fen.wd = pathToUse
+	}
 
 	if filepath.Dir(fen.sel) != filepath.Clean(fen.sel) {
 		fen.history.AddToHistory(fen.sel)
 	}
 	fen.UpdatePanes(false)
+
 	fen.bottomBar.TemporarilyShowTextInstead("Moved to bookmark: \"" + pathToUse + "\"")
+	return nil
 }

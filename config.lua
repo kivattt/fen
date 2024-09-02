@@ -15,14 +15,35 @@ fen.file_event_interval_ms = 300 -- How often to update the screen on file event
 fen.always_show_info_numbers = false -- Shows the blue, green and yellow numbers in the bottom right even when they are 0
 fen.scroll_speed = 2 -- When scrolling faster than 30ms per scroll, scroll this many entries
 
+-- Everything below this line is non-default examples
+
 -- The fen version string
-print(fen.version) -- Something like "v1.3.0"
+print(fen.version) -- Something like "v1.6.6"
 
 -- The current operating system
 print(fen.runtime_os) -- "linux", "darwin" (for macOS), "freebsd", "windows"
 
 -- The OS-specific config path
 print(fen.config_path) -- Something like "/home/YOUR_USER/.config/fen/" (always ends in a slash)
+
+-- The OS-specific home folder (nil if not found), details: https://pkg.go.dev/os#UserHomeDir
+print(fen.home_path) -- Something like "/home/YOUR_USER/" (always ends in a slash)
+
+-- When pressing a number key (0-9), go to the specified folder or file path
+-- It can also be a relative path which can be used in any folder
+-- This is a list with no more than 10 elements
+fen.bookmarks = {
+	[1] = fen.home_path,
+	[2] = fen.config_path .. "config.lua",
+	[3] = fen.home_path .. "Documents",
+	[4] = fen.home_path .. "Desktop",
+	[5] = fen.home_path .. "Downloads",
+	[6] = fen.home_path .. "Music",
+	[7] = fen.home_path .. "Pictures",
+	[8] = fen.home_path .. "Videos",
+	[9] = fen.home_path .. "Users",
+	[10] = "/", -- This is used when pressing '0',
+}
 
 -- You can use fen.runtime_os to let your config have specific behaviour on different operating systems
 local textEditor = os.getenv("EDITOR")
