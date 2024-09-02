@@ -16,7 +16,7 @@ Works for Linux, macOS, FreeBSD and Windows
 ```
 git clone https://github.com/kivattt/fen
 cd fen
-go build
+go build # Install Go: https://go.dev/dl/
 ./fen
 ```
 
