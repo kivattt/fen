@@ -9,12 +9,12 @@ replace github.com/rivo/tview => github.com/kivattt/tview v1.0.3
 require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gdamore/tcell/v2 v2.7.4
-	github.com/kivattt/getopt v0.0.0-20240628061659-0f129a2cefaf
+	github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
 	github.com/otiai10/copy v1.14.0
-	github.com/rivo/tview v0.0.0-20240625185742-b0a7293b8130
+	github.com/rivo/tview v0.0.0-20240818110301-fd649dbf1223
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 	github.com/yuin/gopher-lua v1.1.1
-	golang.org/x/sys v0.22.0
+	golang.org/x/sys v0.25.0
 	layeh.com/gopher-luar v1.0.11
 )
 
@@ -24,7 +24,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/term v0.22.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/sync v0.8.0 // indirect
+	golang.org/x/term v0.24.0 // indirect
+	golang.org/x/text v0.18.0 // indirect
 )
