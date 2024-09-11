@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.6.7"
+const version = "v1.6.8"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -28,6 +28,14 @@ func main() {
 	//	defer pprof.StopCPUProfile()
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+
+	tview.Styles.BorderColor = tcell.ColorDefault
+	tview.Borders.TopLeft = '╭'
+	tview.Borders.TopRight = '╮'
+	tview.Borders.BottomLeft = '╰'
+	tview.Borders.BottomRight = '╯'
+	tview.Borders.Horizontal = '─'
+	tview.Borders.Vertical = '│'
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
@@ -165,9 +173,15 @@ func main() {
 	if *selectPaths {
 		for _, arg := range getopt.CommandLine.Args() {
 			pathAbsolute, err := filepath.Abs(arg)
-			if err == nil { // TODO: Add an error msg to the log when an invalid path was specified
-				fen.EnableSelection(pathAbsolute)
+			if err != nil {
+				continue
 			}
+
+			_, err = os.Stat(pathAbsolute)
+			if err != nil {
+				continue
+			}
+			fen.EnableSelection(pathAbsolute)
 		}
 	}
 
