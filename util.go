@@ -382,6 +382,7 @@ var archiveTypes = []string{
 	".zip",
 	".jar",
 	".kra",
+	".rar",
 
 	// https://en.wikipedia.org/wiki/Tar_(computing)
 	".tar.bz2", ".tb2", ".tbz", ".tbz2", ".tz2",
