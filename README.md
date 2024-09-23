@@ -108,7 +108,7 @@ alias fen=cd_fen
 NOTE: Using this alias will break command-line arguments, like `fen -v` since the output will be passed to `cd`.
 
 <details>
-<summary>Lua scripting (click to expand)</summary>
+<summary><h1>Lua scripting (click to expand)</h1></summary>
 
 fen uses [gopher-lua](https://github.com/yuin/gopher-lua) as its Lua runtime.
 
