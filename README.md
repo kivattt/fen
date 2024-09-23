@@ -107,7 +107,9 @@ alias fen=cd_fen
 ```
 NOTE: Using this alias will break command-line arguments, like `fen -v` since the output will be passed to `cd`.
 
-# Lua scripting
+<details>
+<summary>Lua scripting (click to expand)</summary>
+
 fen uses [gopher-lua](https://github.com/yuin/gopher-lua) as its Lua runtime.
 
 ## Writing file preview scripts with Lua
@@ -143,6 +145,7 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 `fen.ConfigPath` Same as `fen.config_path` from config.lua\
 `fen.RuntimeOS` The OS fen is running in [Go doc](https://pkg.go.dev/runtime#pkg-constants)\
 `fen.Version` fen version string
+</details>
 
 # Known issues
 - fen may crash in the middle of deleting files due to a data race, most commonly when deleting a lot of files (like 4000)
