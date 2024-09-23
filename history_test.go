@@ -24,7 +24,7 @@ func TestGetHistoryEntryForPath(t *testing.T) {
 		t.Fatalf("Expected /home, but got: " + e)
 	}
 
-	e, err := h.GetHistoryEntryForPath("", true)
+	_, err := h.GetHistoryEntryForPath("", true)
 	if err == nil {
 		t.Fatal("Passing an empty path did not error")
 	}
