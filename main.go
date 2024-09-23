@@ -630,17 +630,26 @@ func main() {
 					pages.RemovePage("newfilemodal")
 					return
 				} else if key == tcell.KeyEnter {
-					_, err := os.Stat(filepath.Join(fen.wd, inputField.GetText())) // Here to make sure we don't overwrite a file when making a new one
+					pathToUse := filepath.Join(fen.wd, inputField.GetText())
+					if filepath.Dir(pathToUse) != fen.wd || strings.ContainsRune(inputField.GetText(), os.PathSeparator) {
+						fen.bottomBar.TemporarilyShowTextInstead("Paths outside of the current folder are not yet supported")
+						pages.RemovePage("newfilemodal")
+						return
+					}
+
+					_, err := os.Stat(pathToUse) // Here to make sure we don't overwrite a file when making a new one
 					if !fen.config.NoWrite && err != nil {
 						var createFileOrFolderErr error
 						if event.Rune() == 'n' {
-							_, createFileOrFolderErr = os.Create(filepath.Join(fen.wd, inputField.GetText()))
+							_, createFileOrFolderErr = os.Create(pathToUse)
 						} else if event.Rune() == 'N' {
-							createFileOrFolderErr = os.Mkdir(filepath.Join(fen.wd, inputField.GetText()), 0775)
+							createFileOrFolderErr = os.Mkdir(pathToUse, 0775)
 						}
 
-						if createFileOrFolderErr == nil {
-							fen.sel = filepath.Join(fen.wd, inputField.GetText())
+						if createFileOrFolderErr != nil {
+							fen.bottomBar.TemporarilyShowTextInstead(createFileOrFolderErr.Error())
+						} else {
+							fen.sel = pathToUse
 						}
 						fen.UpdatePanes(true)
 					} else if fen.config.NoWrite {
@@ -999,7 +1008,7 @@ func main() {
 		os.Stderr.WriteString("\x1b[22t")                       // Push current terminal title
 		os.Stderr.WriteString("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen"
 	}
-	if err := app.SetRoot(pages, true).EnableMouse(fen.config.Mouse).Run(); err != nil {
+	if err := app.SetRoot(pages, true).EnableMouse(fen.config.Mouse).EnablePaste(true).Run(); err != nil {
 		log.Fatal(err)
 	}
 	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
