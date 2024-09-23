@@ -22,8 +22,8 @@
 - Fix the bottom bar sometimes not showing info on files inside `/proc/.../map_files`
 - Replace github.com/otiai10/copy with my own recursive folder copying
 - Cache folder size (file count)
-- Put the "goto path" file/folder logic in a function inside fen.go, so we can use it for creating new files/folders with absolute paths
 - Warning message or enable hidden files when creating a new hidden file/folder
+- Put the "goto path" file/folder logic in a function inside fen.go, so we can use it for bookmarks and creating new files/folders with absolute paths
 
 - Ctrl+Right arrow goes to end of history
 - File list mode ("flattened mode", "flattened folder view" ?)
