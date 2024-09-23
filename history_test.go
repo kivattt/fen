@@ -18,6 +18,16 @@ func TestGetHistoryEntryForPath(t *testing.T) {
 	if e != "/home/user/test/something" {
 		t.Fatalf("Expected /home/user/test/something, but got: " + e)
 	}
+
+	e, _ = h.GetHistoryEntryForPath("/", true)
+	if e != "/home" {
+		t.Fatalf("Expected /home, but got: " + e)
+	}
+
+	e, err := h.GetHistoryEntryForPath("", true)
+	if err == nil {
+		t.Fatal("Passing an empty path did not error")
+	}
 	/*
 	   h.ClearHistory()
 	   h.AddToHistory("/home/user/folder/file.txt")

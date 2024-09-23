@@ -22,6 +22,7 @@
 - Fix the bottom bar sometimes not showing info on files inside `/proc/.../map_files`
 - Replace github.com/otiai10/copy with my own recursive folder copying
 - Cache folder size (file count)
+- Disallow pasting without a text input modal present (xhEnter would delete a file, for example)
 
 - Ctrl+Right arrow goes to end of history
 - File list mode ("flattened mode", "flattened folder view" ?)

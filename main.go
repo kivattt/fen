@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.6.8"
+const version = "v1.6.9"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -280,7 +280,7 @@ func main() {
 	lastWheelUpTime := time.Now()
 	lastWheelDownTime := time.Now()
 	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("gotofolder") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("gotopath") {
 			// Since `return nil, action` redraws the screen for some reason,
 			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
 			if action == tview.MouseMove {
@@ -364,10 +364,10 @@ func main() {
 		return nil, action
 	})
 
-	enterWillSelectAutoCompleteInGotoFolder := false
+	enterWillSelectAutoCompleteInGotoPath := false
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("gotofolder") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("gotopath") {
 			return event
 		}
 
@@ -852,7 +852,7 @@ func main() {
 			return nil
 		} else if event.Rune() == 'c' {
 			inputField := tview.NewInputField().
-				SetLabel(" Goto folder: ").
+				SetLabel(" Goto path: ").
 				SetPlaceholder("Relative or absolute path, case-sensitive").
 				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
@@ -865,19 +865,9 @@ func main() {
 					}
 				}
 
-				stat, err := os.Stat(pathToUse)
+				_, err := os.Stat(pathToUse)
 				if err != nil {
-					return "", errors.New("No such folder \"" + pathToUse + "\"")
-				}
-
-				// FIXME: Go up parent paths until a folder is found to clean up this code
-				if !stat.IsDir() {
-					stat, err = os.Stat(filepath.Dir(pathToUse))
-					if err != nil || !stat.IsDir() {
-						return "", errors.New("No such folder \"" + filepath.Dir(pathToUse) + "\"")
-					} else {
-						pathToUse = filepath.Dir(pathToUse)
-					}
+					return "", errors.New("No such file or directory \"" + pathToUse + "\"")
 				}
 
 				return pathToUse, nil
@@ -885,36 +875,56 @@ func main() {
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEscape {
-					pages.RemovePage("gotofolder")
+					pages.RemovePage("gotopath")
 					return
 				} else if key == tcell.KeyEnter {
 					if inputField.GetText() == "" {
-						pages.RemovePage("gotofolder")
+						pages.RemovePage("gotopath")
 						return
 					}
 
 					pathToUse, err := getPathToUse(inputField.GetText())
 					if err != nil {
-						pages.RemovePage("gotofolder")
+						pages.RemovePage("gotopath")
 						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 						return
 					}
 
-					// FIXME: When going to ".." it doesn't do the same thing as fen.GoLeft, doesn't set fen.sel correctly
-					fen.wd = pathToUse
+					stat, err := os.Stat(pathToUse)
+					if err != nil {
+						fen.bottomBar.TemporarilyShowTextInstead("No such file or directory \"" + pathToUse + "\"")
+						return
+					}
+
+					fen.DisableSelectingWithV()
+					if stat.IsDir() {
+						fen.wd = pathToUse
+						h, err := fen.history.GetHistoryEntryForPath(pathToUse, fen.config.HiddenFiles)
+						if err != nil {
+							// Need to do this so the new selected path is added to history
+							fen.UpdatePanes(false)
+							fen.GoTop()
+						} else {
+							fen.sel = h
+						}
+					} else {
+						fen.wd = filepath.Dir(pathToUse)
+						fen.sel = pathToUse
+					}
+
 					if filepath.Dir(fen.sel) != filepath.Clean(fen.sel) {
 						fen.history.AddToHistory(fen.sel)
 					}
 					fen.UpdatePanes(false)
-					fen.bottomBar.TemporarilyShowTextInstead("Moved to folder: \"" + pathToUse + "\"")
+					fen.bottomBar.TemporarilyShowTextInstead("Moved to path: \"" + pathToUse + "\"")
 
-					pages.RemovePage("gotofolder")
+					pages.RemovePage("gotopath")
 					return
 				}
 			})
 
 			inputField.SetAutocompleteFunc(func(currentText string) (entries []string) {
-				if !enterWillSelectAutoCompleteInGotoFolder {
+				if !enterWillSelectAutoCompleteInGotoPath {
 					return []string{}
 				}
 
@@ -946,10 +956,10 @@ func main() {
 			})
 			inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 				if event.Key() == tcell.KeyTab {
-					enterWillSelectAutoCompleteInGotoFolder = true
+					enterWillSelectAutoCompleteInGotoPath = true
 					return tcell.NewEventKey(tcell.KeyDown, 'j', tcell.ModNone)
 				} else if event.Key() == tcell.KeyBacktab {
-					enterWillSelectAutoCompleteInGotoFolder = true
+					enterWillSelectAutoCompleteInGotoPath = true
 					return tcell.NewEventKey(tcell.KeyUp, 'k', tcell.ModNone)
 				}
 
@@ -968,9 +978,9 @@ func main() {
 			inputField.SetBorder(true)
 			inputField.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 
-			enterWillSelectAutoCompleteInGotoFolder = false
+			enterWillSelectAutoCompleteInGotoPath = false
 
-			pages.AddPage("gotofolder", centered(inputField, 3), true, true)
+			pages.AddPage("gotopath", centered(inputField, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Key() == tcell.KeyF5 {

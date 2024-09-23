@@ -14,7 +14,12 @@ type History struct {
 	historyMutex sync.Mutex
 }
 
+// Returns a full filepath (path joined with the next history entry), passing an empty path returns an error
 func (h *History) GetHistoryEntryForPath(path string, hiddenFiles bool) (string, error) {
+	if path == "" {
+		return "", errors.New("The path argument passed was an empty string")
+	}
+
 	h.historyMutex.Lock()
 	defer h.historyMutex.Unlock()
 
@@ -38,7 +43,11 @@ func (h *History) GetHistoryEntryForPath(path string, hiddenFiles bool) (string,
 				continue
 			}
 
-			e = e[len(path)+1:]
+			if len(path) == 1 {
+				e = e[1:]
+			} else {
+				e = e[len(path)+1:]
+			}
 			nextSlashIdx := strings.Index(e, string(os.PathSeparator))
 			if nextSlashIdx == -1 {
 				return filepath.Join(path, e), nil
