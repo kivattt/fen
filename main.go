@@ -631,7 +631,7 @@ func main() {
 					return
 				} else if key == tcell.KeyEnter {
 					pathToUse := filepath.Join(fen.wd, inputField.GetText())
-					if filepath.Dir(pathToUse) != fen.wd || strings.ContainsRune(inputField.GetText(), os.PathSeparator) {
+					if filepath.Dir(pathToUse) != fen.wd || (runtime.GOOS != "windows" && pathToUse == string(os.PathSeparator)) || strings.ContainsRune(inputField.GetText(), os.PathSeparator) {
 						fen.bottomBar.TemporarilyShowTextInstead("Paths outside of the current folder are not yet supported")
 						pages.RemovePage("newfilemodal")
 						return
