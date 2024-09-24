@@ -408,6 +408,11 @@ func (fen *Fen) GoLeft() {
 		return
 	}
 
+	files, err := os.ReadDir(filepath.Dir(fen.wd))
+	if err != nil || len(files) == 0 {
+		return
+	}
+
 	fen.sel = fen.wd
 	fen.wd = filepath.Dir(fen.wd)
 
