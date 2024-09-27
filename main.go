@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.0"
+const version = "v1.7.1"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -484,9 +484,17 @@ func main() {
 			fen.ToggleSelection(fen.sel)
 			fen.GoDown()
 		} else if event.Key() == tcell.KeyHome || event.Rune() == 'g' {
-			fen.GoTop()
+			if fen.config.FoldersFirst && fen.config.SplitHomeEnd {
+				fen.GoTopFileOrTop()
+			} else {
+				fen.GoTop()
+			}
 		} else if event.Key() == tcell.KeyEnd || event.Rune() == 'G' {
-			fen.GoBottom()
+			if fen.config.FoldersFirst && fen.config.SplitHomeEnd {
+				fen.GoBottomFolderOrBottom()
+			} else {
+				fen.GoBottom()
+			}
 		} else if event.Rune() == 'M' {
 			fen.GoMiddle()
 		} else if event.Rune() == 'H' {

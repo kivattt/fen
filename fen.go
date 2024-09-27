@@ -56,6 +56,7 @@ type Config struct {
 	NoWrite                 bool                 `lua:"no_write"`
 	HiddenFiles             bool                 `lua:"hidden_files"`
 	FoldersFirst            bool                 `lua:"folders_first"`
+	SplitHomeEnd            bool                 `lua:"split_home_end"`
 	PrintPathOnOpen         bool                 `lua:"print_path_on_open"`
 	TerminalTitle           bool                 `lua:"terminal_title"`
 	ShowHelpText            bool                 `lua:"show_help_text"`
@@ -516,6 +517,92 @@ func (fen *Fen) GoBottom() {
 
 	if fen.selectingWithV {
 		fen.selectingWithVEndIndex = len(fen.middlePane.entries.Load().([]os.DirEntry)) - 1
+	}
+}
+
+// Only meant to be used when fen.config.FoldersFirst is true, if not it will panic
+// If a folder not at the bottom is selected, go to the bottom folder, otherwise go to the bottom
+func (fen *Fen) GoBottomFolderOrBottom() {
+	if !fen.config.FoldersFirst {
+		panic("GoBottomFolderOrBottom() was called with FoldersFirst disabled")
+	}
+
+	stat, err := os.Lstat(fen.sel)
+	if err != nil {
+		return
+	}
+
+	findBottomFolder := func() (int, error) {
+		for i := fen.middlePane.selectedEntryIndex; i < len(fen.middlePane.entries.Load().([]os.DirEntry)); i++ {
+			if fen.middlePane.entries.Load().([]os.DirEntry)[i].IsDir() {
+				continue
+			}
+
+			bottomFolderIndex := fen.middlePane.ClampEntryIndex(max(0, i-1))
+
+			if bottomFolderIndex == fen.middlePane.selectedEntryIndex {
+				return 0, errors.New("Bottom folder already selected")
+			}
+			return bottomFolderIndex, nil
+		}
+
+		return 0, errors.New("No folder found")
+	}
+
+	if stat.IsDir() {
+		bottomFolder, err := findBottomFolder()
+		if err != nil {
+			fen.GoBottom()
+			return
+		}
+
+		// Clamp index at the end to be more sure it's correct
+		fen.GoIndex(fen.middlePane.ClampEntryIndex(bottomFolder))
+	} else {
+		fen.GoBottom()
+	}
+}
+
+// Only meant to be used when fen.config.FoldersFirst is true, if not it will panic
+// If a file not at the top is selected, go to the top file, otherwise go to the top
+func (fen *Fen) GoTopFileOrTop() {
+	if !fen.config.FoldersFirst {
+		panic("GoTopFileOrTop() was called with FoldersFirst disabled")
+	}
+
+	stat, err := os.Lstat(fen.sel)
+	if err != nil {
+		return
+	}
+
+	findTopFile := func() (int, error) {
+		for i := fen.middlePane.selectedEntryIndex; i >= 0; i-- {
+			if !fen.middlePane.entries.Load().([]os.DirEntry)[i].IsDir() {
+				continue
+			}
+
+			topFileIndex := fen.middlePane.ClampEntryIndex(i + 1)
+
+			if topFileIndex == fen.middlePane.selectedEntryIndex {
+				return 0, errors.New("Top file already selected")
+			}
+			return topFileIndex, nil
+		}
+
+		return 0, errors.New("No file found")
+	}
+
+	if !stat.IsDir() {
+		topFile, err := findTopFile()
+		if err != nil {
+			fen.GoTop()
+			return
+		}
+
+		// Clamp index at the end to be more sure it's correct
+		fen.GoIndex(fen.middlePane.ClampEntryIndex(topFile))
+	} else {
+		fen.GoTop()
 	}
 }
 

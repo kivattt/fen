@@ -5,6 +5,7 @@ fen.print_path_on_open = false
 fen.mouse = true
 fen.hidden_files = false -- Show hidden files
 fen.folders_first = true
+fen.split_home_end = false -- Only applies when fen.folders_first = true, splits Home/End keys behaviour over files and folders
 fen.terminal_title = true -- Only applies to Linux, sets the terminal title to "fen <version>"
 fen.show_hostname = true -- Does not apply to Windows, shows username@hostname in the top left
 fen.show_help_text = true
