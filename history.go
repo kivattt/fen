@@ -67,8 +67,12 @@ func (h *History) GetHistoryFullPath(path string, hiddenFiles bool) (string, err
 	}
 
 	pathFurthestDownHistory := path
-	for {
+	for i := 0; ; i++ {
 		pathFurtherDown, err := h.GetHistoryFirstFullPathFound(pathFurthestDownHistory, hiddenFiles)
+		if i == 0 && err != nil {
+			return "", errors.New("Not entry found")
+		}
+
 		if err != nil || filepath.Clean(pathFurtherDown) == filepath.Clean(pathFurthestDownHistory) {
 			break
 		}
