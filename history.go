@@ -60,6 +60,60 @@ func (h *History) GetHistoryEntryForPath(path string, hiddenFiles bool) (string,
 	return "", errors.New("No entry found")
 }
 
+// Returns the full history filepath entry (guaranteed to be the furthest down the history), passing an empty path returns an error
+func (h *History) GetHistoryFullPath(path string, hiddenFiles bool) (string, error) {
+	if path == "" {
+		return "", errors.New("The path argument passed was an empty string")
+	}
+
+	pathFurthestDownHistory := path
+	for {
+		pathFurtherDown, err := h.GetHistoryFirstFullPathFound(pathFurthestDownHistory, hiddenFiles)
+		if err != nil || filepath.Clean(pathFurtherDown) == filepath.Clean(pathFurthestDownHistory) {
+			break
+		}
+		pathFurthestDownHistory = pathFurtherDown
+	}
+
+	return pathFurthestDownHistory, nil
+}
+
+// Returns the first full history filepath entry found (not guaranteed to be the furthest down the history), passing an empty path returns an error
+func (h *History) GetHistoryFirstFullPathFound(path string, hiddenFiles bool) (string, error) {
+	if path == "" {
+		return "", errors.New("The path argument passed was an empty string")
+	}
+
+	h.historyMutex.Lock()
+	defer h.historyMutex.Unlock()
+
+	for _, e := range h.history {
+		if !hiddenFiles && strings.HasPrefix(filepath.Base(e), ".") {
+			continue
+		}
+
+		sub, err := filepath.Rel(path, e)
+		if err != nil {
+			continue
+		}
+
+		// HACKY
+		if strings.HasPrefix(sub, "..") {
+			continue
+		}
+
+		if strings.HasPrefix(e, path) {
+			if len(path) >= len(e) {
+				continue
+			}
+
+			return e, nil
+		}
+	}
+
+	return "", errors.New("No entry found")
+}
+
 // TODO: Disallow adding like, parents of existing stuff
 func (h *History) AddToHistory(path string) {
 	h.historyMutex.Lock()

@@ -325,6 +325,10 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 		fen.bottomBar.TemporarilyShowTextInstead(fen.wd + " became non-accessible, moved to a parent")
 	}*/
 
+	if !filepath.IsAbs(fen.sel) {
+		panic("fen.sel was not an absolute path")
+	}
+
 	// TODO: Preserve last available selection index (so it doesn't reset to the top)
 	_, err := os.Stat(fen.wd)
 	for err != nil {
@@ -487,15 +491,6 @@ func (fen *Fen) GoDown(numEntries ...int) {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex+numEntriesToMove))
 }
 
-// Does not do bounds checking, be careful!
-func (fen *Fen) GoIndex(index int) {
-	fen.sel = fen.middlePane.GetSelectedEntryFromIndex(index)
-
-	if fen.selectingWithV {
-		fen.selectingWithVEndIndex = index
-	}
-}
-
 func (fen *Fen) GoTop() {
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
 
@@ -556,8 +551,7 @@ func (fen *Fen) GoBottomFolderOrBottom() {
 			return
 		}
 
-		// Clamp index at the end to be more sure it's correct
-		fen.GoIndex(fen.middlePane.ClampEntryIndex(bottomFolder))
+		fen.GoIndex(bottomFolder)
 	} else {
 		fen.GoBottom()
 	}
@@ -599,8 +593,7 @@ func (fen *Fen) GoTopFileOrTop() {
 			return
 		}
 
-		// Clamp index at the end to be more sure it's correct
-		fen.GoIndex(fen.middlePane.ClampEntryIndex(topFile))
+		fen.GoIndex(topFile)
 	} else {
 		fen.GoTop()
 	}
@@ -692,37 +685,93 @@ func (fen *Fen) GoBookmark(bookmarkNumber int) error {
 		bookmarkNumber--
 	}
 
-	pathToUse := fen.config.Bookmarks[bookmarkNumber]
-	if pathToUse == "" {
+	path := fen.config.Bookmarks[bookmarkNumber]
+	if path == "" {
 		return errors.New("No path configured for bookmark " + strconv.Itoa(bookmarkNumber+1))
 	}
 
-	pathToUse = filepath.Clean(pathToUse)
+	pathMovedTo, err := fen.GoPath(path)
+	if err != nil {
+		return err
+	}
+
+	fen.bottomBar.TemporarilyShowTextInstead("Moved to bookmark: \"" + pathMovedTo + "\"")
+	return nil
+}
+
+func (fen *Fen) GoIndex(index int) {
+	clampedIndex := fen.middlePane.ClampEntryIndex(index)
+	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(clampedIndex))
+
+	if fen.selectingWithV {
+		fen.selectingWithVEndIndex = clampedIndex
+	}
+}
+
+// Returns the absolute path that was moved to, unless there is an error
+// On completion, it always adds fen.sel to the history
+// Implicitly calls fen.UpdatePanes(false) when no error
+func (fen *Fen) GoPath(path string) (string, error) {
+	if path == "" {
+		return "", errors.New("Empty path provided")
+	}
+
+	pathToUse := filepath.Clean(path)
 	if !filepath.IsAbs(pathToUse) {
 		var err error
 		pathToUse, err = filepath.Abs(filepath.Join(fen.wd, pathToUse))
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	stat, err := os.Stat(pathToUse)
 	if err != nil {
-		return errors.New("No such folder or file \"" + pathToUse + "\"")
+		return "", errors.New("No such file or directory \"" + pathToUse + "\"")
 	}
 
-	if !stat.IsDir() {
+	fen.DisableSelectingWithV()
+
+	if stat.IsDir() {
+		fen.wd = pathToUse
+		h, err := fen.history.GetHistoryEntryForPath(pathToUse, fen.config.HiddenFiles)
+		if err != nil {
+			fen.UpdatePanes(false) // Need to do this first so the new selected path is added to history
+			fen.GoTop()
+		} else {
+			fen.sel = h
+		}
+	} else {
 		fen.wd = filepath.Dir(pathToUse)
 		fen.sel = pathToUse
-	} else {
-		fen.wd = pathToUse
 	}
 
+	// XXX: Always adds to history
 	if filepath.Dir(fen.sel) != filepath.Clean(fen.sel) {
 		fen.history.AddToHistory(fen.sel)
 	}
 	fen.UpdatePanes(false)
 
-	fen.bottomBar.TemporarilyShowTextInstead("Moved to bookmark: \"" + pathToUse + "\"")
-	return nil
+	return pathToUse, nil
+}
+
+func (fen *Fen) GoRightUpToHistory() {
+	path, err := fen.history.GetHistoryFullPath(fen.sel, fen.config.HiddenFiles)
+	if err != nil {
+		return
+	}
+
+	path = filepath.Dir(path)
+
+	rel, err := filepath.Rel(fen.sel, path)
+	if err != nil {
+		return
+	}
+
+	// If it would end up going to the left, return
+	if strings.HasPrefix(rel, "..") {
+		return
+	}
+
+	fen.GoPath(path)
 }

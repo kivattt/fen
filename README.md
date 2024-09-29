@@ -37,6 +37,8 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `Ctrl + Space` or `Ctrl + n` Open file(s) with specific program\
 `Home` or `g` to go to the top\
 `End` or `G` to go to the bottom\
+`Ctrl + Left arrow` to go to the root folder\
+`Ctrl + Right arrow` to go to the path furthest down in history\
 `M` Go to the middle\
 `Page Up` / `Page Down` Scroll up/down an entire page\
 `H` Go to the top of the screen\

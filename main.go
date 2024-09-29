@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -20,7 +19,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.1"
+const version = "v1.7.2"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -177,6 +176,11 @@ func main() {
 				continue
 			}
 
+			// Don't allow selecting the root folder, since it is normally impossible to do and relatively invisible to the user
+			if pathAbsolute == filepath.Dir(pathAbsolute) {
+				continue
+			}
+
 			_, err = os.Stat(pathAbsolute)
 			if err != nil {
 				continue
@@ -329,10 +333,7 @@ func main() {
 			} else if mouseX > x+w {
 				fen.GoRight(app, "")
 			} else {
-				fen.GoIndex(fen.middlePane.ClampEntryIndex(mouseY - y + fen.middlePane.GetTopScreenEntryIndex()))
-				// We need to call this here even though its being called at the end?
-				// Probably because of history shenanigans that are solved by SetSelectedEntryFromString() which is at some point called in UpdatePanes()
-				fen.UpdatePanes(false)
+				fen.GoIndex(mouseY - y + fen.middlePane.GetTopScreenEntryIndex())
 			}
 		case tcell.WheelLeft:
 			fen.GoLeft()
@@ -424,9 +425,9 @@ func main() {
 		}
 
 		wasMovementKey := true
-		if event.Key() == tcell.KeyLeft || event.Rune() == 'h' {
+		if (event.Modifiers()&tcell.ModCtrl == 0 && event.Key() == tcell.KeyLeft) || event.Rune() == 'h' {
 			fen.GoLeft()
-		} else if event.Key() == tcell.KeyRight || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
+		} else if (event.Modifiers()&tcell.ModCtrl == 0 && event.Key() == tcell.KeyRight) || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
 			fen.GoRight(app, "")
 		} else if event.Key() == tcell.KeyCtrlSpace || event.Key() == tcell.KeyCtrlN {
 			inputField := tview.NewInputField().
@@ -510,7 +511,7 @@ func main() {
 		}
 
 		if wasMovementKey {
-			if !(event.Key() == tcell.KeyLeft || event.Rune() == 'h') {
+			if !((event.Modifiers()&tcell.ModCtrl == 0 && event.Key() == tcell.KeyLeft) || event.Rune() == 'h') {
 				fen.history.AddToHistory(fen.sel)
 			}
 
@@ -873,23 +874,6 @@ func main() {
 				SetPlaceholder("Relative or absolute path, case-sensitive").
 				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
-			getPathToUse := func(inputFieldText string) (string, error) {
-				pathToUse := filepath.Clean(inputFieldText)
-				if !filepath.IsAbs(pathToUse) {
-					pathToUse, err = filepath.Abs(filepath.Join(fen.wd, pathToUse))
-					if err != nil {
-						return "", err
-					}
-				}
-
-				_, err := os.Stat(pathToUse)
-				if err != nil {
-					return "", errors.New("No such file or directory \"" + pathToUse + "\"")
-				}
-
-				return pathToUse, nil
-			}
-
 			inputField.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEscape {
 					pages.RemovePage("gotopath")
@@ -900,42 +884,15 @@ func main() {
 						return
 					}
 
-					pathToUse, err := getPathToUse(inputField.GetText())
+					path, err := fen.GoPath(inputField.GetText())
 					if err != nil {
 						pages.RemovePage("gotopath")
 						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 						return
 					}
 
-					stat, err := os.Stat(pathToUse)
-					if err != nil {
-						fen.bottomBar.TemporarilyShowTextInstead("No such file or directory \"" + pathToUse + "\"")
-						return
-					}
-
-					fen.DisableSelectingWithV()
-					if stat.IsDir() {
-						fen.wd = pathToUse
-						h, err := fen.history.GetHistoryEntryForPath(pathToUse, fen.config.HiddenFiles)
-						if err != nil {
-							// Need to do this so the new selected path is added to history
-							fen.UpdatePanes(false)
-							fen.GoTop()
-						} else {
-							fen.sel = h
-						}
-					} else {
-						fen.wd = filepath.Dir(pathToUse)
-						fen.sel = pathToUse
-					}
-
-					if filepath.Dir(fen.sel) != filepath.Clean(fen.sel) {
-						fen.history.AddToHistory(fen.sel)
-					}
-					fen.UpdatePanes(false)
-					fen.bottomBar.TemporarilyShowTextInstead("Moved to path: \"" + pathToUse + "\"")
-
 					pages.RemovePage("gotopath")
+					fen.bottomBar.TemporarilyShowTextInstead("Moved to path: \"" + path + "\"")
 					return
 				}
 			})
@@ -1007,6 +964,16 @@ func main() {
 			if err != nil {
 				fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 			}
+		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyRight {
+			fen.GoRightUpToHistory()
+		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyLeft {
+			var path string
+			if runtime.GOOS == "windows" {
+				path = filepath.VolumeName(fen.sel)
+			} else {
+				path = "/"
+			}
+			fen.GoPath(path)
 		}
 
 		return event
