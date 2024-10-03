@@ -110,6 +110,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	fen.selectedBeforeSelectingWithV = map[string]bool{}
 
 	fen.wd = path
+	fen.sel = path // fen.sel has to be set so fen.UpdatePanes() doesn't panic, it's set accordingly when fen.UpdatePanes() completes.
 
 	fen.topBar = NewTopBar(fen)
 
@@ -296,11 +297,6 @@ func (fen *Fen) DisableSelectingWithV() {
 }
 
 func (fen *Fen) KeepMiddlePaneSelectionInBounds() {
-	// Don't know if necessary
-	/*if fen.middlePane.selectedEntryIndex < 0 {
-		fen.middlePane.selectedEntryIndex = 0
-	}*/
-
 	// I think Load()ing entries multiple times like this could be unsafe, but might realistically be very rare
 	if fen.middlePane.selectedEntryIndex >= len(fen.middlePane.entries.Load().([]os.DirEntry)) {
 		if len(fen.middlePane.entries.Load().([]os.DirEntry)) > 0 {
