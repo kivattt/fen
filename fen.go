@@ -704,9 +704,9 @@ func (fen *Fen) GoIndex(index int) {
 	}
 }
 
-// Returns the absolute path that was moved to, unless there is an error
-// On completion, it always adds fen.sel to the history
-// Implicitly calls fen.UpdatePanes(false) when no error
+// Returns the absolute path that was moved to, unless there is an error.
+// On completion, it always adds fen.sel to the history.
+// Implicitly calls fen.UpdatePanes(false) when no error.
 func (fen *Fen) GoPath(path string) (string, error) {
 	if path == "" {
 		return "", errors.New("Empty path provided")

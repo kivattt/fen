@@ -319,6 +319,7 @@ func main() {
 			return event, action
 		}
 
+		// Movement/navigation keys
 		switch event.Buttons() {
 		case tcell.Button1:
 			x, y, w, h := fen.middlePane.GetInnerRect()
@@ -424,6 +425,7 @@ func main() {
 			return nil
 		}
 
+		// Movement/navigation keys
 		wasMovementKey := true
 		if (event.Modifiers()&tcell.ModCtrl == 0 && event.Key() == tcell.KeyLeft) || event.Rune() == 'h' {
 			fen.GoLeft()
@@ -917,10 +919,10 @@ func main() {
 				fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 			}
 			return nil
-		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyRight {
+		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyRight { // Ctrl+Right
 			fen.GoRightUpToHistory()
 			return nil
-		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyLeft {
+		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyLeft { // Ctrl+Left
 			var path string
 			if runtime.GOOS == "windows" {
 				path = filepath.VolumeName(fen.sel)
