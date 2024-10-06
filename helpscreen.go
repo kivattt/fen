@@ -31,6 +31,7 @@ var helpScreenControlsList = []control{
 
 	{KeyBindings: []string{"z", "Backspace"}, Description: "Toggle hidden files"},
 	{KeyBindings: []string{"^Space", "^N"}, Description: "Open file(s) with specific program"},
+	{KeyBindings: []string{"!"}, Description: "Run system shell command"},
 
 	{KeyBindings: []string{"n"}, Description: "Create a new file"},
 	{KeyBindings: []string{"N"}, Description: "Create a new folder"},

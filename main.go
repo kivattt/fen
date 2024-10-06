@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -981,8 +982,9 @@ func main() {
 			pages.AddPage("openwith", centered(flex, inputFieldHeight+2+len(programs)), true, true)
 			return nil
 		} else if event.Rune() == '!' {
+			shellName := GetShellArgs()[0]
 			inputField := tview.NewInputField().
-				SetLabel(" Shell command: ").
+				SetLabel(" Run " + filepath.Base(shellName) + " command: ").
 				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
 			inputField.SetBorder(true)
@@ -999,6 +1001,50 @@ func main() {
 				if key == tcell.KeyEscape {
 					pages.RemovePage("shellcommand")
 					return
+				}
+
+				if fen.config.NoWrite {
+					pages.RemovePage("shellcommand")
+					fen.bottomBar.TemporarilyShowTextInstead("Can't run shell commands in no-write mode")
+					return
+				}
+
+				if inputField.GetText() == "" {
+					pages.RemovePage("shellcommand")
+					fen.bottomBar.TemporarilyShowTextInstead("Empty command, nothing done")
+					return
+				}
+
+				command := inputField.GetText()
+				var err error
+				var exitCode int
+				app.Suspend(func() {
+					err = InvokeShell(command, fen.wd)
+
+					if err != nil {
+						exitError, ok := err.(*exec.ExitError)
+						if ok {
+							exitCode = exitError.ExitCode()
+						}
+					}
+
+					if err == nil || exitCode != 0 {
+						fmt.Print("\n\x1b[1;30mFinished with exit code\x1b[0m ")
+						if exitCode == 0 {
+							fmt.Print("\x1b[0;92m")
+						} else {
+							fmt.Print("\x1b[0;91m")
+						}
+						fmt.Print(strconv.Itoa(exitCode) + "\x1b[0m\x1b[1;30m, ")
+						anyKey := "press \x1b[4many key\x1b[0m\x1b[1;30m to continue..."
+						enter := "press \x1b[4mEnter\x1b[0m\x1b[1;30m to continue..."
+						PressAnyKeyToContinue(anyKey, enter)
+						fmt.Print("\x1b[0m\n\n")
+					}
+				})
+
+				if err != nil && exitCode == 0 {
+					fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 				}
 
 				pages.RemovePage("shellcommand")

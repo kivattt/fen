@@ -18,8 +18,12 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	lua "github.com/yuin/gopher-lua"
+	"golang.org/x/term"
 	luar "layeh.com/gopher-luar"
 )
+
+const pressAnyKeyToContinueText = "Press any key to continue..."
+const pressEnterToContinueText = "Press Enter to continue..."
 
 // Trims the last decimals up to maxDecimals, does nothing if maxDecimals is less than 0, e.g -1
 func trimLastDecimals(numberString string, maxDecimals int) string {
@@ -536,7 +540,7 @@ func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
 		programs = append(programs, editor)
 		descriptions = append(descriptions, "$EDITOR")
 	}
-	programs = append(programs, "vim -p", "vi -p", "nano")
+	programs = append(programs, "vim -p", "vi", "nano")
 	for i := 0; i < 3; i++ {
 		descriptions = append(descriptions, "Default fallback")
 	}
@@ -644,8 +648,8 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 				if err != nil {
 					fmt.Println("Lua error:")
 					fmt.Println(err)
-					fmt.Println("Press Enter to continue...")
-					bufio.NewReader(os.Stdin).ReadString('\n')
+					PressAnyKeyToContinue("\x1b[1;30m"+pressAnyKeyToContinueText, "\x1b[1;30m"+pressEnterToContinueText)
+					fmt.Print("\x1b[0m\n\n")
 				}
 
 				break
@@ -906,4 +910,45 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 	}
 
 	return offset
+}
+
+// Falls back to pressEnterText if an error occurred.
+// NOTE: Since this enables terminal raw mode, you need an explicit carriage return for every newline in the arguments (atleast on xterm, Linux)
+func PressAnyKeyToContinue(pressAnyKeyText, pressEnterText string) {
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		fmt.Print(pressEnterText)
+		bufio.NewReader(os.Stdin).ReadString('\n')
+		return
+	}
+
+	fmt.Print(pressAnyKeyText)
+	b := make([]byte, 1)
+	os.Stdin.Read(b)
+
+	term.Restore(int(os.Stdin.Fd()), oldState)
+}
+
+func GetShellArgs() [2]string {
+	if runtime.GOOS == "windows" {
+		return [2]string{"cmd", "/C"}
+	}
+
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+	return [2]string{shell, "-c"}
+}
+
+// Invokes system shell command
+func InvokeShell(command, workingDirectory string) error {
+	shellArgs := GetShellArgs()
+	cmd := exec.Command(shellArgs[0], shellArgs[1], command)
+
+	cmd.Dir = workingDirectory
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }

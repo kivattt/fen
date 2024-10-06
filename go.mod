@@ -15,6 +15,7 @@ require (
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 	github.com/yuin/gopher-lua v1.1.1
 	golang.org/x/sys v0.25.0
+	golang.org/x/term v0.24.0
 	layeh.com/gopher-luar v1.0.11
 )
 
@@ -25,6 +26,5 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/term v0.24.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
 )

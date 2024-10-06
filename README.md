@@ -35,6 +35,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `q` Quit fen\
 `z` or `Backspace` Toggle hidden files\
 `Ctrl + Space` or `Ctrl + n` Open file(s) with specific program\
+`!` Run system shell command (cmd on Windows)\
 `Home` or `g` to go to the top\
 `End` or `G` to go to the bottom\
 `Ctrl + Left arrow` to go to the root folder\
