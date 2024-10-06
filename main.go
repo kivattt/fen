@@ -284,7 +284,7 @@ func main() {
 	lastWheelUpTime := time.Now()
 	lastWheelDownTime := time.Now()
 	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("gotopath") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("shellcommand") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("gotopath") {
 			// Since `return nil, action` redraws the screen for some reason,
 			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
 			if action == tview.MouseMove {
@@ -368,7 +368,7 @@ func main() {
 	enterWillSelectAutoCompleteInGotoPath := false
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("gotopath") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("shellcommand") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("gotopath") {
 			return event
 		}
 
@@ -429,54 +429,6 @@ func main() {
 			fen.GoLeft()
 		} else if (event.Modifiers()&tcell.ModCtrl == 0 && event.Key() == tcell.KeyRight) || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
 			fen.GoRight(app, "")
-		} else if event.Key() == tcell.KeyCtrlSpace || event.Key() == tcell.KeyCtrlN {
-			inputField := tview.NewInputField().
-				SetLabel(" Open with: ").
-				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
-
-			inputField.SetTitleColor(tcell.ColorDefault)
-			inputField.SetFieldBackgroundColor(tcell.ColorGray)
-			inputField.SetFieldTextColor(tcell.ColorBlack)
-			inputField.SetBackgroundColor(tcell.ColorBlack)
-
-			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
-			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
-
-			programs, descriptions := ProgramsAndDescriptionsForFile(&fen)
-			programsList := NewOpenWithList(&programs, &descriptions)
-
-			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
-			inputFieldHeight := 2
-			if len(programs) > 0 {
-				inputField.SetPlaceholder(programs[0])
-			} else {
-				inputFieldHeight = 1
-			}
-
-			inputField.SetDoneFunc(func(key tcell.Key) {
-				pages.RemovePage("openwith")
-
-				if key == tcell.KeyEscape {
-					return
-				}
-
-				programNameToUse := inputField.GetText()
-				if programNameToUse == "" {
-					if len(programs) > 0 {
-						programNameToUse = programs[0]
-					}
-				}
-				fen.GoRight(app, programNameToUse)
-			})
-
-			flex := tview.NewFlex().
-				AddItem(inputField, inputFieldHeight, 1, true).SetDirection(tview.FlexRow).
-				AddItem(programsList, len(programs), 1, false)
-
-			flex.SetBorder(true)
-			flex.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
-
-			pages.AddPage("openwith", centered(flex, inputFieldHeight+2+len(programs)), true, true)
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
 			fen.GoUp()
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
@@ -529,24 +481,23 @@ func main() {
 				return lastChar != '/' // FIXME: Hack to prevent the slash appearing in the search inputfield by just disallowing them
 			})
 
-			inputField.
-				SetDoneFunc(func(key tcell.Key) {
-					pages.RemovePage("searchbox")
+			inputField.SetDoneFunc(func(key tcell.Key) {
+				pages.RemovePage("searchbox")
 
-					if key == tcell.KeyEscape {
-						return
-					}
+				if key == tcell.KeyEscape {
+					return
+				}
 
-					err := fen.GoSearchFirstMatch(inputField.GetText())
-					if err != nil {
-						// FIXME: We need a log window or something
-						fen.bottomBar.TemporarilyShowTextInstead("Nothing found")
-					} else {
-						// Same code as the wasMovementKey check
-						fen.history.AddToHistory(fen.sel)
-						fen.UpdatePanes(false)
-					}
-				})
+				err := fen.GoSearchFirstMatch(inputField.GetText())
+				if err != nil {
+					// FIXME: We need a log window or something
+					fen.bottomBar.TemporarilyShowTextInstead("Nothing found")
+				} else {
+					// Same code as the wasMovementKey check
+					fen.history.AddToHistory(fen.sel)
+					fen.UpdatePanes(false)
+				}
+			})
 
 			inputField.SetBorder(true)
 			inputField.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
@@ -558,6 +509,7 @@ func main() {
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
 
 			pages.AddPage("searchbox", centered(inputField, 3), true, true)
+			return nil
 		} else if event.Rune() == 'A' {
 			for _, e := range fen.middlePane.entries.Load().([]os.DirEntry) {
 				fen.ToggleSelection(filepath.Join(fen.wd, e.Name()))
@@ -582,7 +534,6 @@ func main() {
 				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
-
 				if key == tcell.KeyEscape {
 					pages.RemovePage("inputfield")
 					return
@@ -634,7 +585,6 @@ func main() {
 			}
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
-
 				if key == tcell.KeyEscape {
 					pages.RemovePage("newfilemodal")
 					return
@@ -769,6 +719,7 @@ func main() {
 		} else if event.Key() == tcell.KeyEscape {
 			fen.DisableSelectingWithV()
 			fen.UpdatePanes(false)
+			return nil
 		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
 			helpScreen.visible = !helpScreen.visible
 			if helpScreen.visible {
@@ -959,13 +910,16 @@ func main() {
 			return nil
 		} else if event.Key() == tcell.KeyF5 {
 			app.Sync()
+			return nil
 		} else if event.Rune() >= '0' && event.Rune() <= '9' {
 			err := fen.GoBookmark(int(event.Rune()) - '0')
 			if err != nil {
 				fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 			}
+			return nil
 		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyRight {
 			fen.GoRightUpToHistory()
+			return nil
 		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyLeft {
 			var path string
 			if runtime.GOOS == "windows" {
@@ -974,6 +928,82 @@ func main() {
 				path = "/"
 			}
 			fen.GoPath(path)
+			return nil
+		} else if event.Key() == tcell.KeyCtrlSpace || event.Key() == tcell.KeyCtrlN {
+			inputField := tview.NewInputField().
+				SetLabel(" Open with: ").
+				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
+
+			inputField.SetTitleColor(tcell.ColorDefault)
+			inputField.SetFieldBackgroundColor(tcell.ColorGray)
+			inputField.SetFieldTextColor(tcell.ColorBlack)
+			inputField.SetBackgroundColor(tcell.ColorBlack)
+
+			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
+
+			programs, descriptions := ProgramsAndDescriptionsForFile(&fen)
+			programsList := NewOpenWithList(&programs, &descriptions)
+
+			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
+			inputFieldHeight := 2
+			if len(programs) > 0 {
+				inputField.SetPlaceholder(programs[0])
+			} else {
+				inputFieldHeight = 1
+			}
+
+			inputField.SetDoneFunc(func(key tcell.Key) {
+				if key == tcell.KeyEscape {
+					pages.RemovePage("openwith")
+					return
+				}
+
+				programNameToUse := inputField.GetText()
+				if programNameToUse == "" {
+					if len(programs) > 0 {
+						programNameToUse = programs[0]
+					}
+				}
+				pages.RemovePage("openwith")
+				fen.GoRight(app, programNameToUse)
+			})
+
+			flex := tview.NewFlex().
+				AddItem(inputField, inputFieldHeight, 1, true).SetDirection(tview.FlexRow).
+				AddItem(programsList, len(programs), 1, false)
+
+			flex.SetBorder(true)
+			flex.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
+
+			pages.AddPage("openwith", centered(flex, inputFieldHeight+2+len(programs)), true, true)
+			return nil
+		} else if event.Rune() == '!' {
+			inputField := tview.NewInputField().
+				SetLabel(" Shell command: ").
+				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
+
+			inputField.SetBorder(true)
+			inputField.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
+			inputField.SetTitleColor(tcell.ColorDefault)
+			inputField.SetFieldBackgroundColor(tcell.ColorGray)
+			inputField.SetFieldTextColor(tcell.ColorBlack)
+			inputField.SetBackgroundColor(tcell.ColorBlack)
+
+			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
+
+			inputField.SetDoneFunc(func(key tcell.Key) {
+				if key == tcell.KeyEscape {
+					pages.RemovePage("shellcommand")
+					return
+				}
+
+				pages.RemovePage("shellcommand")
+			})
+
+			pages.AddPage("shellcommand", centered(inputField, 3), true, true)
+			return nil
 		}
 
 		return event
