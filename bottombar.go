@@ -53,7 +53,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 	filePermissions, _ := FilePermissionsString(bottomBar.fen.sel)
 	text := "[teal:]" + filePermissions + fileOwners
 
-	if !*bottomBar.fen.helpScreenVisible {
+	if !*bottomBar.fen.helpScreenVisible && !*bottomBar.fen.thirdPartySoftwareScreenVisible {
 		fileLastModified, _ := FileLastModifiedString(bottomBar.fen.sel)
 		text += " [default:]" + fileLastModified
 	}
@@ -91,7 +91,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 			jobCountStrAttributes = ""
 		}
 
-		if *bottomBar.fen.helpScreenVisible {
+		if *bottomBar.fen.helpScreenVisible || *bottomBar.fen.thirdPartySoftwareScreenVisible {
 			jobCountStr += " jobs"
 		}
 	}
@@ -115,7 +115,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 			}
 		}
 
-		if *bottomBar.fen.helpScreenVisible {
+		if *bottomBar.fen.helpScreenVisible || *bottomBar.fen.thirdPartySoftwareScreenVisible {
 			yankCountStr += " yanked"
 		}
 	}
@@ -130,13 +130,13 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 			selectedCountStrAttributes = ""
 		}
 
-		if *bottomBar.fen.helpScreenVisible {
+		if *bottomBar.fen.helpScreenVisible || *bottomBar.fen.thirdPartySoftwareScreenVisible {
 			selectedCountStr += " selected"
 		}
 	}
 
 	var countStringsHasNoSpace bool
-	if bottomBar.fen.config.ShowHelpText && !*bottomBar.fen.helpScreenVisible {
+	if bottomBar.fen.config.ShowHelpText && !(*bottomBar.fen.helpScreenVisible || *bottomBar.fen.thirdPartySoftwareScreenVisible) {
 		// We add 1 extra to hackily prevent the countStrings from showing up to the left of the helpText (might not work with different FileLastModifiedString() lengths)
 		countStringsHasNoSpace = positionStrLowerXPos-1-len(jobCountStr)-len(selectedCountStr)-len(yankCountStr) < leftLength+1+1
 	} else {
@@ -154,7 +154,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	spaceForHelpText := w - leftLength - rightLength - countStringsPrintedLength
 
-	if !bottomBar.fen.config.ShowHelpText || *bottomBar.fen.helpScreenVisible {
+	if !bottomBar.fen.config.ShowHelpText || *bottomBar.fen.helpScreenVisible || *bottomBar.fen.thirdPartySoftwareScreenVisible {
 		if !positionStrHasNoSpace {
 			tview.Print(screen, positionStr, positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
 		}

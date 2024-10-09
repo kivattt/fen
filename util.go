@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/fs"
 	"math"
@@ -880,7 +881,9 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 
 	offset := 0
 	for i, c := range filename {
-		if offset >= maxWidth-1 {
+		if offset >= maxWidth-2 {
+			screen.SetContent(x+offset, y, '…', nil, style)
+			offset++
 			break
 		}
 
@@ -950,5 +953,13 @@ func InvokeShell(command, workingDirectory string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func SetClipboardLinuxXClip(text string) error {
+	cmd := exec.Command("xclip", "-selection", "clipboard")
+	var b bytes.Buffer
+	b.WriteString(text)
+	cmd.Stdin = &b
 	return cmd.Run()
 }

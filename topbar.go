@@ -13,17 +13,24 @@ import (
 
 type TopBar struct {
 	*tview.Box
-	fen *Fen
+	fen                *Fen
+	additionalText     string
+	showAdditionalText bool
 }
 
 func NewTopBar(fen *Fen) *TopBar {
 	return &TopBar{
-		Box: tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
-		fen: fen,
+		Box:                tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
+		fen:                fen,
+		showAdditionalText: false,
 	}
 }
 
 func (topBar *TopBar) Draw(screen tcell.Screen) {
+	if *topBar.fen.thirdPartySoftwareScreenVisible {
+		return
+	}
+
 	x, y, w, _ := topBar.GetInnerRect()
 
 	path := topBar.fen.sel
@@ -43,7 +50,7 @@ func (topBar *TopBar) Draw(screen tcell.Screen) {
 	}
 
 	pathToShow := filepath.Dir(path)
-	if topBar.fen.effectiveShowHomePathAsTilde && runtime.GOOS != "windows" {
+	if topBar.fen.showHomePathAsTilde && runtime.GOOS != "windows" {
 		homeDir, err := os.UserHomeDir()
 		if err == nil {
 			if strings.HasPrefix(pathToShow, homeDir) {
@@ -65,5 +72,9 @@ func (topBar *TopBar) Draw(screen tcell.Screen) {
 	pathText := "[blue::b]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithEndSeparator(pathToShow)), "[blue::b]") +
 		"[white::b]" + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(PathWithoutEndSeparator(filepath.Base(path))), "[white::b]")
 
-	tview.Print(screen, pathText, x+1+usernameAndHostnameLength, y, w, tview.AlignLeft, tcell.ColorBlue)
+	_, pathPrintedLength := tview.Print(screen, pathText, x+1+usernameAndHostnameLength, y, w, tview.AlignLeft, tcell.ColorBlue)
+
+	if topBar.showAdditionalText {
+		tview.Print(screen, "« "+topBar.additionalText, x+usernameAndHostnameLength+1+pathPrintedLength+1, y, w, tview.AlignLeft, tcell.ColorDefault)
+	}
 }

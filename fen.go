@@ -34,7 +34,8 @@ type Fen struct {
 	config                Config
 	fileOperationsHandler FileOperationsHandler
 
-	helpScreenVisible *bool
+	helpScreenVisible               *bool
+	thirdPartySoftwareScreenVisible *bool
 
 	topBar     *TopBar
 	bottomBar  *BottomBar
@@ -42,7 +43,7 @@ type Fen struct {
 	middlePane *FilesPane
 	rightPane  *FilesPane
 
-	effectiveShowHomePathAsTilde bool
+	showHomePathAsTilde bool
 }
 
 // gluamapper lets you use Go variables like "UiBorders", using the name "ui_borders".
@@ -61,7 +62,6 @@ type Config struct {
 	TerminalTitle           bool                 `lua:"terminal_title"`
 	ShowHelpText            bool                 `lua:"show_help_text"`
 	ShowHostname            bool                 `lua:"show_hostname"`
-	ShowHomePathAsTilde     bool                 `lua:"show_home_path_as_tilde"` // Allows fen.effectiveShowHomePathAsTilde to change
 	Open                    []PreviewOrOpenEntry `lua:"open"`
 	Preview                 []PreviewOrOpenEntry `lua:"preview"`
 	SortBy                  string               `lua:"sort_by"`
@@ -82,7 +82,6 @@ func NewConfigDefaultValues() Config {
 		TerminalTitle:           true,
 		ShowHelpText:            true,
 		ShowHostname:            true,
-		ShowHomePathAsTilde:     true,
 		SortBy:                  "none",
 		FileEventIntervalMillis: 300,
 		ScrollSpeed:             2,
@@ -96,10 +95,12 @@ type PreviewOrOpenEntry struct {
 	DoNotMatch []string
 }
 
-func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool) error {
+func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool, thirdPartySoftwareScreenVisible *bool) error {
 	fen.app = app
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
 	fen.helpScreenVisible = helpScreenVisible
+	fen.thirdPartySoftwareScreenVisible = thirdPartySoftwareScreenVisible
+	fen.showHomePathAsTilde = true
 
 	if fen.selected == nil {
 		fen.selected = map[string]bool{}

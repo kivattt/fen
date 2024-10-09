@@ -12,8 +12,9 @@ import (
 
 type HelpScreen struct {
 	*tview.Box
-	fen     *Fen
-	visible bool
+	fen         *Fen
+	visible     bool
+	scrollIndex int
 }
 
 func NewHelpScreen(fen *Fen) *HelpScreen {
@@ -27,6 +28,7 @@ type control struct {
 
 var helpScreenControlsList = []control{
 	{KeyBindings: []string{"?", "F1"}, Description: "Toggle help menu (you are here!)"},
+	{KeyBindings: []string{"F2"}, Description: "Show third-party software used in fen"},
 	{KeyBindings: []string{"q"}, Description: "Quit fen"},
 
 	{KeyBindings: []string{"z", "Backspace"}, Description: "Toggle hidden files"},
@@ -68,9 +70,7 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 	helpScreen.Box.SetRect(x, y+1, w, h-2)
 	helpScreen.Box.DrawForSubclass(screen, helpScreen)
 
-	// If fen.sel is a file with characters we escape, the red background of them will bleed into this "fen vX.X.X help menu" title
-	// A possible solution is to just use a black background with "[:black]", but it is distinct from the default background...
-	tview.Print(screen, " [::r]fen "+version+" help menu[::-] ", x, y, w, tview.AlignCenter, tcell.ColorDefault)
+	tview.Print(screen, "[::r] fen "+version+" help menu [::-]", x, y+1, w, tview.AlignCenter, tcell.ColorDefault)
 
 	longestDescriptionLength := 0
 	for _, e := range helpScreenControlsList {
@@ -83,6 +83,7 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 	if controlsYOffset < 1 {
 		controlsYOffset = 1
 	}
+	controlsYOffset++
 	username, groupname, err := FileUserAndGroupName(helpScreen.fen.sel)
 
 	topUser, _ := user.Current()
@@ -119,7 +120,19 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 	tview.Print(screen, "[teal:]|[default:]", x, h-2, w, tview.AlignLeft, tcell.ColorDefault)
 
 	for dY, e := range helpScreenControlsList {
-		if dY >= h-1 { // This just returns if we're outside of the terminal
+		xPos := x + w/2 - (longestDescriptionLength+15)/2
+		if xPos < len("|         User:Group")+1 {
+			xPos = len("|         User:Group") + 1
+		}
+
+		yPos := y + dY + controlsYOffset + helpScreen.scrollIndex
+
+		if yPos < 2 {
+			continue
+		}
+
+		if yPos >= h-2 {
+			tview.Print(screen, "▼ Press arrow keys/hjkl to scroll", 0, yPos, w, tview.AlignCenter, tcell.ColorDefault)
 			break
 		}
 
@@ -134,15 +147,23 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 				keybindingsStrLengthWithoutStyleTags += len(" or ")
 			}
 		}
-		xPos := x + w/2 - (longestDescriptionLength+15)/2
-		if xPos < len("|         User:Group")+1 {
-			xPos = len("|         User:Group") + 1
-		}
-		tview.Print(screen, " "+keyBindingsStrBuilder.String()+strings.Repeat(" ", 15-keybindingsStrLengthWithoutStyleTags), xPos-1, y+dY+controlsYOffset, w, tview.AlignLeft, tcell.ColorDefault)
-		tview.Print(screen, e.Description, xPos+15, y+dY+controlsYOffset, w, tview.AlignLeft, tcell.ColorDefault)
+
+		tview.Print(screen, " "+keyBindingsStrBuilder.String()+strings.Repeat(" ", 15-keybindingsStrLengthWithoutStyleTags), xPos-1, yPos, w, tview.AlignLeft, tcell.ColorDefault)
+		tview.Print(screen, e.Description, xPos+15, yPos, w, tview.AlignLeft, tcell.ColorDefault)
 	}
 
 	// After the controls list so the leading space of " Available disk space" appears above
 	tview.Print(screen, " Available disk space", x, h-3, w, tview.AlignRight, tcell.ColorDefault)
 	tview.Print(screen, "|", x, h-2, w, tview.AlignRight, tcell.ColorDefault)
+}
+
+func (helpScreen *HelpScreen) ScrollDown() {
+	helpScreen.scrollIndex--
+	if helpScreen.scrollIndex <= -len(helpScreenControlsList)+5 {
+		helpScreen.scrollIndex = -len(helpScreenControlsList) + 5 + 1
+	}
+}
+
+func (helpScreen *HelpScreen) ScrollUp() {
+	helpScreen.scrollIndex = min(0, helpScreen.scrollIndex+1)
 }

@@ -32,6 +32,7 @@ sudo -i GOBIN=/usr/local/bin go install github.com/kivattt/fen@latest
 Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
 
 `?` or `F1` Toggle help menu\
+`F2` Show third-party software used in fen\
 `q` Quit fen\
 `z` or `Backspace` Toggle hidden files\
 `Ctrl + Space` or `Ctrl + n` Open file(s) with specific program\
@@ -69,6 +70,8 @@ macOS: `$HOME/Library/Application Support/fen/config.lua`\
 Windows: `%AppData%\Roaming\fen\config.lua`
 
 You can specify a different config file with the `--config` flag
+
+Left-clicking to copy the selected path on Linux/FreeBSD requires `xclip` to be installed
 
 # File previews
 fen does not (yet!) have file previews by default\
