@@ -259,6 +259,11 @@ func (f *FenLuaGlobal) Version() string {
 // It might os.ReadDir() even if forceReadDir is false. If forceReadDir is true, it will always os.ReadDir() if path is a folder
 func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 	fi, err := os.Stat(path)
+	fiIsDir := false
+	if err == nil {
+		fiIsDir = fi.IsDir()
+	}
+
 	if !forceReadDir {
 		if err != nil {
 			fp.fileWatcher.Remove(fp.folder)
@@ -268,7 +273,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 			return
 		}
 
-		if !fi.IsDir() {
+		if !fiIsDir {
 			fp.fileWatcher.Remove(fp.folder)
 			fp.entries.Store([]os.DirEntry{})
 			fp.parentIsEmptyFolder = false
@@ -283,7 +288,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 		}
 	}
 
-	if err == nil && fi.IsDir() {
+	if err == nil && fiIsDir {
 		fp.fileWatcher.Remove(fp.folder)
 		fp.folder = path
 		newEntries, _ := os.ReadDir(fp.folder)
@@ -296,7 +301,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 		fp.entries.Store([]os.DirEntry{})
 	}
 
-	fp.parentIsEmptyFolder = fi.IsDir() && len(fp.entries.Load().([]os.DirEntry)) <= 0
+	fp.parentIsEmptyFolder = fiIsDir && len(fp.entries.Load().([]os.DirEntry)) <= 0
 }
 
 func (fp *FilesPane) FilterAndSortEntries() {
