@@ -18,8 +18,9 @@ import (
 
 type Fen struct {
 	app     *tview.Application
-	wd      string
+	wd      string // Current working directory
 	sel     string
+	lastSel string
 	history History
 
 	selected     map[string]bool
@@ -33,9 +34,10 @@ type Fen struct {
 
 	config                Config
 	fileOperationsHandler FileOperationsHandler
+	gitStatusHandler      GitStatusHandler
 
-	helpScreenVisible               *bool
-	thirdPartySoftwareScreenVisible *bool
+	helpScreenVisible      *bool
+	librariesScreenVisible *bool
 
 	topBar     *TopBar
 	bottomBar  *BottomBar
@@ -70,6 +72,7 @@ type Config struct {
 	AlwaysShowInfoNumbers   bool                 `lua:"always_show_info_numbers"`
 	ScrollSpeed             int                  `lua:"scroll_speed"`
 	Bookmarks               [10]string           `lua:"bookmarks"`
+	GitStatus               bool                 `lua:"git_status"`
 }
 
 var ValidSortByValues = [...]string{"none", "modified", "size", "file-extension"}
@@ -95,11 +98,17 @@ type PreviewOrOpenEntry struct {
 	DoNotMatch []string
 }
 
-func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool, thirdPartySoftwareScreenVisible *bool) error {
+func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool, librariesScreenVisible *bool) error {
 	fen.app = app
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
+
+	if fen.config.GitStatus {
+		fen.gitStatusHandler = GitStatusHandler{app: app}
+		fen.gitStatusHandler.Init()
+	}
+
 	fen.helpScreenVisible = helpScreenVisible
-	fen.thirdPartySoftwareScreenVisible = thirdPartySoftwareScreenVisible
+	fen.librariesScreenVisible = librariesScreenVisible
 	fen.showHomePathAsTilde = true
 
 	if fen.selected == nil {
@@ -163,6 +172,13 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	fen.UpdatePanes(false)
 
 	return err
+}
+
+func (fen *Fen) Fini() {
+	if fen.config.GitStatus {
+		close(fen.gitStatusHandler.channel)
+		fen.gitStatusHandler.wg.Wait()
+	}
 }
 
 func (fen *Fen) ReadConfig(path string) error {
@@ -366,6 +382,29 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 	}
 
 	fen.UpdateSelectingWithV()
+
+	// Selection changed, ask for a git status
+	if fen.sel != fen.lastSel {
+		fen.TriggerGitStatus()
+	}
+	fen.lastSel = fen.sel
+}
+
+// Ask the git status handler to run a "git status" at the currently selected path.
+// It may choose to ignore the request if for example, it would restart a git status on the same path
+func (fen *Fen) TriggerGitStatus() {
+	if !fen.config.GitStatus {
+		return
+	}
+
+	stat, err := os.Lstat(fen.sel)
+	if err == nil {
+		if stat.IsDir() {
+			fen.gitStatusHandler.channel <- fen.sel
+		} else {
+			fen.gitStatusHandler.channel <- fen.wd
+		}
+	}
 }
 
 func (fen *Fen) HideFilepanes() {

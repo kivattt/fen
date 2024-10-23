@@ -14,6 +14,7 @@ fen.sort_reverse = false
 fen.file_event_interval_ms = 300 -- How often to update the screen on file events (and job count updates), if set to 0, it updates on every event
 fen.always_show_info_numbers = false -- Shows the blue, green and yellow numbers in the bottom right even when they are 0
 fen.scroll_speed = 2 -- When scrolling faster than 30ms per scroll, scroll this many entries
+fen.git_status = false -- EXPERIMENTAL: When true, unstaged/untracked files in local git repositories are shown in red
 
 -- Everything below this line is non-default examples
 

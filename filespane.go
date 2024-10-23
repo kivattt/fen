@@ -36,6 +36,9 @@ type FilesPane struct {
 	lastFileEventTime   time.Time
 	fileEventBatch      []fsnotify.Event
 	fileEventBatchMutex sync.Mutex
+
+	lastRenamedPath     string
+	lastRenamedPathTime time.Time
 }
 
 func NewFilesPane(fen *Fen, showEntrySizes, isRightFilesPane bool) *FilesPane {
@@ -78,6 +81,7 @@ func (fp *FilesPane) Init() {
 					fp.fen.app.QueueUpdateDraw(func() {
 						fp.FilterAndSortEntries()
 						fp.fen.UpdatePanes(false)
+						fp.fen.TriggerGitStatus() // Ask for a new git status on a file event
 					})
 				} else {
 					fp.fileEventBatch = AddEventToBatch(fp.fileEventBatch, event)
@@ -110,6 +114,7 @@ func (fp *FilesPane) Init() {
 			fp.fen.app.QueueUpdateDraw(func() {
 				fp.FilterAndSortEntries()
 				fp.fen.UpdatePanes(false)
+				fp.fen.TriggerGitStatus() // Ask for a new git status on a file event
 			})
 		}
 	}()
@@ -145,6 +150,15 @@ func AddEventToBatch(oldEvents []fsnotify.Event, newEvent fsnotify.Event) []fsno
 
 func (fp *FilesPane) HandleFileEvent(event fsnotify.Event) error {
 	if event.Has(fsnotify.Create) {
+		// A file temporarily renamed, then renamed back to its old path within 200 milliseconds is added back to the history.
+		// This is a hack to fix navigation because when vim saves a file it temporarily renames the file by appending a tilde (~),
+		//  then renaming it back to the original path within a very short period of time.
+		if time.Since(fp.lastRenamedPathTime) < 200*time.Millisecond {
+			if event.Name == fp.lastRenamedPath {
+				fp.fen.history.RemoveFromHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
+				fp.fen.history.AddToHistory(event.Name)
+			}
+		}
 		return fp.AddEntry(event.Name)
 	}
 
@@ -152,8 +166,12 @@ func (fp *FilesPane) HandleFileEvent(event fsnotify.Event) error {
 		return fp.UpdateEntry(event.Name)
 	}
 
+	if event.Has(fsnotify.Rename) {
+		fp.lastRenamedPath = event.Name
+		fp.lastRenamedPathTime = time.Now()
+	}
+
 	if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
-		// Maybe we could follow new rename paths if selected by updating fen.sel?
 		return fp.RemoveEntry(event.Name)
 	}
 
@@ -189,8 +207,8 @@ func (fp *FilesPane) RemoveEntry(path string) error {
 
 	fp.entries.Store(append(fp.entries.Load().([]os.DirEntry)[:index], fp.entries.Load().([]os.DirEntry)[index+1:]...))
 	fp.fen.RemoveFromSelectedAndYankSelected(path) // FIXME: Panic when deleting 4000 files
-	fp.fen.history.RemoveFromHistory(path)
 
+	fp.fen.history.RemoveFromHistory(path)
 	fp.fen.history.AddToHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
 
 	return nil
@@ -256,7 +274,7 @@ func (f *FenLuaGlobal) Version() string {
 	return version
 }
 
-// It might os.ReadDir() even if forceReadDir is false. If forceReadDir is true, it will always os.ReadDir() if path is a folder
+// It might os.ReadDir() even if forceReadDir is false. If forceReadDir is true, it will always os.ReadDir() if path is a folder.
 func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 	fi, err := os.Stat(path)
 	fiIsDir := false
@@ -385,7 +403,8 @@ func (fp *FilesPane) FilterAndSortEntries() {
 
 			return 1
 		})
-	case "none":
+	case "none": // Does nothing, this has the side effect of making file events always show up at the bottom, until the entire folder is re-read
+	// TODO: Implement filename alphabetical sorting as the default
 	default:
 		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")
 		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
@@ -611,6 +630,25 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		_, entryInYankSelected := fp.fen.yankSelected[entryFullPath]
 		if entryInYankSelected {
 			style = style.Dim(true)
+		}
+
+		if fp.fen.config.GitStatus {
+			gitRepoContainingPath := fp.fen.gitStatusHandler.TrackedGitRepositoryContainingPath(entryFullPath)
+			if gitRepoContainingPath != "" {
+				fp.fen.gitStatusHandler.trackedLocalGitReposMutex.Lock()
+				repo, repoOk := fp.fen.gitStatusHandler.trackedLocalGitRepos[gitRepoContainingPath]
+				if repoOk {
+					relativePathToRepo, err := filepath.Rel(gitRepoContainingPath, entryFullPath)
+					if err == nil {
+						_, fileChanged := repo.changedFiles[relativePathToRepo]
+						if fileChanged {
+							// Same color used in the git status command
+							style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
+						}
+					}
+				}
+				fp.fen.gitStatusHandler.trackedLocalGitReposMutex.Unlock()
+			}
 		}
 
 		//styleStr := StyleToStyleTagString(style)

@@ -10,6 +10,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
+	github.com/kivattt/gogitstatus v0.0.0-20241023030640-76eeac28d3cb
 	github.com/otiai10/copy v1.14.0
 	github.com/rivo/tview v0.0.0-20240818110301-fd649dbf1223
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
@@ -25,6 +26,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
 )

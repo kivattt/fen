@@ -27,7 +27,7 @@ func NewTopBar(fen *Fen) *TopBar {
 }
 
 func (topBar *TopBar) Draw(screen tcell.Screen) {
-	if *topBar.fen.thirdPartySoftwareScreenVisible {
+	if *topBar.fen.librariesScreenVisible {
 		return
 	}
 

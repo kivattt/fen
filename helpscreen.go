@@ -28,7 +28,7 @@ type control struct {
 
 var helpScreenControlsList = []control{
 	{KeyBindings: []string{"?", "F1"}, Description: "Toggle help menu (you are here!)"},
-	{KeyBindings: []string{"F2"}, Description: "Show third-party software used in fen"},
+	{KeyBindings: []string{"F2"}, Description: "Show libraries used in fen"},
 	{KeyBindings: []string{"q"}, Description: "Quit fen"},
 
 	{KeyBindings: []string{"z", "Backspace"}, Description: "Toggle hidden files"},

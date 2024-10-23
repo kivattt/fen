@@ -32,7 +32,7 @@ sudo -i GOBIN=/usr/local/bin go install github.com/kivattt/fen@latest
 Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
 
 `?` or `F1` Toggle help menu\
-`F2` Show third-party software used in fen\
+`F2` Show libraries used in fen\
 `q` Quit fen\
 `z` or `Backspace` Toggle hidden files\
 `Ctrl + Space` or `Ctrl + n` Open file(s) with specific program\
