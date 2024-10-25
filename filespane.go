@@ -669,15 +669,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		//styleStr := StyleToStyleTagString(style)
 
-		entrySizeText := ""
 		entrySizePrintedSize := 0
 		if fp.showEntrySizes {
-			var err error
-			if err == nil {
-				entrySizeText, err = EntrySizeText(entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
-				if err != nil {
-					entrySizeText = "?"
-				}
+			entrySizeText, err := EntrySizeText(entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
+			if err != nil {
+				entrySizeText = "?"
 			}
 
 			entrySizeText = " " + entrySizeText + " "
