@@ -36,6 +36,7 @@ func (gsh *GitStatusHandler) TrackedGitRepositoryContainingPath(path string) str
 	repoFound := ""
 	gsh.trackedLocalGitReposMutex.Lock()
 	for repoPath := range gsh.trackedLocalGitRepos {
+		// TODO: Improve performance? filepath.Rel() seems a little slow
 		relativePathToRepo, err := filepath.Rel(repoPath, path)
 		if err != nil {
 			continue
