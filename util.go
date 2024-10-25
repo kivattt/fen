@@ -905,7 +905,11 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 	offset := 0
 	for i, c := range filename {
 		if offset >= maxWidth-2 {
-			screen.SetContent(x+offset, y, '…', nil, style)
+			if runtime.GOOS == "freebsd" {
+				screen.SetContent(x+offset, y, '~', nil, style)
+			} else {
+				screen.SetContent(x+offset, y, '…', nil, style)
+			}
 			offset++
 			break
 		}
