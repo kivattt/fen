@@ -177,7 +177,7 @@ func main() {
 				continue
 			}
 
-			_, err = os.Stat(pathAbsolute)
+			_, err = os.Lstat(pathAbsolute)
 			if err != nil {
 				continue
 			}
