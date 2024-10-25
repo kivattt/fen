@@ -9,12 +9,6 @@ github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uh
 github.com/gdamore/encoding v1.0.1/go.mod h1:0Z0cMFinngz9kS1QfMjCP8TY7em3bZYeeklsSDPivEo=
 github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f h1:myfMHJX0b7esBOYuclPjnBOclu2uIxe0XDJG0Y7ToGA=
 github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f/go.mod h1:XbVdQu8SHHjoqISPmGcFvHQ8xFuutDrbc4pdw1US62s=
-github.com/kivattt/gogitstatus v0.0.0-20241021204611-8e70da490c0c h1:mPglRSmTM4BrntDUOoge1gbCH4A31CXI2osrUWxtgL8=
-github.com/kivattt/gogitstatus v0.0.0-20241021204611-8e70da490c0c/go.mod h1:o2PRFSHN7iczkBrx2aEFiNukCO/gsUGvSp79V9wNBB4=
-github.com/kivattt/gogitstatus v0.0.0-20241023030640-76eeac28d3cb h1:XKD77QculBlZUcRcoSPizI3oApbemLRruY1fVjzmFr0=
-github.com/kivattt/gogitstatus v0.0.0-20241023030640-76eeac28d3cb/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
-github.com/kivattt/gogitstatus v0.0.0-20241025031019-1b845c351e3b h1:4dUFWoMHGXXCw00azA3udJE6MKm7YcGA5iV2Zi8nkT0=
-github.com/kivattt/gogitstatus v0.0.0-20241025031019-1b845c351e3b/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
 github.com/kivattt/gogitstatus v0.0.0-20241025094559-43ad8c0c6358 h1:/hs8coUuL5VD8ikD3NTocRb6oomFO0HDWV2CFqW/xcg=
 github.com/kivattt/gogitstatus v0.0.0-20241025094559-43ad8c0c6358/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1 h1:+kTjmvCYTLoEb7evW3UoJM3lMaV+TQKaVzAou2xMoqw=
