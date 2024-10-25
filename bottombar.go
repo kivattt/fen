@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gdamore/tcell/v2"
@@ -45,17 +46,38 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 		bottomBar.alternateText = ""
 	}
 
-	username, groupname, err := FileUserAndGroupName(bottomBar.fen.sel)
+	stat, err := os.Lstat(bottomBar.fen.sel)
+	if err != nil {
+		return
+	}
+
+	username, groupname, err := FileUserAndGroupName(stat)
 	fileOwners := ""
 	if err == nil {
 		fileOwners = " " + UsernameWithColor(username) + ":" + GroupnameWithColor(groupname)
 	}
-	filePermissions, _ := FilePermissionsString(bottomBar.fen.sel)
-	text := "[teal:]" + filePermissions + fileOwners
+	text := "[teal:]" + FilePermissionsString(stat) + fileOwners
 
-	if !*bottomBar.fen.helpScreenVisible && !*bottomBar.fen.thirdPartySoftwareScreenVisible {
-		fileLastModified, _ := FileLastModifiedString(bottomBar.fen.sel)
-		text += " [default:]" + fileLastModified
+	if !*bottomBar.fen.helpScreenVisible && !*bottomBar.fen.librariesScreenVisible {
+		if stat.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(bottomBar.fen.sel)
+			if err != nil {
+				text += " [default:]" + "-> " + "[red:]unable to read link[default:]"
+			} else {
+				targetAbsolutePath := target
+				if !filepath.IsAbs(target) {
+					targetAbsolutePath = filepath.Join(filepath.Dir(bottomBar.fen.sel), target)
+				}
+				targetStat, err := os.Lstat(targetAbsolutePath)
+				redIfNonExistent := ""
+				if err != nil {
+					redIfNonExistent = "[red:]"
+				}
+				text += " [default:]" + redIfNonExistent + "-> " + StyleToStyleTagString(FileColor(targetStat, targetAbsolutePath)) + redIfNonExistent + target
+			}
+		} else {
+			text += " [default:]" + FileLastModifiedString(stat)
+		}
 	}
 
 	noWriteEnabledText := ""
@@ -91,7 +113,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 			jobCountStrAttributes = ""
 		}
 
-		if *bottomBar.fen.helpScreenVisible || *bottomBar.fen.thirdPartySoftwareScreenVisible {
+		if *bottomBar.fen.helpScreenVisible || *bottomBar.fen.librariesScreenVisible {
 			jobCountStr += " jobs"
 		}
 	}
@@ -115,7 +137,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 			}
 		}
 
-		if *bottomBar.fen.helpScreenVisible || *bottomBar.fen.thirdPartySoftwareScreenVisible {
+		if *bottomBar.fen.helpScreenVisible || *bottomBar.fen.librariesScreenVisible {
 			yankCountStr += " yanked"
 		}
 	}
@@ -130,13 +152,13 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 			selectedCountStrAttributes = ""
 		}
 
-		if *bottomBar.fen.helpScreenVisible || *bottomBar.fen.thirdPartySoftwareScreenVisible {
+		if *bottomBar.fen.helpScreenVisible || *bottomBar.fen.librariesScreenVisible {
 			selectedCountStr += " selected"
 		}
 	}
 
 	var countStringsHasNoSpace bool
-	if bottomBar.fen.config.ShowHelpText && !(*bottomBar.fen.helpScreenVisible || *bottomBar.fen.thirdPartySoftwareScreenVisible) {
+	if bottomBar.fen.config.ShowHelpText && !(*bottomBar.fen.helpScreenVisible || *bottomBar.fen.librariesScreenVisible) {
 		// We add 1 extra to hackily prevent the countStrings from showing up to the left of the helpText (might not work with different FileLastModifiedString() lengths)
 		countStringsHasNoSpace = positionStrLowerXPos-1-len(jobCountStr)-len(selectedCountStr)-len(yankCountStr) < leftLength+1+1
 	} else {
@@ -154,7 +176,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	spaceForHelpText := w - leftLength - rightLength - countStringsPrintedLength
 
-	if !bottomBar.fen.config.ShowHelpText || *bottomBar.fen.helpScreenVisible || *bottomBar.fen.thirdPartySoftwareScreenVisible {
+	if !bottomBar.fen.config.ShowHelpText || *bottomBar.fen.helpScreenVisible || *bottomBar.fen.librariesScreenVisible {
 		if !positionStrHasNoSpace {
 			tview.Print(screen, positionStr, positionStrXPos, y, w, tview.AlignLeft, tcell.ColorDefault) // SAME AS
 		}

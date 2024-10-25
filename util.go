@@ -3,8 +3,8 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
-	"io/fs"
 	"math"
 	"os"
 	"os/exec"
@@ -95,17 +95,37 @@ func PathWithoutEndSeparator(path string) string {
 
 // TODO: Maybe make these file functions take a fs.FileInfo from a previously done os.Stat()
 
-func EntrySizeText(entryInfo fs.FileInfo, path string, hiddenFiles bool) (string, error) {
-	if !entryInfo.IsDir() {
-		return BytesToHumanReadableUnitString(uint64(entryInfo.Size()), 2), nil
+// stat should be from an os.Lstat(). If stat is nil, it returns an error.
+func EntrySizeText(stat os.FileInfo, path string, hiddenFiles bool) (string, error) {
+	if stat == nil {
+		return "", errors.New("stat was nil")
+	}
+
+	var ret strings.Builder
+
+	// Show the size of the target, not the symlink
+	if stat.Mode()&os.ModeSymlink != 0 {
+		var err error
+		stat, err = os.Stat(path)
+		if err != nil {
+			return "", err
+		}
+
+		ret.WriteString("-> ")
+	}
+
+	if !stat.IsDir() {
+		ret.WriteString(BytesToHumanReadableUnitString(uint64(stat.Size()), 2))
 	} else {
 		count, err := FolderFileCount(path, hiddenFiles)
 		if err != nil {
 			return "", err
 		}
 
-		return strconv.Itoa(count), nil
+		ret.WriteString(strconv.Itoa(count))
 	}
+
+	return ret.String(), nil
 }
 
 func FolderFileCount(path string, hiddenFiles bool) (int, error) {
@@ -128,12 +148,7 @@ func FolderFileCount(path string, hiddenFiles bool) (int, error) {
 	return len(files), nil
 }
 
-func FilePermissionsString(path string) (string, error) {
-	stat, err := os.Stat(path)
-	if err != nil {
-		return "", err
-	}
-
+func FilePermissionsString(stat os.FileInfo) string {
 	var ret strings.Builder
 
 	permissionChars := "xwr"
@@ -145,16 +160,11 @@ func FilePermissionsString(path string) (string, error) {
 		}
 	}
 
-	return ret.String(), nil
+	return ret.String()
 }
 
-func FileLastModifiedString(path string) (string, error) {
-	stat, err := os.Stat(path)
-	if err != nil {
-		return "", err
-	}
-
-	return stat.ModTime().Format(time.UnixDate), nil
+func FileLastModifiedString(stat os.FileInfo) string {
+	return stat.ModTime().Format(time.UnixDate)
 }
 
 // This map inverted: https://github.com/gdamore/tcell/blob/88b9c25c3c5ee48b611dfeca9a2e9cf07812c35e/color.go#L851
@@ -443,7 +453,12 @@ var windowsExecutableTypes = []string{
 	".msi",
 }
 
+// stat should be from an os.Lstat(). If stat is nil, it returns tcell.StyleDefault
 func FileColor(stat os.FileInfo, path string) tcell.Style {
+	if stat == nil {
+		return tcell.StyleDefault
+	}
+
 	hasSuffixFromList := func(str string, list []string) bool {
 		for _, e := range list {
 			if strings.HasSuffix(strings.ToLower(str), e) {
@@ -463,13 +478,21 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 			if stat.Mode()&0111 != 0 || (runtime.GOOS == "windows" && hasSuffixFromList(path, windowsExecutableTypes)) { // Executable file
 				return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
 			}
+		} else if stat.Mode()&os.ModeSymlink != 0 {
+			targetStat, err := os.Stat(path)
+			if err == nil && targetStat.IsDir() {
+				return ret.Foreground(tcell.ColorTeal).Bold(true)
+			}
+
+			return ret.Foreground(tcell.ColorTeal)
 		} else {
+			// Should not happen?
 			return ret.Foreground(tcell.ColorDarkGray)
 		}
 	}
 
 	if hasSuffixFromList(path, imageTypes) {
-		return ret.Foreground(tcell.ColorYellow)
+		return ret.Foreground(tcell.ColorOlive)
 	}
 
 	if hasSuffixFromList(path, videoTypes) {
@@ -481,7 +504,7 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 	}
 
 	if hasSuffixFromList(path, codeTypes) {
-		return ret.Foreground(tcell.ColorAqua)
+		return ret.Foreground(tcell.ColorNavy)
 	}
 
 	if hasSuffixFromList(path, audioTypes) {
@@ -882,7 +905,11 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 	offset := 0
 	for i, c := range filename {
 		if offset >= maxWidth-2 {
-			screen.SetContent(x+offset, y, '…', nil, style)
+			if runtime.GOOS == "freebsd" {
+				screen.SetContent(x+offset, y, '~', nil, style)
+			} else {
+				screen.SetContent(x+offset, y, '…', nil, style)
+			}
 			offset++
 			break
 		}
@@ -891,7 +918,7 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 		if i < leadingInvisibleOrNonPrintableCharLength || len(filename)-i <= trailingInvisibleOrNonPrintableCharLength {
 			printableCode := RuneToPrintableCode(c)
 			for _, character := range printableCode {
-				screen.SetContent(x+offset, y, character, nil, style.Background(tcell.ColorDarkRed))
+				screen.SetContent(x+offset, y, character, nil, tcell.StyleDefault.Background(tcell.ColorDarkRed))
 				offset++
 			}
 
@@ -902,7 +929,7 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 		if c != ' ' && isInvisible(c) {
 			printableCode := RuneToPrintableCode(c)
 			for _, character := range printableCode {
-				screen.SetContent(x+offset, y, character, nil, style.Background(tcell.ColorDarkRed))
+				screen.SetContent(x+offset, y, character, nil, tcell.StyleDefault.Background(tcell.ColorDarkRed))
 				offset++
 			}
 			continue

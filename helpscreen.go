@@ -28,7 +28,7 @@ type control struct {
 
 var helpScreenControlsList = []control{
 	{KeyBindings: []string{"?", "F1"}, Description: "Toggle help menu (you are here!)"},
-	{KeyBindings: []string{"F2"}, Description: "Show third-party software used in fen"},
+	{KeyBindings: []string{"F2"}, Description: "Show libraries used in fen"},
 	{KeyBindings: []string{"q"}, Description: "Quit fen"},
 
 	{KeyBindings: []string{"z", "Backspace"}, Description: "Toggle hidden files"},
@@ -84,7 +84,11 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 		controlsYOffset = 1
 	}
 	controlsYOffset++
-	username, groupname, err := FileUserAndGroupName(helpScreen.fen.sel)
+	stat, err := os.Lstat(helpScreen.fen.sel)
+	if err != nil {
+		return
+	}
+	username, groupname, err := FileUserAndGroupName(stat)
 
 	topUser, _ := user.Current()
 	topUsernameColor := "[lime::b]"

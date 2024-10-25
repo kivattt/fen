@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.7"
+const version = "v1.7.8"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -235,9 +235,10 @@ func main() {
 	app := tview.NewApplication()
 
 	helpScreen := NewHelpScreen(&fen)
-	thirdPartySoftwareScreen := NewThirdPartySoftwareScreen()
+	librariesScreen := NewLibrariesScreen()
 
-	err = fen.Init(path, app, &helpScreen.visible, &thirdPartySoftwareScreen.visible)
+	err = fen.Init(path, app, &helpScreen.visible, &librariesScreen.visible)
+	defer fen.Fini()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -278,24 +279,24 @@ func main() {
 			helpScreen.visible = false
 			helpScreen.scrollIndex = 0
 			pages.RemovePage("helpscreen")
-			thirdPartySoftwareScreen.visible = true
-			pages.AddPage("thirdpartysoftwarescreen", thirdPartySoftwareScreen, true, true)
+			librariesScreen.visible = true
+			pages.AddPage("librariesscreen", librariesScreen, true, true)
 			return nil
 		}
 		return event
 	})
 
-	thirdPartySoftwareScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	librariesScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyF2 || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
-			thirdPartySoftwareScreen.visible = false
-			pages.RemovePage("thirdpartysoftwarescreen")
+			librariesScreen.visible = false
+			pages.RemovePage("librariesscreen")
 			fen.ShowFilepanes()
 			return nil
 		}
 
 		if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
-			thirdPartySoftwareScreen.visible = false
-			pages.RemovePage("thirdpartysoftwarescreen")
+			librariesScreen.visible = false
+			pages.RemovePage("librariesscreen")
 			helpScreen.visible = true
 			pages.AddPage("helpscreen", helpScreen, true, true)
 			return nil
@@ -306,7 +307,7 @@ func main() {
 	lastWheelUpTime := time.Now()
 	lastWheelDownTime := time.Now()
 	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("shellcommand") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("thirdpartysoftwarescreen") || pages.HasPage("gotopath") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("shellcommand") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("librariesscreen") || pages.HasPage("gotopath") {
 			// Since `return nil, action` redraws the screen for some reason,
 			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
 			if action == tview.MouseMove {
@@ -415,7 +416,7 @@ func main() {
 	enterWillSelectAutoCompleteInGotoPath := false
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("shellcommand") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("thirdpartysoftwarescreen") || pages.HasPage("gotopath") {
+		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("shellcommand") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("librariesscreen") || pages.HasPage("gotopath") {
 			return event
 		}
 
@@ -657,6 +658,7 @@ func main() {
 							fen.bottomBar.TemporarilyShowTextInstead(createFileOrFolderErr.Error())
 						} else {
 							fen.sel = pathToUse
+							fen.history.AddToHistory(fen.sel)
 						}
 						fen.UpdatePanes(true)
 					} else if fen.config.NoWrite {
@@ -779,12 +781,12 @@ func main() {
 			}
 			return nil
 		} else if event.Key() == tcell.KeyF2 {
-			thirdPartySoftwareScreen.visible = !thirdPartySoftwareScreen.visible
-			if thirdPartySoftwareScreen.visible {
-				pages.AddPage("thirdpartysoftwarescreen", thirdPartySoftwareScreen, true, true)
+			librariesScreen.visible = !librariesScreen.visible
+			if librariesScreen.visible {
+				pages.AddPage("librariesscreen", librariesScreen, true, true)
 				fen.HideFilepanes()
 			} else {
-				pages.RemovePage("thirdpartysoftwarescreen")
+				pages.RemovePage("librariesscreen")
 				fen.ShowFilepanes()
 			}
 			return nil
@@ -810,7 +812,7 @@ func main() {
 
 			if len(fen.selected) <= 0 {
 				fileToDelete = fen.sel
-				fileToDeleteInfo, _ := os.Stat(fileToDelete)
+				fileToDeleteInfo, _ := os.Lstat(fileToDelete)
 				// When the text wraps, color styling gets reset on line breaks. I have not found a good solution yet
 				styleStr := StyleToStyleTagString(FileColor(fileToDeleteInfo, fileToDelete))
 				modal.SetText("[red::d]Delete[-:-:-:-] " + styleStr + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(filepath.Base(fileToDelete)), styleStr) + "[-:-:-:-] ?")
@@ -1119,6 +1121,7 @@ func main() {
 	if err := app.SetRoot(pages, true).EnableMouse(fen.config.Mouse).EnablePaste(true).Run(); err != nil {
 		log.Fatal(err)
 	}
+
 	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
 		os.Stderr.WriteString("\x1b[23t") // Pop terminal title, sets it back to normal
 	}

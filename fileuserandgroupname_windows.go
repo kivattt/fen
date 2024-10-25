@@ -5,8 +5,9 @@ package main
 
 import (
 	"errors"
+	"os"
 )
 
-func FileUserAndGroupName(path string) (string, string, error) {
+func FileUserAndGroupName(stat os.FileInfo) (string, string, error) {
 	return "", "", errors.New("Unsupported on Windows")
 }

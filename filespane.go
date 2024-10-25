@@ -36,6 +36,9 @@ type FilesPane struct {
 	lastFileEventTime   time.Time
 	fileEventBatch      []fsnotify.Event
 	fileEventBatchMutex sync.Mutex
+
+	lastRenamedPath     string
+	lastRenamedPathTime time.Time
 }
 
 func NewFilesPane(fen *Fen, showEntrySizes, isRightFilesPane bool) *FilesPane {
@@ -78,6 +81,7 @@ func (fp *FilesPane) Init() {
 					fp.fen.app.QueueUpdateDraw(func() {
 						fp.FilterAndSortEntries()
 						fp.fen.UpdatePanes(false)
+						fp.fen.TriggerGitStatus() // Ask for a new git status on a file event
 					})
 				} else {
 					fp.fileEventBatch = AddEventToBatch(fp.fileEventBatch, event)
@@ -110,6 +114,7 @@ func (fp *FilesPane) Init() {
 			fp.fen.app.QueueUpdateDraw(func() {
 				fp.FilterAndSortEntries()
 				fp.fen.UpdatePanes(false)
+				fp.fen.TriggerGitStatus() // Ask for a new git status on a file event
 			})
 		}
 	}()
@@ -145,6 +150,15 @@ func AddEventToBatch(oldEvents []fsnotify.Event, newEvent fsnotify.Event) []fsno
 
 func (fp *FilesPane) HandleFileEvent(event fsnotify.Event) error {
 	if event.Has(fsnotify.Create) {
+		// A file temporarily renamed, then renamed back to its old path within 200 milliseconds is added back to the history.
+		// This is a hack to fix navigation because when vim saves a file it temporarily renames the file by appending a tilde (~),
+		//  then renaming it back to the original path within a very short period of time.
+		if time.Since(fp.lastRenamedPathTime) < 200*time.Millisecond {
+			if event.Name == fp.lastRenamedPath {
+				fp.fen.history.RemoveFromHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
+				fp.fen.history.AddToHistory(event.Name)
+			}
+		}
 		return fp.AddEntry(event.Name)
 	}
 
@@ -152,8 +166,12 @@ func (fp *FilesPane) HandleFileEvent(event fsnotify.Event) error {
 		return fp.UpdateEntry(event.Name)
 	}
 
+	if event.Has(fsnotify.Rename) {
+		fp.lastRenamedPath = event.Name
+		fp.lastRenamedPathTime = time.Now()
+	}
+
 	if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
-		// Maybe we could follow new rename paths if selected by updating fen.sel?
 		return fp.RemoveEntry(event.Name)
 	}
 
@@ -168,7 +186,7 @@ func (fp *FilesPane) AddEntry(path string) error {
 		return errors.New("Entry already exists") // Maybe we still want to re-stat the file
 	}
 
-	stat, err := os.Stat(path)
+	stat, err := os.Lstat(path)
 	if err != nil {
 		return err
 	}
@@ -189,8 +207,8 @@ func (fp *FilesPane) RemoveEntry(path string) error {
 
 	fp.entries.Store(append(fp.entries.Load().([]os.DirEntry)[:index], fp.entries.Load().([]os.DirEntry)[index+1:]...))
 	fp.fen.RemoveFromSelectedAndYankSelected(path) // FIXME: Panic when deleting 4000 files
-	fp.fen.history.RemoveFromHistory(path)
 
+	fp.fen.history.RemoveFromHistory(path)
 	fp.fen.history.AddToHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
 
 	return nil
@@ -204,7 +222,7 @@ func (fp *FilesPane) UpdateEntry(path string) error {
 		return errors.New("Entry not found")
 	}
 
-	stat, err := os.Stat(path)
+	stat, err := os.Lstat(path)
 	if err != nil {
 		return err
 	}
@@ -256,27 +274,27 @@ func (f *FenLuaGlobal) Version() string {
 	return version
 }
 
-// It might os.ReadDir() even if forceReadDir is false. If forceReadDir is true, it will always os.ReadDir() if path is a folder
+// It might os.ReadDir() even if forceReadDir is false. If forceReadDir is true, it will always os.ReadDir() if path is a folder.
 func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
-	fi, err := os.Stat(path)
-	fiIsDir := false
+	stat, err := os.Stat(path)
+	statIsDir := false
 	if err == nil {
-		fiIsDir = fi.IsDir()
+		statIsDir = stat.IsDir()
 	}
 
 	if !forceReadDir {
-		if err != nil {
+		if !statIsDir {
 			fp.fileWatcher.Remove(fp.folder)
 			fp.entries.Store([]os.DirEntry{})
-			fp.parentIsEmptyFolder = true
+			fp.parentIsEmptyFolder = false
 			fp.folder = path // We need to set the folder variable so that the "if fp.folder == path" check below won't mess up next time
 			return
 		}
 
-		if !fiIsDir {
+		if err != nil {
 			fp.fileWatcher.Remove(fp.folder)
 			fp.entries.Store([]os.DirEntry{})
-			fp.parentIsEmptyFolder = false
+			fp.parentIsEmptyFolder = true
 			fp.folder = path // We need to set the folder variable so that the "if fp.folder == path" check below won't mess up next time
 			return
 		}
@@ -288,7 +306,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 		}
 	}
 
-	if err == nil && fiIsDir {
+	if err == nil && statIsDir {
 		fp.fileWatcher.Remove(fp.folder)
 		fp.folder = path
 		newEntries, _ := os.ReadDir(fp.folder)
@@ -301,7 +319,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 		fp.entries.Store([]os.DirEntry{})
 	}
 
-	fp.parentIsEmptyFolder = fiIsDir && len(fp.entries.Load().([]os.DirEntry)) <= 0
+	fp.parentIsEmptyFolder = statIsDir && len(fp.entries.Load().([]os.DirEntry)) <= 0
 }
 
 func (fp *FilesPane) FilterAndSortEntries() {
@@ -318,7 +336,14 @@ func (fp *FilesPane) FilterAndSortEntries() {
 	}
 
 	switch fp.fen.config.SortBy {
-	case "modified":
+	case SORT_ALPHABETICAL:
+		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
+			if a.Name() < b.Name() {
+				return -1
+			}
+			return 1
+		})
+	case SORT_MODIFIED:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()
 			bInfo, bErr := b.Info()
@@ -338,7 +363,7 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		if fp.fen.config.SortReverse {
 			slices.Reverse(fp.entries.Load().([]os.DirEntry))
 		}
-	case "size":
+	case SORT_SIZE:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()
 			bInfo, bErr := b.Info()
@@ -369,7 +394,7 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		if fp.fen.config.SortReverse {
 			slices.Reverse(fp.entries.Load().([]os.DirEntry))
 		}
-	case "file-extension":
+	case SORT_FILE_EXTENSION:
 		// Also sorts folders based on file extension, kind of weird
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aExt := strings.ToLower(filepath.Ext(a.Name()))
@@ -385,7 +410,8 @@ func (fp *FilesPane) FilterAndSortEntries() {
 
 			return 1
 		})
-	case "none":
+	case SORT_NONE: // Does nothing, this has the side effect of making file events always show up at the bottom, until the entire folder is re-read
+	// TODO: Implement filename alphabetical sorting as the default
 	default:
 		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")
 		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
@@ -524,7 +550,12 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	stat, statErr := os.Stat(fp.fen.sel)
 	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
 		for _, previewWith := range fp.fen.config.Preview {
-			matched := PathMatchesList(fp.fen.sel, previewWith.Match) && !PathMatchesList(fp.fen.sel, previewWith.DoNotMatch)
+			filenameResolved, err := filepath.EvalSymlinks(fp.fen.sel)
+			if err != nil {
+				filenameResolved = fp.fen.sel
+			}
+
+			matched := PathMatchesList(filenameResolved, previewWith.Match) && !PathMatchesList(filenameResolved, previewWith.DoNotMatch)
 			if !matched {
 				continue
 			}
@@ -534,7 +565,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				defer L.Close()
 
 				fenLuaGlobal := &FenLuaGlobal{
-					SelectedFile: fp.fen.sel,
+					SelectedFile: filenameResolved,
 					x:            x,
 					y:            y,
 					Width:        w,
@@ -613,18 +644,33 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Dim(true)
 		}
 
+		// TODO: Move repo lookup outside of this loop
+		if fp.fen.config.GitStatus {
+			gitRepoContainingPath := fp.fen.gitStatusHandler.TrackedGitRepositoryContainingPath(entryFullPath)
+			if gitRepoContainingPath != "" {
+				fp.fen.gitStatusHandler.trackedLocalGitReposMutex.Lock()
+				repo, repoOk := fp.fen.gitStatusHandler.trackedLocalGitRepos[gitRepoContainingPath]
+				if repoOk {
+					relativePathToRepo, err := filepath.Rel(gitRepoContainingPath, entryFullPath)
+					if err == nil {
+						_, fileChanged := repo.changedFiles[relativePathToRepo]
+						if fileChanged {
+							// Same color used in the git status command
+							style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
+						}
+					}
+				}
+				fp.fen.gitStatusHandler.trackedLocalGitReposMutex.Unlock()
+			}
+		}
+
 		//styleStr := StyleToStyleTagString(style)
 
-		entrySizeText := ""
 		entrySizePrintedSize := 0
 		if fp.showEntrySizes {
-			var err error
-			entryInfo, err := entry.Info()
-			if err == nil {
-				entrySizeText, err = EntrySizeText(entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
-				if err != nil {
-					entrySizeText = "?"
-				}
+			entrySizeText, err := EntrySizeText(entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
+			if err != nil {
+				entrySizeText = "?"
 			}
 
 			entrySizeText = " " + entrySizeText + " "
