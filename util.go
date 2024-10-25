@@ -918,7 +918,7 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 		if i < leadingInvisibleOrNonPrintableCharLength || len(filename)-i <= trailingInvisibleOrNonPrintableCharLength {
 			printableCode := RuneToPrintableCode(c)
 			for _, character := range printableCode {
-				screen.SetContent(x+offset, y, character, nil, style.Background(tcell.ColorDarkRed))
+				screen.SetContent(x+offset, y, character, nil, tcell.StyleDefault.Background(tcell.ColorDarkRed))
 				offset++
 			}
 
@@ -929,7 +929,7 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 		if c != ' ' && isInvisible(c) {
 			printableCode := RuneToPrintableCode(c)
 			for _, character := range printableCode {
-				screen.SetContent(x+offset, y, character, nil, style.Background(tcell.ColorDarkRed))
+				screen.SetContent(x+offset, y, character, nil, tcell.StyleDefault.Background(tcell.ColorDarkRed))
 				offset++
 			}
 			continue
