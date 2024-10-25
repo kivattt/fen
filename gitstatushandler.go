@@ -163,8 +163,6 @@ func (gsh *GitStatusHandler) Init() {
 					return
 				}
 
-				//println("path: " + gsh.repoPathCurrentlyWorkingOn)
-
 				gsh.trackedLocalGitReposMutex.Lock()
 				gsh.trackedLocalGitRepos[gsh.repoPathCurrentlyWorkingOn] = ChangedFileState{
 					changedFiles: changedFiles,

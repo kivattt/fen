@@ -644,6 +644,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Dim(true)
 		}
 
+		// TODO: Move repo lookup outside of this loop
 		if fp.fen.config.GitStatus {
 			gitRepoContainingPath := fp.fen.gitStatusHandler.TrackedGitRepositoryContainingPath(entryFullPath)
 			if gitRepoContainingPath != "" {
