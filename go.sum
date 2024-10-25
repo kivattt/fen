@@ -13,6 +13,8 @@ github.com/kivattt/gogitstatus v0.0.0-20241021204611-8e70da490c0c h1:mPglRSmTM4B
 github.com/kivattt/gogitstatus v0.0.0-20241021204611-8e70da490c0c/go.mod h1:o2PRFSHN7iczkBrx2aEFiNukCO/gsUGvSp79V9wNBB4=
 github.com/kivattt/gogitstatus v0.0.0-20241023030640-76eeac28d3cb h1:XKD77QculBlZUcRcoSPizI3oApbemLRruY1fVjzmFr0=
 github.com/kivattt/gogitstatus v0.0.0-20241023030640-76eeac28d3cb/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
+github.com/kivattt/gogitstatus v0.0.0-20241025031019-1b845c351e3b h1:4dUFWoMHGXXCw00azA3udJE6MKm7YcGA5iV2Zi8nkT0=
+github.com/kivattt/gogitstatus v0.0.0-20241025031019-1b845c351e3b/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1 h1:+kTjmvCYTLoEb7evW3UoJM3lMaV+TQKaVzAou2xMoqw=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1/go.mod h1:2tg6gQmD3C2WJK0NBUrWnjIV6nSjv+j5w/+monQdfVI=
 github.com/kivattt/tview v1.0.4 h1:ZPydRJOzzmopB66x1M3G1v8oiRDcCvtCHFeJPo5VXRo=
