@@ -65,6 +65,13 @@ for line in io.lines(fen.SelectedFile) do
 	end
 
 	for i = 1, #line do
+		-- Remove single trailing backslash if present
+		if i == #line then
+			if line:sub(i,i) == '\\' then
+				goto continue
+			end
+		end
+
 		char = line:sub(i,i)
 
 		if not codeblock then
