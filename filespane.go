@@ -550,13 +550,9 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	stat, statErr := os.Stat(fp.fen.sel)
 	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
 		for _, previewWith := range fp.fen.config.Preview {
-			filenameResolved := fp.fen.sel
-			filenameToMatchStat, err := os.Lstat(filenameResolved)
-			if err == nil && filenameToMatchStat.Mode()&os.ModeSymlink != 0 {
-				link, err := os.Readlink(filenameResolved)
-				if err == nil {
-					filenameResolved = filepath.Join(filepath.Dir(filenameResolved), link)
-				}
+			filenameResolved, err := filepath.EvalSymlinks(fp.fen.sel)
+			if err != nil {
+				filenameResolved = fp.fen.sel
 			}
 
 			matched := PathMatchesList(filenameResolved, previewWith.Match) && !PathMatchesList(filenameResolved, previewWith.DoNotMatch)

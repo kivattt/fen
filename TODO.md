@@ -25,6 +25,7 @@
 - Warning message or enable hidden files when creating a new hidden file/folder
 - Allow creating new files/folders with absolute paths (use fen.GoPath())
 - A sort of "back arrow" key for going to the last folder we were in
+- Right pane disappearing when no preview/folder
 
 - Ctrl+Right arrow goes to end of history
 - File list mode ("flattened mode", "flattened folder view" ?)
