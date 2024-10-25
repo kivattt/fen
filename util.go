@@ -528,6 +528,16 @@ func PathMatchesList(path string, matchList []string) bool {
 	return false
 }
 
+func PathMatchesListCaseInsensitive(path string, matchList []string) bool {
+	for _, match := range matchList {
+		matched, _ := filepath.Match(strings.ToLower(match), strings.ToLower(filepath.Base(path)))
+		if matched {
+			return true
+		}
+	}
+	return false
+}
+
 // We could maybe cache this to a certain extent
 func ProgramsAndDescriptionsForFile(fen *Fen) ([]string, []string) {
 	var programs []string

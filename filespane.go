@@ -549,12 +549,26 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	// File previews
 	stat, statErr := os.Stat(fp.fen.sel)
 	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
-		for _, previewWith := range fp.fen.config.Preview {
-			filenameResolved, err := filepath.EvalSymlinks(fp.fen.sel)
-			if err != nil {
-				filenameResolved = fp.fen.sel
+		filenameResolved, err := filepath.EvalSymlinks(fp.fen.sel)
+		if err != nil {
+			filenameResolved = fp.fen.sel
+		}
+
+		if fp.fen.config.PreviewSafetyBlocklist && PathMatchesListCaseInsensitive(filenameResolved, DefaultPreviewBlocklistCaseInsensitive) {
+			text := "File not previewed, it matched the default preview safety blocklist"
+			lines := tview.WordWrap(text, w)
+			yOffset := h/2 - len(lines)/2
+			i := 0
+			for _, line := range lines {
+				tview.Print(screen, line, x, y+yOffset+i, w, tview.AlignCenter, tcell.ColorDefault)
+				i++
 			}
 
+			tview.Print(screen, "[::d]Set fen.preview_safety_blocklist = false to disable", x, y+yOffset+i, w, tview.AlignCenter, tcell.ColorRed)
+			return
+		}
+
+		for _, previewWith := range fp.fen.config.Preview {
 			matched := PathMatchesList(filenameResolved, previewWith.Match) && !PathMatchesList(filenameResolved, previewWith.DoNotMatch)
 			if !matched {
 				continue
@@ -578,10 +592,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				if err != nil {
 					tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
 					lines := tview.WordWrap(err.Error(), w)
-					i := 0
-					for _, line := range lines {
+					for i, line := range lines {
 						tview.Print(fenLuaGlobal.screen, line, x, y+1+i, w, tview.AlignLeft, tcell.ColorDefault)
-						i++
 					}
 				}
 				return

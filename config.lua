@@ -15,6 +15,7 @@ fen.file_event_interval_ms = 300 -- How often to update the screen on file event
 fen.always_show_info_numbers = false -- Shows the blue, green and yellow numbers in the bottom right even when they are 0
 fen.scroll_speed = 2 -- When scrolling faster than 30ms per scroll, scroll this many entries
 fen.git_status = false -- EXPERIMENTAL: When true, unstaged/untracked files in local git repositories are shown in red
+fen.preview_safety_blocklist = true -- Prevents common sensitive file types from being previewed
 
 -- Everything below this line is non-default examples
 

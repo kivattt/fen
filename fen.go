@@ -73,17 +73,8 @@ type Config struct {
 	ScrollSpeed             int                  `lua:"scroll_speed"`
 	Bookmarks               [10]string           `lua:"bookmarks"`
 	GitStatus               bool                 `lua:"git_status"`
+	PreviewSafetyBlocklist  bool                 `lua:"preview_safety_blocklist"`
 }
-
-const (
-	SORT_NONE           = "none"
-	SORT_ALPHABETICAL   = "alphabetical"
-	SORT_MODIFIED       = "modified"
-	SORT_SIZE           = "size"
-	SORT_FILE_EXTENSION = "file-extension"
-)
-
-var ValidSortByValues = [...]string{SORT_NONE, SORT_ALPHABETICAL, SORT_MODIFIED, SORT_SIZE, SORT_FILE_EXTENSION}
 
 func NewConfigDefaultValues() Config {
 	// Anything not specified here will have the default value for its type, e.g. false for booleans
@@ -96,7 +87,67 @@ func NewConfigDefaultValues() Config {
 		SortBy:                  SORT_ALPHABETICAL,
 		FileEventIntervalMillis: 300,
 		ScrollSpeed:             2,
+		PreviewSafetyBlocklist:  true,
 	}
+}
+
+const (
+	SORT_NONE           = "none"
+	SORT_ALPHABETICAL   = "alphabetical"
+	SORT_MODIFIED       = "modified"
+	SORT_SIZE           = "size"
+	SORT_FILE_EXTENSION = "file-extension"
+)
+
+var ValidSortByValues = [...]string{SORT_NONE, SORT_ALPHABETICAL, SORT_MODIFIED, SORT_SIZE, SORT_FILE_EXTENSION}
+
+// To prevent previewing sensitive files
+var DefaultPreviewBlocklistCaseInsensitive = []string{
+	// Filezilla passwords
+	"sitemanager.xml",
+	"filezilla.xml",
+
+	// Other
+	".gitconfig",
+	".bash_history",
+	".python_history",
+
+	// Tokens
+	".env",
+
+	// Possible private keys
+	"*.key",
+
+	".Xauthority",
+
+	"*.p12",
+	"*.pfx",
+	"*.pkcs12",
+	"*.pri",
+	"*.cer",
+	"*.der",
+	"*.pem",
+	"*.p7a",
+	"*.p7b",
+	"*.p7c",
+	"*.p7r",
+	"*.spc",
+	"*.p8",
+
+	// Reaper license key
+	"*.rk",
+
+	// Databases
+	"*.db",
+	"*.accdb",
+	"*.mdb",
+	"*.mdf",
+	"*.sqlite*",
+
+	"*.bak",
+
+	// Dataset
+	"*.parquet",
 }
 
 type PreviewOrOpenEntry struct {
