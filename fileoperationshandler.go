@@ -101,7 +101,7 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 		return errors.New("Empty path")
 	}
 
-	_, err := os.Stat(fileOperation.path)
+	_, err := os.Lstat(fileOperation.path)
 	if err != nil {
 		handler.decrementWorkCount()
 		return err
@@ -131,13 +131,13 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 			return err
 		}
 	case Copy:
-		fi, err := os.Stat(fileOperation.path)
+		stat, err := os.Lstat(fileOperation.path)
 		if err != nil {
 			handler.decrementWorkCount()
 			return err
 		}
 
-		if fi.IsDir() {
+		if stat.IsDir() {
 			err := os.Mkdir(fileOperation.newPath, 0755)
 			if err != nil {
 				handler.decrementWorkCount()
@@ -149,7 +149,7 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 				handler.decrementWorkCount()
 				return err
 			}
-		} else if fi.Mode().IsRegular() {
+		} else if stat.Mode().IsRegular() {
 			source, err := os.Open(fileOperation.path)
 			if err != nil {
 				handler.decrementWorkCount()
@@ -171,12 +171,29 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 				return err
 			}
 
-			destination.Chmod(fi.Mode())
+			destination.Chmod(stat.Mode())
+		} else if stat.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(fileOperation.path)
+			if err != nil {
+				handler.decrementWorkCount()
+				return err
+			}
+
+			err = os.Symlink(target, fileOperation.newPath)
+			if err != nil {
+				handler.decrementWorkCount()
+				return err
+			}
+		} else {
+			handler.decrementWorkCount()
+			return errors.New("Unknown file type")
 		}
 	default:
 		panic("doOperation got an invalid operation")
 	}
 
+	// FIXME: Defer handler.decrementWorkCount() properly
+	// Currently, this isn't deferred because we want to run it before updating the screen on success.
 	handler.decrementWorkCount()
 
 	handler.lastWorkCountUpdateMutex.Lock()

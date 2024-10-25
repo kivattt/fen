@@ -84,7 +84,11 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 		controlsYOffset = 1
 	}
 	controlsYOffset++
-	username, groupname, err := FileUserAndGroupName(helpScreen.fen.sel)
+	stat, err := os.Lstat(helpScreen.fen.sel)
+	if err != nil {
+		return
+	}
+	username, groupname, err := FileUserAndGroupName(stat)
 
 	topUser, _ := user.Current()
 	topUsernameColor := "[lime::b]"

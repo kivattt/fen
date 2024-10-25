@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gdamore/tcell/v2"
@@ -45,17 +46,38 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 		bottomBar.alternateText = ""
 	}
 
-	username, groupname, err := FileUserAndGroupName(bottomBar.fen.sel)
+	stat, err := os.Lstat(bottomBar.fen.sel)
+	if err != nil {
+		return
+	}
+
+	username, groupname, err := FileUserAndGroupName(stat)
 	fileOwners := ""
 	if err == nil {
 		fileOwners = " " + UsernameWithColor(username) + ":" + GroupnameWithColor(groupname)
 	}
-	filePermissions, _ := FilePermissionsString(bottomBar.fen.sel)
-	text := "[teal:]" + filePermissions + fileOwners
+	text := "[teal:]" + FilePermissionsString(stat) + fileOwners
 
 	if !*bottomBar.fen.helpScreenVisible && !*bottomBar.fen.librariesScreenVisible {
-		fileLastModified, _ := FileLastModifiedString(bottomBar.fen.sel)
-		text += " [default:]" + fileLastModified
+		if stat.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(bottomBar.fen.sel)
+			if err != nil {
+				text += " [default:]" + "-> " + "[red:]unable to read link[default:]"
+			} else {
+				targetAbsolutePath := target
+				if !filepath.IsAbs(target) {
+					targetAbsolutePath = filepath.Join(filepath.Dir(bottomBar.fen.sel), target)
+				}
+				targetStat, err := os.Lstat(targetAbsolutePath)
+				redIfNonExistent := ""
+				if err != nil {
+					redIfNonExistent = "[red:]"
+				}
+				text += " [default:]" + redIfNonExistent + "-> " + StyleToStyleTagString(FileColor(targetStat, targetAbsolutePath)) + redIfNonExistent + target
+			}
+		} else {
+			text += " [default:]" + FileLastModifiedString(stat)
+		}
 	}
 
 	noWriteEnabledText := ""

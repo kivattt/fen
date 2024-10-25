@@ -186,7 +186,7 @@ func (fp *FilesPane) AddEntry(path string) error {
 		return errors.New("Entry already exists") // Maybe we still want to re-stat the file
 	}
 
-	stat, err := os.Stat(path)
+	stat, err := os.Lstat(path)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func (fp *FilesPane) UpdateEntry(path string) error {
 		return errors.New("Entry not found")
 	}
 
-	stat, err := os.Stat(path)
+	stat, err := os.Lstat(path)
 	if err != nil {
 		return err
 	}
@@ -276,25 +276,25 @@ func (f *FenLuaGlobal) Version() string {
 
 // It might os.ReadDir() even if forceReadDir is false. If forceReadDir is true, it will always os.ReadDir() if path is a folder.
 func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
-	fi, err := os.Stat(path)
-	fiIsDir := false
+	stat, err := os.Stat(path)
+	statIsDir := false
 	if err == nil {
-		fiIsDir = fi.IsDir()
+		statIsDir = stat.IsDir()
 	}
 
 	if !forceReadDir {
-		if err != nil {
+		if !statIsDir {
 			fp.fileWatcher.Remove(fp.folder)
 			fp.entries.Store([]os.DirEntry{})
-			fp.parentIsEmptyFolder = true
+			fp.parentIsEmptyFolder = false
 			fp.folder = path // We need to set the folder variable so that the "if fp.folder == path" check below won't mess up next time
 			return
 		}
 
-		if !fiIsDir {
+		if err != nil {
 			fp.fileWatcher.Remove(fp.folder)
 			fp.entries.Store([]os.DirEntry{})
-			fp.parentIsEmptyFolder = false
+			fp.parentIsEmptyFolder = true
 			fp.folder = path // We need to set the folder variable so that the "if fp.folder == path" check below won't mess up next time
 			return
 		}
@@ -306,7 +306,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 		}
 	}
 
-	if err == nil && fiIsDir {
+	if err == nil && statIsDir {
 		fp.fileWatcher.Remove(fp.folder)
 		fp.folder = path
 		newEntries, _ := os.ReadDir(fp.folder)
@@ -319,7 +319,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 		fp.entries.Store([]os.DirEntry{})
 	}
 
-	fp.parentIsEmptyFolder = fiIsDir && len(fp.entries.Load().([]os.DirEntry)) <= 0
+	fp.parentIsEmptyFolder = statIsDir && len(fp.entries.Load().([]os.DirEntry)) <= 0
 }
 
 func (fp *FilesPane) FilterAndSortEntries() {
@@ -550,7 +550,16 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	stat, statErr := os.Stat(fp.fen.sel)
 	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
 		for _, previewWith := range fp.fen.config.Preview {
-			matched := PathMatchesList(fp.fen.sel, previewWith.Match) && !PathMatchesList(fp.fen.sel, previewWith.DoNotMatch)
+			filenameResolved := fp.fen.sel
+			filenameToMatchStat, err := os.Lstat(filenameResolved)
+			if err == nil && filenameToMatchStat.Mode()&os.ModeSymlink != 0 {
+				link, err := os.Readlink(filenameResolved)
+				if err == nil {
+					filenameResolved = filepath.Join(filepath.Dir(filenameResolved), link)
+				}
+			}
+
+			matched := PathMatchesList(filenameResolved, previewWith.Match) && !PathMatchesList(filenameResolved, previewWith.DoNotMatch)
 			if !matched {
 				continue
 			}
@@ -560,7 +569,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				defer L.Close()
 
 				fenLuaGlobal := &FenLuaGlobal{
-					SelectedFile: fp.fen.sel,
+					SelectedFile: filenameResolved,
 					x:            x,
 					y:            y,
 					Width:        w,
@@ -664,7 +673,6 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		entrySizePrintedSize := 0
 		if fp.showEntrySizes {
 			var err error
-			entryInfo, err := entry.Info()
 			if err == nil {
 				entrySizeText, err = EntrySizeText(entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
 				if err != nil {

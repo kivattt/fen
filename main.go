@@ -812,7 +812,7 @@ func main() {
 
 			if len(fen.selected) <= 0 {
 				fileToDelete = fen.sel
-				fileToDeleteInfo, _ := os.Stat(fileToDelete)
+				fileToDeleteInfo, _ := os.Lstat(fileToDelete)
 				// When the text wraps, color styling gets reset on line breaks. I have not found a good solution yet
 				styleStr := StyleToStyleTagString(FileColor(fileToDeleteInfo, fileToDelete))
 				modal.SetText("[red::d]Delete[-:-:-:-] " + styleStr + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(filepath.Base(fileToDelete)), styleStr) + "[-:-:-:-] ?")

@@ -769,7 +769,7 @@ func (fen *Fen) GoPath(path string) (string, error) {
 		}
 	}
 
-	stat, err := os.Stat(pathToUse)
+	stat, err := os.Lstat(pathToUse)
 	if err != nil {
 		return "", errors.New("No such file or directory \"" + pathToUse + "\"")
 	}

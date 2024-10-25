@@ -11,12 +11,7 @@ import (
 	"syscall"
 )
 
-func FileUserAndGroupName(path string) (string, string, error) {
-	stat, err := os.Stat(path)
-	if err != nil {
-		return "", "", err
-	}
-
+func FileUserAndGroupName(stat os.FileInfo) (string, string, error) {
 	syscallStat, ok := stat.Sys().(*syscall.Stat_t)
 	if !ok {
 		return "", "", errors.New("Unable to syscall stat")
