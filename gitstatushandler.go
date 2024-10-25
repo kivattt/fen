@@ -79,6 +79,7 @@ func (gsh *GitStatusHandler) Init() {
 
 	gsh.wg.Add(1)
 
+	// Buffer size of 100 (arbitrary) prevents blocking when scrolling fast
 	gsh.channel = make(chan string, 100)
 
 	gsh.trackedLocalGitReposMutex.Lock()
@@ -102,23 +103,13 @@ func (gsh *GitStatusHandler) Init() {
 				continue chanLoop
 			}
 
-			/*gsh.localGitReposMutex.Lock()
-			state, repoOk := gsh.localGitRepos[gsh.repoPathCurrentlyWorkingOn]
-			if repoOk {
-				if time.Since(state.lastChecked) < 5*time.Second {
-					gsh.localGitReposMutex.Unlock()
-					gsh.repoPathCurrentlyWorkingOn = ""
-					continue
-				}
-			}
-			gsh.localGitReposMutex.Unlock()*/
-
-			// Remove old repositories after 15 repos
-			/*if len(gsh.localGitRepos) > 15 {
+			// Remove oldest tracked repository after 15 repos (pretty arbitrary, repos can vary massively in size)
+			gsh.trackedLocalGitReposMutex.Lock()
+			if len(gsh.trackedLocalGitRepos) > 15 {
 				var oldestRepositoryTime time.Time
 				oldestRepositoryPath := ""
 
-				for k, v := range gsh.localGitRepos {
+				for k, v := range gsh.trackedLocalGitRepos {
 					if oldestRepositoryPath == "" {
 						oldestRepositoryTime = v.lastChecked
 						oldestRepositoryPath = k
@@ -131,8 +122,9 @@ func (gsh *GitStatusHandler) Init() {
 					}
 				}
 
-				delete(gsh.localGitRepos, oldestRepositoryPath)
-			}*/
+				delete(gsh.trackedLocalGitRepos, oldestRepositoryPath)
+			}
+			gsh.trackedLocalGitReposMutex.Unlock()
 
 			// Cancel the previous gogitstatus.StatusWithContext()
 			if gsh.cancelFunc != nil {

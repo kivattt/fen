@@ -487,8 +487,6 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 	fen.sel, err = fen.history.GetHistoryEntryForPath(fen.wd, fen.config.HiddenFiles)
 
 	if err != nil {
-		// FIXME
-		// Uhh.. fix what?
 		fen.sel = filepath.Join(fen.wd, fen.rightPane.GetSelectedEntryFromIndex(0))
 	}
 
