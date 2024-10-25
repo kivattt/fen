@@ -9,7 +9,7 @@ fen.split_home_end = false -- Only applies when fen.folders_first = true, splits
 fen.terminal_title = true -- Only applies to Linux, sets the terminal title to "fen <version>"
 fen.show_hostname = true -- Does not apply to Windows, shows username@hostname in the top left
 fen.show_help_text = true
-fen.sort_by = "none" -- "fen -h" for valid values
+fen.sort_by = "alphabetical" -- "fen -h" for valid values
 fen.sort_reverse = false
 fen.file_event_interval_ms = 300 -- How often to update the screen on file events (and job count updates), if set to 0, it updates on every event
 fen.always_show_info_numbers = false -- Shows the blue, green and yellow numbers in the bottom right even when they are 0

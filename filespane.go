@@ -336,7 +336,14 @@ func (fp *FilesPane) FilterAndSortEntries() {
 	}
 
 	switch fp.fen.config.SortBy {
-	case "modified":
+	case SORT_ALPHABETICAL:
+		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
+			if a.Name() < b.Name() {
+				return -1
+			}
+			return 1
+		})
+	case SORT_MODIFIED:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()
 			bInfo, bErr := b.Info()
@@ -356,7 +363,7 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		if fp.fen.config.SortReverse {
 			slices.Reverse(fp.entries.Load().([]os.DirEntry))
 		}
-	case "size":
+	case SORT_SIZE:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()
 			bInfo, bErr := b.Info()
@@ -387,7 +394,7 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		if fp.fen.config.SortReverse {
 			slices.Reverse(fp.entries.Load().([]os.DirEntry))
 		}
-	case "file-extension":
+	case SORT_FILE_EXTENSION:
 		// Also sorts folders based on file extension, kind of weird
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aExt := strings.ToLower(filepath.Ext(a.Name()))
@@ -403,7 +410,7 @@ func (fp *FilesPane) FilterAndSortEntries() {
 
 			return 1
 		})
-	case "none": // Does nothing, this has the side effect of making file events always show up at the bottom, until the entire folder is re-read
+	case SORT_NONE: // Does nothing, this has the side effect of making file events always show up at the bottom, until the entire folder is re-read
 	// TODO: Implement filename alphabetical sorting as the default
 	default:
 		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")

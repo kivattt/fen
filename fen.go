@@ -75,7 +75,15 @@ type Config struct {
 	GitStatus               bool                 `lua:"git_status"`
 }
 
-var ValidSortByValues = [...]string{"none", "modified", "size", "file-extension"}
+const (
+	SORT_NONE           = "none"
+	SORT_ALPHABETICAL   = "alphabetical"
+	SORT_MODIFIED       = "modified"
+	SORT_SIZE           = "size"
+	SORT_FILE_EXTENSION = "file-extension"
+)
+
+var ValidSortByValues = [...]string{SORT_NONE, SORT_ALPHABETICAL, SORT_MODIFIED, SORT_SIZE, SORT_FILE_EXTENSION}
 
 func NewConfigDefaultValues() Config {
 	// Anything not specified here will have the default value for its type, e.g. false for booleans
@@ -85,7 +93,7 @@ func NewConfigDefaultValues() Config {
 		TerminalTitle:           true,
 		ShowHelpText:            true,
 		ShowHostname:            true,
-		SortBy:                  "none",
+		SortBy:                  SORT_ALPHABETICAL,
 		FileEventIntervalMillis: 300,
 		ScrollSpeed:             2,
 	}
