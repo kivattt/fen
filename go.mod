@@ -10,13 +10,13 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
-	github.com/kivattt/gogitstatus v0.0.0-20241025094559-43ad8c0c6358
+	github.com/kivattt/gogitstatus v0.0.0-20241025103638-d9516b2a89c5
 	github.com/otiai10/copy v1.14.0
-	github.com/rivo/tview v0.0.0-20240818110301-fd649dbf1223
+	github.com/rivo/tview v0.0.0-20241016194538-c5e4fb24af13
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 	github.com/yuin/gopher-lua v1.1.1
-	golang.org/x/sys v0.25.0
-	golang.org/x/term v0.24.0
+	golang.org/x/sys v0.26.0
+	golang.org/x/term v0.25.0
 	layeh.com/gopher-luar v1.0.11
 )
 
@@ -28,5 +28,5 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 )
