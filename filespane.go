@@ -627,6 +627,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		return
 	}
 
+	gitRepoContainingPath, repoErr := fp.fen.gitStatusHandler.TrackedGitRepositoryContainingPath(fp.folder)
+
 	scrollOffset := fp.GetTopScreenEntryIndex()
 	for i, entry := range fp.entries.Load().([]os.DirEntry)[scrollOffset:] {
 		// We don't draw at the bottom row of the screen, since it's occupied by the bottomBar
@@ -656,23 +658,18 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Dim(true)
 		}
 
-		// TODO: Move repo lookup outside of this loop
-		if fp.fen.config.GitStatus {
-			gitRepoContainingPath := fp.fen.gitStatusHandler.TrackedGitRepositoryContainingPath(entryFullPath)
-			if gitRepoContainingPath != "" {
-				fp.fen.gitStatusHandler.trackedLocalGitReposMutex.Lock()
-				repo, repoOk := fp.fen.gitStatusHandler.trackedLocalGitRepos[gitRepoContainingPath]
-				if repoOk {
-					relativePathToRepo, err := filepath.Rel(gitRepoContainingPath, entryFullPath)
-					if err == nil {
-						_, fileChanged := repo.changedFiles[relativePathToRepo]
-						if fileChanged {
-							// Same color used in the git status command
-							style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
-						}
-					}
+		// Show unstaged/untracked files in red
+		if fp.fen.config.GitStatus && repoErr == nil {
+			if entry.IsDir() {
+				if fp.fen.gitStatusHandler.FolderContainsUnstagedOrUntrackedPath(entryFullPath, gitRepoContainingPath) {
+					// Same color used in the git status command
+					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
 				}
-				fp.fen.gitStatusHandler.trackedLocalGitReposMutex.Unlock()
+			} else {
+				if fp.fen.gitStatusHandler.PathIsUnstagedOrUntracked(entryFullPath, gitRepoContainingPath) {
+					// Same color used in the git status command
+					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
+				}
 			}
 		}
 
