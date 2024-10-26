@@ -53,7 +53,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `c` Goto path\
 `Space` Select files\
 `A` Flip selection in folder (select all files)\
-`D` Deselect all, and un-yank\
+`D` Deselect all, press again to un-yank\
 `a` Rename a file\
 `V` Start selecting by moving\
 `n` Create a new file\

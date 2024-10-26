@@ -56,7 +56,7 @@ var helpScreenControlsList = []control{
 	{KeyBindings: []string{"Space"}, Description: "Select files"},
 	{KeyBindings: []string{"A"}, Description: "Flip selection in folder (select all files)"},
 	{KeyBindings: []string{"V"}, Description: "Start selecting by moving"},
-	{KeyBindings: []string{"D"}, Description: "Deselect all, and un-yank"},
+	{KeyBindings: []string{"D"}, Description: "Deselect all, press again to un-yank"},
 	{KeyBindings: []string{"F5"}, Description: "Sync the screen"},
 	{KeyBindings: []string{"0-9"}, Description: "Go to a configured bookmark"},
 }

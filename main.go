@@ -566,10 +566,12 @@ func main() {
 			fen.DisableSelectingWithV()
 			return nil
 		} else if event.Rune() == 'D' {
-			if len(fen.selected) > 0 || len(fen.yankSelected) > 0 {
+			if len(fen.selected) > 0 {
 				fen.selected = make(map[string]bool)
+				fen.bottomBar.TemporarilyShowTextInstead("Deselected!")
+			} else if len(fen.yankSelected) > 0 {
 				fen.yankSelected = make(map[string]bool)
-				fen.bottomBar.TemporarilyShowTextInstead("Deselected and un-yanked!")
+				fen.bottomBar.TemporarilyShowTextInstead("Un-yanked!")
 			}
 
 			fen.DisableSelectingWithV()
