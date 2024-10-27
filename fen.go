@@ -851,7 +851,7 @@ func (fen *Fen) GoPath(path string) (string, error) {
 func (fen *Fen) GoRootPath() {
 	var path string
 	if runtime.GOOS == "windows" {
-		path = filepath.VolumeName(fen.sel)
+		path = filepath.VolumeName(fen.sel) + string(os.PathSeparator)
 	} else {
 		path = "/"
 	}
