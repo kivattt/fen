@@ -48,6 +48,8 @@ func (h *History) GetHistoryEntryForPath(path string, hiddenFiles bool) (string,
 				drivePath := filepath.VolumeName(path) + string(os.PathSeparator)
 				if path == drivePath {
 					e = e[len(drivePath):]
+				} else {
+					e = e[len(path)+1:]
 				}
 			} else {
 				if len(path) == 1 {
