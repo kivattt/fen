@@ -33,7 +33,7 @@ type ChangedFileState struct {
 }
 
 // Returns an error if path is not inside a tracked local git repository
-func (gsh *GitStatusHandler) TrackedGitRepositoryContainingPath(path string) (string, error) {
+func (gsh *GitStatusHandler) TryFindTrackedParentGitRepository(path string) (string, error) {
 	gsh.trackedLocalGitReposMutex.Lock()
 	defer gsh.trackedLocalGitReposMutex.Unlock()
 
@@ -53,13 +53,13 @@ func (gsh *GitStatusHandler) TrackedGitRepositoryContainingPath(path string) (st
 }
 
 // Looks for the first parent directory of path (or path itself) containing a ".git" directory.
-// Returns an empty string ("") if none found.
-func (gsh *GitStatusHandler) TryFindContainingGitRepositoryForPath(path string) string {
+// Returns an error if none found.
+func (gsh *GitStatusHandler) TryFindParentGitRepository(path string) (string, error) {
 	repoPathFound := path
 	for {
 		// Reached root path, no git repository found
 		if repoPathFound == filepath.Dir(repoPathFound) {
-			return ""
+			return "", errors.New("path is not in a local Git repository")
 		}
 
 		stat, err := os.Lstat(filepath.Join(repoPathFound, ".git"))
@@ -70,7 +70,7 @@ func (gsh *GitStatusHandler) TryFindContainingGitRepositoryForPath(path string) 
 		repoPathFound = filepath.Dir(repoPathFound)
 	}
 
-	return repoPathFound
+	return repoPathFound, nil
 }
 
 // Returns true if path is an unstaged/untracked file in the local Git repository at repositoryPath.
@@ -158,8 +158,8 @@ func (gsh *GitStatusHandler) Init() {
 				panic("GitStatusHandler received a non-absolute path: \"" + path + "\"")
 			}
 
-			repoPathFound := gsh.TryFindContainingGitRepositoryForPath(path)
-			if repoPathFound == "" {
+			repoPathFound, err := gsh.TryFindParentGitRepository(path)
+			if err != nil {
 				continue chanLoop
 			}
 

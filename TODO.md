@@ -27,6 +27,19 @@
 - A sort of "back arrow" key for going to the last folder we were in
 - Right pane disappearing when no preview/folder
 
+- Abstract away this common pattern:
+```go
+rel, err := filepath.Rel(basePath, path)
+if err != nil {
+	return
+}
+
+// If it would end up going to the left, return
+if strings.HasPrefix(rel, "..") {
+	return
+}
+```
+
 - Ctrl+Right arrow goes to end of history
 - File list mode ("flattened mode", "flattened folder view" ?)
   - Recursive directory iterator in separate thread updating the entries

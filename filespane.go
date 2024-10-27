@@ -627,7 +627,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		return
 	}
 
-	gitRepoContainingPath, repoErr := fp.fen.gitStatusHandler.TrackedGitRepositoryContainingPath(fp.folder)
+	gitRepoContainingPath, repoErr := fp.fen.gitStatusHandler.TryFindTrackedParentGitRepository(fp.folder)
 
 	scrollOffset := fp.GetTopScreenEntryIndex()
 	for i, entry := range fp.entries.Load().([]os.DirEntry)[scrollOffset:] {

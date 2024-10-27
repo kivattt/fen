@@ -980,16 +980,29 @@ func main() {
 			}
 			return nil
 		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyRight { // Ctrl+Right
-			fen.GoRightUpToHistory()
+			path, err := fen.gitStatusHandler.TryFindParentGitRepository(filepath.Dir(fen.sel))
+			if err == nil {
+				err := fen.GoRightUpToFirstUnstagedOrUntracked(path, fen.sel)
+				if err != nil {
+					fen.GoRightUpToHistory()
+				}
+			} else {
+				fen.GoRightUpToHistory()
+			}
 			return nil
 		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyLeft { // Ctrl+Left
-			var path string
-			if runtime.GOOS == "windows" {
-				path = filepath.VolumeName(fen.sel)
-			} else {
-				path = "/"
+			if !fen.config.GitStatus {
+				fen.GoRootPath()
+				return nil
 			}
-			fen.GoPath(path)
+
+			stat, statErr := os.Lstat(filepath.Join(filepath.Dir(fen.sel), ".git"))
+			repositoryPath, err := fen.gitStatusHandler.TryFindParentGitRepository(filepath.Dir(fen.sel))
+			if err == nil && !(statErr == nil && stat.IsDir()) {
+				fen.GoPath(repositoryPath)
+			} else {
+				fen.GoRootPath()
+			}
 			return nil
 		} else if event.Key() == tcell.KeyCtrlSpace || event.Key() == tcell.KeyCtrlN {
 			inputField := tview.NewInputField().
