@@ -590,6 +590,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				L.SetGlobal("fen", luar.New(L, fenLuaGlobal))
 				err := L.DoFile(previewWith.Script)
 				if err != nil {
+					fp.Box.DrawForSubclass(screen, fp)
 					tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
 					lines := tview.WordWrap(err.Error(), w)
 					for i, line := range lines {
