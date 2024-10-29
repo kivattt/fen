@@ -1,5 +1,6 @@
 --[[
 -- Works for fen v1.1.3 or above
+-- File preview script for *.md files
 --]]
 
 local function trimLeftSpaces(s)
@@ -12,6 +13,17 @@ end
 
 local function isEmphasis(char)
 	return char == '*' or char == '_'
+end
+
+local punctuation = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+local punctuationTable = {}
+for i = 1, #punctuation do
+	punctuationTable[punctuation:sub(i,i)] = true
+end
+
+-- https://spec.commonmark.org/0.31.2/#backslash-escapes
+local function isPunctuation(char)
+	return punctuationTable[char] ~= nil
 end
 
 -- https://spec.commonmark.org/0.31.2/#code-fence
@@ -64,10 +76,28 @@ for line in io.lines(fen.SelectedFile) do
 		end
 	end
 
+	local lineLength = 0
 	for i = 1, #line do
+		-- Remove single trailing backslash if present
+		if i == #line then
+			if line:sub(i,i) == '\\' then
+				goto continue
+			end
+		end
+
 		char = line:sub(i,i)
+		local peekChar = line:sub(i+1,i+1)
+		if i == #line - 1 then
+			peekChar = ""
+		end
 
 		if not codeblock then
+			if isPunctuation(peekChar) and char == '\\' then
+				xOffset = xOffset - 1
+				lastChar = char
+				goto continue
+			end
+
 			if char == '`' and lastChar ~= '`' then
 				backtickString = not backtickString
 				-- It messes up table alignment if we skip over the backticks, so we just replace them with blank space instead
@@ -119,9 +149,22 @@ for line in io.lines(fen.SelectedFile) do
 			style = ""
 		end
 
-		fen:PrintSimple(style..char, i+xOffset-1, y)
+		if char == '\t' then
+			fen:PrintSimple(style.."    ", i+xOffset-1, y)
+			xOffset = xOffset + 3
+		else
+			fen:PrintSimple(style..char, i+xOffset-1, y)
+		end
+
+		lineLength = i
 		lastChar = char
 	    ::continue::
+	end
+
+	if codeblock then
+		for i = 0, fen.Width - lineLength - xOffset do
+			fen:PrintSimple("[:black] ", lineLength+i+xOffset, y)
+		end
 	end
 
 	if lineTrimLeftSpaces:sub(1,1) == "-" then

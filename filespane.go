@@ -360,9 +360,6 @@ func (fp *FilesPane) FilterAndSortEntries() {
 
 			return 1
 		})
-		if fp.fen.config.SortReverse {
-			slices.Reverse(fp.entries.Load().([]os.DirEntry))
-		}
 	case SORT_SIZE:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()
@@ -391,9 +388,6 @@ func (fp *FilesPane) FilterAndSortEntries() {
 			}
 			return 1
 		})
-		if fp.fen.config.SortReverse {
-			slices.Reverse(fp.entries.Load().([]os.DirEntry))
-		}
 	case SORT_FILE_EXTENSION:
 		// Also sorts folders based on file extension, kind of weird
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
@@ -411,11 +405,14 @@ func (fp *FilesPane) FilterAndSortEntries() {
 			return 1
 		})
 	case SORT_NONE: // Does nothing, this has the side effect of making file events always show up at the bottom, until the entire folder is re-read
-	// TODO: Implement filename alphabetical sorting as the default
 	default:
 		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")
 		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
 		os.Exit(1)
+	}
+
+	if fp.fen.config.SortBy != SORT_NONE && fp.fen.config.SortReverse {
+		slices.Reverse(fp.entries.Load().([]os.DirEntry))
 	}
 
 	if fp.fen.config.FoldersFirst {
@@ -549,12 +546,26 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	// File previews
 	stat, statErr := os.Stat(fp.fen.sel)
 	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
-		for _, previewWith := range fp.fen.config.Preview {
-			filenameResolved, err := filepath.EvalSymlinks(fp.fen.sel)
-			if err != nil {
-				filenameResolved = fp.fen.sel
+		filenameResolved, err := filepath.EvalSymlinks(fp.fen.sel)
+		if err != nil {
+			filenameResolved = fp.fen.sel
+		}
+
+		if fp.fen.config.PreviewSafetyBlocklist && PathMatchesListCaseInsensitive(filenameResolved, DefaultPreviewBlocklistCaseInsensitive) {
+			text := "File not previewed, it matched the default preview safety blocklist"
+			lines := tview.WordWrap(text, w)
+			yOffset := h/2 - len(lines)/2
+			i := 0
+			for _, line := range lines {
+				tview.Print(screen, line, x, y+yOffset+i, w, tview.AlignCenter, tcell.ColorDefault)
+				i++
 			}
 
+			tview.Print(screen, "[::d]Set fen.preview_safety_blocklist = false to disable", x, y+yOffset+i, w, tview.AlignCenter, tcell.ColorRed)
+			return
+		}
+
+		for _, previewWith := range fp.fen.config.Preview {
 			matched := PathMatchesList(filenameResolved, previewWith.Match) && !PathMatchesList(filenameResolved, previewWith.DoNotMatch)
 			if !matched {
 				continue
@@ -576,12 +587,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				L.SetGlobal("fen", luar.New(L, fenLuaGlobal))
 				err := L.DoFile(previewWith.Script)
 				if err != nil {
+					fp.Box.DrawForSubclass(screen, fp)
 					tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
 					lines := tview.WordWrap(err.Error(), w)
-					i := 0
-					for _, line := range lines {
+					for i, line := range lines {
 						tview.Print(fenLuaGlobal.screen, line, x, y+1+i, w, tview.AlignLeft, tcell.ColorDefault)
-						i++
 					}
 				}
 				return
@@ -615,6 +625,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		return
 	}
 
+	gitRepoContainingPath, repoErr := fp.fen.gitStatusHandler.TryFindTrackedParentGitRepository(fp.folder)
+
 	scrollOffset := fp.GetTopScreenEntryIndex()
 	for i, entry := range fp.entries.Load().([]os.DirEntry)[scrollOffset:] {
 		// We don't draw at the bottom row of the screen, since it's occupied by the bottomBar
@@ -644,23 +656,18 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Dim(true)
 		}
 
-		// TODO: Move repo lookup outside of this loop
-		if fp.fen.config.GitStatus {
-			gitRepoContainingPath := fp.fen.gitStatusHandler.TrackedGitRepositoryContainingPath(entryFullPath)
-			if gitRepoContainingPath != "" {
-				fp.fen.gitStatusHandler.trackedLocalGitReposMutex.Lock()
-				repo, repoOk := fp.fen.gitStatusHandler.trackedLocalGitRepos[gitRepoContainingPath]
-				if repoOk {
-					relativePathToRepo, err := filepath.Rel(gitRepoContainingPath, entryFullPath)
-					if err == nil {
-						_, fileChanged := repo.changedFiles[relativePathToRepo]
-						if fileChanged {
-							// Same color used in the git status command
-							style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
-						}
-					}
+		// Show unstaged/untracked files in red
+		if fp.fen.config.GitStatus && repoErr == nil {
+			if entry.IsDir() {
+				if fp.fen.gitStatusHandler.FolderContainsUnstagedOrUntrackedPath(entryFullPath, gitRepoContainingPath) {
+					// Same color used in the git status command
+					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
 				}
-				fp.fen.gitStatusHandler.trackedLocalGitReposMutex.Unlock()
+			} else {
+				if fp.fen.gitStatusHandler.PathIsUnstagedOrUntracked(entryFullPath, gitRepoContainingPath) {
+					// Same color used in the git status command
+					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
+				}
 			}
 		}
 

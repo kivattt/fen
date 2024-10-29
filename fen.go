@@ -73,17 +73,8 @@ type Config struct {
 	ScrollSpeed             int                  `lua:"scroll_speed"`
 	Bookmarks               [10]string           `lua:"bookmarks"`
 	GitStatus               bool                 `lua:"git_status"`
+	PreviewSafetyBlocklist  bool                 `lua:"preview_safety_blocklist"`
 }
-
-const (
-	SORT_NONE           = "none"
-	SORT_ALPHABETICAL   = "alphabetical"
-	SORT_MODIFIED       = "modified"
-	SORT_SIZE           = "size"
-	SORT_FILE_EXTENSION = "file-extension"
-)
-
-var ValidSortByValues = [...]string{SORT_NONE, SORT_ALPHABETICAL, SORT_MODIFIED, SORT_SIZE, SORT_FILE_EXTENSION}
 
 func NewConfigDefaultValues() Config {
 	// Anything not specified here will have the default value for its type, e.g. false for booleans
@@ -96,7 +87,67 @@ func NewConfigDefaultValues() Config {
 		SortBy:                  SORT_ALPHABETICAL,
 		FileEventIntervalMillis: 300,
 		ScrollSpeed:             2,
+		PreviewSafetyBlocklist:  true,
 	}
+}
+
+const (
+	SORT_NONE           = "none"
+	SORT_ALPHABETICAL   = "alphabetical"
+	SORT_MODIFIED       = "modified"
+	SORT_SIZE           = "size"
+	SORT_FILE_EXTENSION = "file-extension"
+)
+
+var ValidSortByValues = [...]string{SORT_NONE, SORT_ALPHABETICAL, SORT_MODIFIED, SORT_SIZE, SORT_FILE_EXTENSION}
+
+// To prevent previewing sensitive files
+var DefaultPreviewBlocklistCaseInsensitive = []string{
+	// Filezilla passwords
+	"sitemanager.xml",
+	"filezilla.xml",
+
+	// Other
+	".gitconfig",
+	".bash_history",
+	".python_history",
+
+	// Tokens
+	".env",
+
+	// Possible private keys
+	"*.key",
+
+	".Xauthority",
+
+	"*.p12",
+	"*.pfx",
+	"*.pkcs12",
+	"*.pri",
+	"*.cer",
+	"*.der",
+	"*.pem",
+	"*.p7a",
+	"*.p7b",
+	"*.p7c",
+	"*.p7r",
+	"*.spc",
+	"*.p8",
+
+	// Reaper license key
+	"*.rk",
+
+	// Databases
+	"*.db",
+	"*.accdb",
+	"*.mdb",
+	"*.mdf",
+	"*.sqlite*",
+
+	"*.bak",
+
+	// Dataset
+	"*.parquet",
 }
 
 type PreviewOrOpenEntry struct {
@@ -797,6 +848,17 @@ func (fen *Fen) GoPath(path string) (string, error) {
 	return pathToUse, nil
 }
 
+func (fen *Fen) GoRootPath() {
+	var path string
+	if runtime.GOOS == "windows" {
+		path = filepath.VolumeName(fen.sel) + string(os.PathSeparator)
+	} else {
+		path = "/"
+	}
+	fen.GoPath(path)
+}
+
+// Goes to the path furthest down in the history
 func (fen *Fen) GoRightUpToHistory() {
 	path, err := fen.history.GetHistoryFullPath(fen.sel, fen.config.HiddenFiles)
 	if err != nil {
@@ -816,4 +878,42 @@ func (fen *Fen) GoRightUpToHistory() {
 	}
 
 	fen.GoPath(path)
+}
+
+func (fen *Fen) GoRightUpToFirstUnstagedOrUntracked(repoPath, currentPath string) error {
+	fen.gitStatusHandler.trackedLocalGitReposMutex.Lock()
+	defer fen.gitStatusHandler.trackedLocalGitReposMutex.Unlock()
+
+	repo, ok := fen.gitStatusHandler.trackedLocalGitRepos[repoPath]
+	if !ok {
+		return errors.New("Not in a tracked local Git repository")
+	}
+
+	changedFileClosestToRoot := ""
+	for changedFilePath := range repo.changedFiles {
+		bruhRel, bruhErr := filepath.Rel(repoPath, currentPath)
+		if bruhErr != nil {
+			continue
+		}
+
+		rel, err := filepath.Rel(bruhRel, changedFilePath)
+		if err != nil {
+			continue
+		}
+
+		if strings.HasPrefix(rel, "..") {
+			continue
+		}
+
+		if changedFileClosestToRoot == "" || len(rel) < len(changedFileClosestToRoot) {
+			changedFileClosestToRoot = rel
+		}
+	}
+
+	if changedFileClosestToRoot == "" {
+		return errors.New("No unstaged/untracked path found")
+	}
+
+	_, err := fen.GoPath(filepath.Join(currentPath, changedFileClosestToRoot))
+	return err
 }

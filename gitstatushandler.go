@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,10 +32,11 @@ type ChangedFileState struct {
 	lastChecked  time.Time
 }
 
-// Returns an empty string "" if path is not inside a tracked local git repository
-func (gsh *GitStatusHandler) TrackedGitRepositoryContainingPath(path string) string {
-	repoFound := ""
+// Returns an error if path is not inside a tracked local git repository
+func (gsh *GitStatusHandler) TryFindTrackedParentGitRepository(path string) (string, error) {
 	gsh.trackedLocalGitReposMutex.Lock()
+	defer gsh.trackedLocalGitReposMutex.Unlock()
+
 	for repoPath := range gsh.trackedLocalGitRepos {
 		// TODO: Improve performance? filepath.Rel() seems a little slow
 		relativePathToRepo, err := filepath.Rel(repoPath, path)
@@ -43,23 +45,21 @@ func (gsh *GitStatusHandler) TrackedGitRepositoryContainingPath(path string) str
 		}
 
 		if !strings.HasPrefix(relativePathToRepo, "..") { // Hacky
-			repoFound = repoPath
-			break
+			return repoPath, nil
 		}
 	}
-	gsh.trackedLocalGitReposMutex.Unlock()
 
-	return repoFound
+	return "", errors.New("Path is not in any tracked git repositories")
 }
 
 // Looks for the first parent directory of path (or path itself) containing a ".git" directory.
-// Returns an empty string ("") if none found.
-func (gsh *GitStatusHandler) TryFindContainingGitRepositoryForPath(path string) string {
+// Returns an error if none found.
+func (gsh *GitStatusHandler) TryFindParentGitRepository(path string) (string, error) {
 	repoPathFound := path
 	for {
 		// Reached root path, no git repository found
 		if repoPathFound == filepath.Dir(repoPathFound) {
-			return ""
+			return "", errors.New("path is not in a local Git repository")
 		}
 
 		stat, err := os.Lstat(filepath.Join(repoPathFound, ".git"))
@@ -70,7 +70,71 @@ func (gsh *GitStatusHandler) TryFindContainingGitRepositoryForPath(path string) 
 		repoPathFound = filepath.Dir(repoPathFound)
 	}
 
-	return repoPathFound
+	return repoPathFound, nil
+}
+
+// Returns true if path is an unstaged/untracked file in the local Git repository at repositoryPath.
+// Takes in absolute paths (panics when either are non-absolute).
+func (gsh *GitStatusHandler) PathIsUnstagedOrUntracked(path, repositoryPath string) bool {
+	if !filepath.IsAbs(path) || !filepath.IsAbs(repositoryPath) {
+		panic("AbsolutePathIsUnstagedOrUntracked received a non-absolute path")
+	}
+
+	gsh.trackedLocalGitReposMutex.Lock()
+	defer gsh.trackedLocalGitReposMutex.Unlock()
+
+	repo, repoOk := gsh.trackedLocalGitRepos[repositoryPath]
+	if !repoOk {
+		return false
+	}
+
+	// TODO: Improve performance? filepath.Rel() seems a little slow
+	relativePathToRepo, err := filepath.Rel(repositoryPath, path)
+	if err != nil {
+		return false
+	}
+
+	_, pathUnstagedOrUntracked := repo.changedFiles[relativePathToRepo]
+	if pathUnstagedOrUntracked {
+		return true
+	}
+
+	return false
+}
+
+// Returns true if folderPath contains an unstaged/untracked file in the local Git repository at repositoryPath.
+// Takes in absolute paths (panics when either are non-absolute).
+func (gsh *GitStatusHandler) FolderContainsUnstagedOrUntrackedPath(folderPath, repositoryPath string) bool {
+	if !filepath.IsAbs(folderPath) || !filepath.IsAbs(repositoryPath) {
+		panic("AbsolutePathIsUnstagedOrUntracked received a non-absolute path")
+	}
+
+	gsh.trackedLocalGitReposMutex.Lock()
+	defer gsh.trackedLocalGitReposMutex.Unlock()
+
+	repo, repoOk := gsh.trackedLocalGitRepos[repositoryPath]
+	if !repoOk {
+		return false
+	}
+
+	folderRelativePathToRepo, err := filepath.Rel(repositoryPath, folderPath)
+	if err != nil {
+		return false
+	}
+
+	for path := range repo.changedFiles {
+		// TODO: Improve performance? filepath.Rel() seems a little slow
+		rel, err := filepath.Rel(folderRelativePathToRepo, path)
+		if err != nil {
+			continue
+		}
+
+		if !strings.HasPrefix(rel, "..") {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (gsh *GitStatusHandler) Init() {
@@ -94,8 +158,8 @@ func (gsh *GitStatusHandler) Init() {
 				panic("GitStatusHandler received a non-absolute path: \"" + path + "\"")
 			}
 
-			repoPathFound := gsh.TryFindContainingGitRepositoryForPath(path)
-			if repoPathFound == "" {
+			repoPathFound, err := gsh.TryFindParentGitRepository(path)
+			if err != nil {
 				continue chanLoop
 			}
 

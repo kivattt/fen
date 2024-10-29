@@ -39,8 +39,8 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `!` Run system shell command (cmd on Windows)\
 `Home` or `g` to go to the top\
 `End` or `G` to go to the bottom\
-`Ctrl + Left arrow` to go to the root folder\
-`Ctrl + Right arrow` to go to the path furthest down in history\
+`Ctrl + Left arrow` to go to the root folder (or current Git repository if `fen.git_status=true`)\
+`Ctrl + Right arrow` to go to the path furthest down in history (or first changed file if `fen.git_status=true`)\
 `M` Go to the middle\
 `Page Up` / `Page Down` Scroll up/down an entire page\
 `H` Go to the top of the screen\
@@ -53,7 +53,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `c` Goto path\
 `Space` Select files\
 `A` Flip selection in folder (select all files)\
-`D` Deselect all, and un-yank\
+`D` Deselect all, press again to un-yank\
 `a` Rename a file\
 `V` Start selecting by moving\
 `n` Create a new file\

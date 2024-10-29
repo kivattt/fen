@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -43,10 +44,19 @@ func (h *History) GetHistoryEntryForPath(path string, hiddenFiles bool) (string,
 				continue
 			}
 
-			if len(path) == 1 {
-				e = e[1:]
+			if runtime.GOOS == "windows" {
+				drivePath := filepath.VolumeName(path) + string(os.PathSeparator)
+				if path == drivePath {
+					e = e[len(drivePath):]
+				} else {
+					e = e[len(path)+1:]
+				}
 			} else {
-				e = e[len(path)+1:]
+				if len(path) == 1 {
+					e = e[1:]
+				} else {
+					e = e[len(path)+1:]
+				}
 			}
 			nextSlashIdx := strings.Index(e, string(os.PathSeparator))
 			if nextSlashIdx == -1 {

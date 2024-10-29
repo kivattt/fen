@@ -1,5 +1,6 @@
 --[[
 -- Works for fen v1.1.2 or above
+-- File preview script for *.desktop files
 --]]
 
 -- https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
