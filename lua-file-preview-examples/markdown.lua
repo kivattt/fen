@@ -1,5 +1,6 @@
 --[[
 -- Works for fen v1.1.3 or above
+-- File preview script for *.md files
 --]]
 
 local function trimLeftSpaces(s)

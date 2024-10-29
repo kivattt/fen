@@ -1,3 +1,7 @@
+--[[
+-- File preview script for *.toml files
+--]]
+
 -- Only works with ASCII range characters, UTF-8 stuff like æøå will not be shown correctly unfortunately
 -- It's written pretty naively, some strings might be colored incorrectly
 
