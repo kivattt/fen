@@ -360,9 +360,6 @@ func (fp *FilesPane) FilterAndSortEntries() {
 
 			return 1
 		})
-		if fp.fen.config.SortReverse {
-			slices.Reverse(fp.entries.Load().([]os.DirEntry))
-		}
 	case SORT_SIZE:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()
@@ -391,9 +388,6 @@ func (fp *FilesPane) FilterAndSortEntries() {
 			}
 			return 1
 		})
-		if fp.fen.config.SortReverse {
-			slices.Reverse(fp.entries.Load().([]os.DirEntry))
-		}
 	case SORT_FILE_EXTENSION:
 		// Also sorts folders based on file extension, kind of weird
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
@@ -411,11 +405,14 @@ func (fp *FilesPane) FilterAndSortEntries() {
 			return 1
 		})
 	case SORT_NONE: // Does nothing, this has the side effect of making file events always show up at the bottom, until the entire folder is re-read
-	// TODO: Implement filename alphabetical sorting as the default
 	default:
 		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")
 		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
 		os.Exit(1)
+	}
+
+	if fp.fen.config.SortBy != SORT_NONE && fp.fen.config.SortReverse {
+		slices.Reverse(fp.entries.Load().([]os.DirEntry))
 	}
 
 	if fp.fen.config.FoldersFirst {
