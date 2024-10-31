@@ -671,7 +671,6 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Dim(true)
 		}
 
-
 		//styleStr := StyleToStyleTagString(style)
 
 		entrySizePrintedSize := 0
