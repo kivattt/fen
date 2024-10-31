@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.9"
+const version = "v1.7.10"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -322,6 +322,7 @@ func main() {
 			return nil, action
 		}
 
+		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
 		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && event.Buttons() == tcell.Button1 {
 			_, mouseY := event.Position()
 			if mouseY == 0 {
@@ -577,6 +578,7 @@ func main() {
 			fen.DisableSelectingWithV()
 			return nil
 		} else if event.Rune() == 'a' {
+			fen.DisableSelectingWithV()
 			fileToRename := fen.sel
 
 			inputField := tview.NewInputField().
@@ -626,6 +628,7 @@ func main() {
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'n' || event.Rune() == 'N' {
+			fen.DisableSelectingWithV()
 			inputField := tview.NewInputField().
 				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
@@ -1123,6 +1126,14 @@ func main() {
 			})
 
 			pages.AddPage("shellcommand", centered(inputField, 3), true, true)
+			return nil
+		} else if event.Rune() == 'b' {
+			err := fen.BulkRename(app)
+			if err != nil {
+				fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+				return nil
+			}
+
 			return nil
 		}
 

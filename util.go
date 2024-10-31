@@ -3,8 +3,10 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"os/exec"
@@ -999,4 +1001,30 @@ func SetClipboardLinuxXClip(text string) error {
 	b.WriteString(text)
 	cmd.Stdin = &b
 	return cmd.Run()
+}
+
+func SHA256HashSum(path string) ([]byte, error) {
+	stat, err := os.Lstat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+
+	data := make([]byte, stat.Size())
+	if _, err := io.ReadFull(file, data); err != nil {
+		return nil, err
+	}
+
+	if _, err := hash.Write(data); err != nil {
+		return nil, err
+	}
+
+	return hash.Sum(nil), nil
 }

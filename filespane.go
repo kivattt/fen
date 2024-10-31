@@ -649,6 +649,21 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			spaceForSelected = " "
 			style = style.Foreground(tcell.ColorYellow)
 			style = style.Bold(false) // FileColor() makes folders and executables bold
+		} else {
+			// Show unstaged/untracked files in red
+			if fp.fen.config.GitStatus && repoErr == nil {
+				if entry.IsDir() {
+					if fp.fen.gitStatusHandler.FolderContainsUnstagedOrUntrackedPath(entryFullPath, gitRepoContainingPath) {
+						// Same color used in the git status command
+						style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
+					}
+				} else {
+					if fp.fen.gitStatusHandler.PathIsUnstagedOrUntracked(entryFullPath, gitRepoContainingPath) {
+						// Same color used in the git status command
+						style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
+					}
+				}
+			}
 		}
 
 		_, entryInYankSelected := fp.fen.yankSelected[entryFullPath]
@@ -656,20 +671,6 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			style = style.Dim(true)
 		}
 
-		// Show unstaged/untracked files in red
-		if fp.fen.config.GitStatus && repoErr == nil {
-			if entry.IsDir() {
-				if fp.fen.gitStatusHandler.FolderContainsUnstagedOrUntrackedPath(entryFullPath, gitRepoContainingPath) {
-					// Same color used in the git status command
-					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
-				}
-			} else {
-				if fp.fen.gitStatusHandler.PathIsUnstagedOrUntracked(entryFullPath, gitRepoContainingPath) {
-					// Same color used in the git status command
-					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
-				}
-			}
-		}
 
 		//styleStr := StyleToStyleTagString(style)
 
