@@ -605,7 +605,13 @@ func main() {
 							fen.bottomBar.TemporarilyShowTextInstead("Can't rename to an existing file")
 							return
 						}
-						os.Rename(fileToRename, newPath)
+
+						err = os.Rename(fileToRename, newPath)
+						if err != nil {
+							pages.RemovePage("inputfield")
+							fen.bottomBar.TemporarilyShowTextInstead("Can't rename, no access")
+							return
+						}
 
 						// These are also done by file system events, but let's be safe
 						fen.RemoveFromSelectedAndYankSelected(fileToRename)
