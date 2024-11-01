@@ -1090,6 +1090,24 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 		}
 	}
 
+	shouldBulkRenamePrompt := false
+	app.Suspend(func() {
+		fmt.Print("Bulk-rename on " + strconv.Itoa(len(preRenameList)) + " files? [y/N]: ")
+		reader := bufio.NewReader(os.Stdin)
+		confirmation, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
+			shouldBulkRenamePrompt = true
+		}
+	})
+
+	if !shouldBulkRenamePrompt {
+		return errors.New("Nothing renamed! Cancelled in prompt")
+	}
+
 	/* Remove unchanged entries from both preRenameList and postRenameList */
 	// Code adapted from https://cs.opensource.google/go/go/+/refs/tags/go1.23.2:src/slices/slices.go;l=236
 	i := 0

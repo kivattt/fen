@@ -540,6 +540,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	}
 
 	x, y, w, h := fp.GetInnerRect()
+
+	if fp.isRightFilesPane || fp.fen.config.UiBorders {
+		w++
+	}
+
 	if fp.isRightFilesPane && fp.parentIsEmptyFolder || (!fp.isRightFilesPane && len(fp.entries.Load().([]os.DirEntry)) <= 0) && fp.folder != filepath.Dir(fp.folder) {
 		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
 		return
@@ -702,11 +707,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		xToUse++
 		leftSizePrinted := PrintFilenameInvisibleCharactersAsCodeHighlighted(screen, xToUse, y+i, w-1-entrySizePrintedSize, entry.Name(), style)
 
-		widthOffset := 0
-		if fp.isRightFilesPane {
-			widthOffset = 1
-		}
-		for j := 0; j < w-1-leftSizePrinted-entrySizePrintedSize-(xToUse-x)+widthOffset; j++ {
+		for j := 0; j < w-1-leftSizePrinted-entrySizePrintedSize-(xToUse-x); j++ {
 			screen.SetContent(xToUse+leftSizePrinted+j, y+i, ' ', nil, style)
 		}
 
