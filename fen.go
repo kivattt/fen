@@ -904,6 +904,8 @@ func (fen *Fen) GoRightUpToHistory() {
 	fen.GoPath(path)
 }
 
+// Goes to a random unstaged/untracked file from the currently selected folder
+// TODO: Implement sorting function in gogitstatus so this is deterministic
 func (fen *Fen) GoRightUpToFirstUnstagedOrUntracked(repoPath, currentPath string) error {
 	fen.gitStatusHandler.trackedLocalGitReposMutex.Lock()
 	defer fen.gitStatusHandler.trackedLocalGitReposMutex.Unlock()
