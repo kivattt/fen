@@ -163,5 +163,6 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 - Deleting files sometimes doesn't work on Windows (due to files being open in another program?)
 - `go test` doesn't work on Windows
 - The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal
+- Bulk-renaming a .git folder on Windows hangs fen forever
 
 See [TODO.md](TODO.md) for other issues and possible future features, roughly sorted by priority
