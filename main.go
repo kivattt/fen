@@ -992,6 +992,11 @@ func main() {
 			}
 			return nil
 		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyRight { // Ctrl+Right
+			if !fen.config.GitStatus {
+				fen.GoRightUpToHistory()
+				return nil
+			}
+
 			path, err := fen.gitStatusHandler.TryFindParentGitRepository(filepath.Dir(fen.sel))
 			if err == nil {
 				err := fen.GoRightUpToFirstUnstagedOrUntracked(path, fen.sel)
