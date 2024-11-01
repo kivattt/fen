@@ -55,6 +55,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `A` Flip selection in folder (select all files)\
 `D` Deselect all, press again to un-yank\
 `a` Rename a file\
+`b` Bulk-rename (rename in editor)\
 `V` Start selecting by moving\
 `n` Create a new file\
 `N` Create a new folder\

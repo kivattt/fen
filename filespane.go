@@ -335,14 +335,16 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		fp.keepSelectionInBounds()
 	}
 
-	switch fp.fen.config.SortBy {
-	case SORT_ALPHABETICAL:
-		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
-			if a.Name() < b.Name() {
-				return -1
-			}
-			return 1
+	// Sort the files as os.ReadDir() would, to guarantee the order
+	if fp.fen.config.SortBy != SORT_NONE {
+		// Should be similar enough to https://cs.opensource.google/go/go/+/refs/tags/go1.23.2:src/os/dir.go;l=126
+		slices.SortFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
+			return strings.Compare(a.Name(), b.Name())
 		})
+	}
+
+	switch fp.fen.config.SortBy {
+	case SORT_ALPHABETICAL: // Since we already sort alphabetically above, we don't need to do anything
 	case SORT_MODIFIED:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()

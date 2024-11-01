@@ -94,7 +94,8 @@ func NewConfigDefaultValues() Config {
 }
 
 const (
-	SORT_NONE           = "none"
+	// SORT_NONE should only be used if fen is too slow loading big folders, because it messes with some things
+	SORT_NONE           = "none" // TODO: Make SORT_NONE also disable the implicit sorting of os.ReadDir()
 	SORT_ALPHABETICAL   = "alphabetical"
 	SORT_MODIFIED       = "modified"
 	SORT_SIZE           = "size"
@@ -809,6 +810,11 @@ func (fen *Fen) GoIndex(index int) {
 // On completion, it always adds fen.sel to the history.
 // Implicitly calls fen.UpdatePanes(false) when no error.
 func (fen *Fen) GoPath(path string) (string, error) {
+	/* PLUGINS:
+	 * We should fen.UpdatePanes(true) when we can't find the newPath in the current middlePane (for going to path on renaming)
+	 * This would slow down "Goto path" when going to a non-existent path, but would guarantee this function always works predictably
+	 * so that Lua plugins won't have to manually call fen.UpdatePanes(true) before a fen.GoPath() for recently renamed/created/etc. files
+	 */
 	if path == "" {
 		return "", errors.New("Empty path provided")
 	}
@@ -984,7 +990,7 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	} else {
 		// Only bulkrename selected files in the current working directory
 		if filepath.Dir(fen.sel) != fen.wd {
-			panic("In BulkRename(): fen.sel was not within fen.wd")
+			return nil
 		}
 
 		basePath := filepath.Base(fen.sel)
@@ -994,6 +1000,10 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 		}
 
 		preRenameList = append(preRenameList, basePath)
+	}
+
+	if len(preRenameList) == 0 {
+		panic("In BulkRename(): preRenameList was empty")
 	}
 
 	for _, basePath := range preRenameList {
@@ -1051,26 +1061,139 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 		panic("In BulkRename(): preRenameList equals postRenameList despite sha256 hashsum differing")
 	}
 
+	firstDuplicate, err := StringSliceHasDuplicate(postRenameList)
+	if err == nil {
+		return errors.New("Nothing renamed! Duplicate filename \"" + firstDuplicate + "\"")
+	}
+
+	for i, e := range postRenameList {
+		if e == "" {
+			return errors.New("Nothing renamed! Empty filename for \"" + preRenameList[i] + "\"")
+		}
+	}
+
+	/* Remove unchanged entries from both preRenameList and postRenameList */
+	// Code adapted from https://cs.opensource.google/go/go/+/refs/tags/go1.23.2:src/slices/slices.go;l=236
+	i := 0
+	for j := range preRenameList {
+		// Move the changed entries we want to the front
+		if preRenameList[j] != postRenameList[j] {
+			preRenameList[i] = preRenameList[j]
+			postRenameList[i] = postRenameList[j]
+			i++
+		}
+	}
+
+	// Zero out the removed values for GC
+	clear(preRenameList[i:])
+	clear(postRenameList[i:])
+
+	// Remove the unchanged entries
+	preRenameList = preRenameList[:i]
+	postRenameList = postRenameList[:i]
+
+	/* Generate new random names, if one collides with an already existing file then return an error */
+	preRenameRandomNames := make([]string, len(preRenameList))
+	for i := range preRenameList {
+		randomName := "fen_" + RandomStringPathSafe(14) // 14 characters (pow(36, 14) combinations), only lowercase letters a-z and 0-9 numbers
+		_, err := os.Lstat(filepath.Join(fen.wd, randomName))
+		if err == nil {
+			return errors.New("Nothing renamed! Random path \"" + randomName + "\" would've overwritten a file")
+		}
+
+		preRenameRandomNames[i] = randomName
+	}
+
+	if len(preRenameList) != len(preRenameRandomNames) {
+		panic("In BulkRename(): preRenameList and preRenameRandomNames have unequal lengths")
+	}
+
+	/* Rename preRenameList files to their new random names */
+	for i := range preRenameRandomNames {
+		oldName := filepath.Join(fen.wd, preRenameList[i])
+		newRandomName := filepath.Join(fen.wd, preRenameRandomNames[i])
+		_, err := os.Lstat(newRandomName)
+		if err == nil {
+			panic("In BulkRename(): Would've overwritten a file: \"" + newRandomName + "\"")
+		}
+
+		err = os.Rename(oldName, newRandomName)
+		if err != nil {
+			return errors.New("Failed to rename \"" + preRenameList[i] + "\" to the random name \"" + preRenameRandomNames[i] + "\"")
+		}
+	}
+
+	/* Rename preRenameRandomNames to their new correct names */
+	fen.DisableSelectingWithV()
+	fen.selected = make(map[string]bool)
+	fen.yankSelected = make(map[string]bool)
+
 	nFilesRenamed := 0
 	nFilesRenamedFail := 0
+	j := 0
 	for i := 0; i < len(postRenameList); i++ {
-		oldName := preRenameList[i]
+		oldName := preRenameRandomNames[i]
 		newName := postRenameList[i]
 
 		if newName == oldName {
 			continue
 		}
 
-		err := os.Rename(filepath.Join(fen.wd, oldName), filepath.Join(fen.wd, newName))
+		oldNameAbs := filepath.Join(fen.wd, oldName)
+		newNameAbs := filepath.Join(fen.wd, newName)
+
+		if !filepath.IsAbs(oldNameAbs) || !filepath.IsAbs(newNameAbs) {
+			panic("In BulkRename(): Old random name or new name was a non-absolute path")
+		}
+
+		// Don't overwrite an existing file, rename back to the original name
+		_, err := os.Lstat(newNameAbs)
+		if err == nil {
+			preRenameAbs := filepath.Join(fen.wd, preRenameList[i])
+			_ = os.Rename(oldNameAbs, preRenameAbs)
+
+			// We can't use fen.GoPath() here because it would enter directories
+			fen.history.AddToHistory(preRenameAbs)
+			fen.middlePane.SetSelectedEntryFromString(filepath.Base(preRenameAbs)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
+			fen.UpdatePanes(true)                                                  // Need to force a read dir so the new entry is in the filespane for fen.GoPath
+
+			nFilesRenamedFail++
+			continue
+		}
+
+		err = os.Rename(oldNameAbs, newNameAbs)
 		if err != nil {
 			nFilesRenamedFail++
 			continue
 		}
 
+		// This is also done by file system events, but let's be safe
+		fen.history.RemoveFromHistory(oldNameAbs)
+
+		// Select the new name of the first renamed path
+		if j == 0 {
+			// We can't use fen.GoPath() here because it would enter directories
+			fen.history.AddToHistory(newNameAbs)
+			fen.middlePane.SetSelectedEntryFromString(filepath.Base(newNameAbs)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
+			fen.UpdatePanes(true)                                                // Need to force a read dir so the new entry is in the filespane for fen.GoPath
+		}
+		j++
+
 		nFilesRenamed++
 	}
 
-	str := "Renamed " + strconv.Itoa(nFilesRenamed) + " files"
+	str := ""
+	if nFilesRenamed == 0 {
+		str = "Nothing renamed!"
+	} else {
+		str = "Renamed " + strconv.Itoa(nFilesRenamed)
+		if nFilesRenamed == 1 {
+			str += " file"
+		} else {
+			str += " files"
+		}
+	}
+
 	if nFilesRenamedFail > 0 {
 		str += " (" + strconv.Itoa(nFilesRenamedFail) + " failed)"
 	}

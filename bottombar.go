@@ -22,6 +22,7 @@ func NewBottomBar(fen *Fen) *BottomBar {
 	}
 }
 
+// It is the responsibility of the main.go event loop to set alternateText empty
 func (bottomBar *BottomBar) TemporarilyShowTextInstead(text string) {
 	bottomBar.alternateText = text
 }
@@ -40,10 +41,8 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	freeBytesStr += " free"
 
-	alternateTextToUse := bottomBar.alternateText
 	if bottomBar.alternateText != "" {
 		tview.Print(screen, "[teal:]"+tview.Escape(bottomBar.alternateText), x, y, w, tview.AlignLeft, tcell.ColorDefault)
-		bottomBar.alternateText = ""
 	}
 
 	stat, err := os.Lstat(bottomBar.fen.sel)
@@ -86,7 +85,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 	}
 
 	leftLength := 0
-	if alternateTextToUse == "" {
+	if bottomBar.alternateText == "" {
 		_, leftLength = tview.Print(screen, text+noWriteEnabledText, x, y, w, tview.AlignLeft, tcell.ColorBlue)
 	}
 	_, rightFreeBytesStrLength := tview.Print(screen, " "+tview.Escape(freeBytesStr), x, y, w, tview.AlignRight, tcell.ColorDefault)
@@ -231,7 +230,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 		helpTextXPos = x + leftLength
 	}
 
-	if alternateTextToUse == "" {
+	if bottomBar.alternateText == "" {
 		tview.Print(screen, "[::d]"+helpText, helpTextXPos, y, spaceForHelpText, tview.AlignLeft, tcell.ColorDefault)
 	}
 }

@@ -322,6 +322,8 @@ func main() {
 			return nil, action
 		}
 
+		fen.bottomBar.alternateText = ""
+
 		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
 		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && event.Buttons() == tcell.Button1 {
 			_, mouseY := event.Position()
@@ -420,6 +422,8 @@ func main() {
 		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("shellcommand") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("librariesscreen") || pages.HasPage("gotopath") {
 			return event
 		}
+
+		fen.bottomBar.alternateText = ""
 
 		if event.Rune() == 'q' {
 			fen.fileOperationsHandler.workCountMutex.Lock()
@@ -601,11 +605,13 @@ func main() {
 						}
 						os.Rename(fileToRename, newPath)
 
+						// These are also done by file system events, but let's be safe
 						fen.RemoveFromSelectedAndYankSelected(fileToRename)
 						fen.history.RemoveFromHistory(fileToRename)
-						fen.sel = newPath
-						fen.history.AddToHistory(fen.sel)
 
+						// We can't use fen.GoPath() here because it would enter directories
+						fen.history.AddToHistory(newPath)
+						fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
 						fen.UpdatePanes(true)
 					} else {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't rename in no-write mode")

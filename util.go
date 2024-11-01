@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1027,4 +1028,31 @@ func SHA256HashSum(path string) ([]byte, error) {
 	}
 
 	return hash.Sum(nil), nil
+}
+
+// Returns nil error if the string slice has a duplicate value, returns first duplicate value found
+func StringSliceHasDuplicate(strSlice []string) (string, error) {
+	valuesMap := make(map[string]bool)
+	for _, value := range strSlice {
+		_, duplicate := valuesMap[value]
+		if duplicate {
+			return value, nil
+		}
+
+		valuesMap[value] = true
+	}
+
+	return "", errors.New("No duplicate found")
+}
+
+// Returns a random string of length numCharacters containing lowercase a-z and 0-9.
+func RandomStringPathSafe(numCharacters int) string {
+	// It is important not to use mixed case characters because some filesystems are case-insensitive
+	alphabet := "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, numCharacters)
+
+	for i := range b {
+		b[i] = alphabet[rand.Intn(len(alphabet))]
+	}
+	return string(b)
 }

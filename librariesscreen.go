@@ -30,7 +30,7 @@ type library struct {
 var librariesList = []library{
 	{name: "tview", url: "https://github.com/rivo/tview", customRevisionURL: "https://github.com/kivattt/tview", license: "MIT", licenseURL: "https://github.com/rivo/tview/blob/master/LICENSE.txt"},
 	{name: "tcell", url: "https://github.com/gdamore/tcell", customRevisionURL: "https://github.com/kivattt/tcell-naively-faster", license: "Apache 2.0", licenseURL: "https://github.com/gdamore/tcell/blob/main/LICENSE"},
-	{name: "fsnotify", url: "https://github.com/fsnotify/fsnotify", version: "v1.7.0", license: "BSD 3-Clause", licenseURL: "https://github.com/fsnotify/fsnotify/blob/main/LICENSE"},
+	{name: "fsnotify", url: "https://github.com/fsnotify/fsnotify", version: "v1.8.0", license: "BSD 3-Clause", licenseURL: "https://github.com/fsnotify/fsnotify/blob/main/LICENSE"},
 	{name: "otiai10/copy", url: "https://github.com/otiai10/copy", version: "v1.14.0", license: "MIT", licenseURL: "https://github.com/otiai10/copy/blob/main/LICENSE"},
 	{name: "gopher-lua", url: "https://github.com/yuin/gopher-lua", version: "v1.1.1", license: "MIT", licenseURL: "https://github.com/yuin/gopher-lua/blob/master/LICENSE"},
 	{name: "gluamapper", url: "https://github.com/yuin/gluamapper", version: "commit d836955", license: "MIT", licenseURL: "https://github.com/yuin/gluamapper/blob/master/LICENSE"},

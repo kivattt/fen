@@ -1,3 +1,5 @@
+## Source code comments with "PLUGINS:" in them are for things we have to change to make Lua plugins a possibility in the future
+
 ## TODOs, vaguely sorted by priority
 
 - Bulk rename
