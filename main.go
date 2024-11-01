@@ -599,7 +599,7 @@ func main() {
 				} else if key == tcell.KeyEnter {
 					if !fen.config.NoWrite {
 						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
-						_, err := os.Stat(newPath)
+						_, err := os.Lstat(newPath)
 						if err == nil {
 							pages.RemovePage("inputfield")
 							fen.bottomBar.TemporarilyShowTextInstead("Can't rename to an existing file")
@@ -612,8 +612,9 @@ func main() {
 						fen.history.RemoveFromHistory(fileToRename)
 
 						// We can't use fen.GoPath() here because it would enter directories
-						fen.history.AddToHistory(newPath)
+						fen.sel = newPath
 						fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
+						fen.history.AddToHistory(newPath)
 						fen.UpdatePanes(true)
 					} else {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't rename in no-write mode")

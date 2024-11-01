@@ -1022,17 +1022,16 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	}
 
 	app.Suspend(func() {
-		var editor string
+		var cmd *exec.Cmd
 		if runtime.GOOS == "windows" {
-			editor = "notepad"
+			cmd = exec.Command(filepath.Join(os.Getenv("SYSTEMROOT"), "System32", "rundll32.exe"), "url.dll,FileProtocolHandler", tempFile.Name())
 		} else {
-			editor = os.Getenv("EDITOR")
+			editor := os.Getenv("EDITOR")
 			if editor == "" {
 				editor = "vi"
 			}
+			cmd = exec.Command(editor /* fixme! Cross-platform find editor */, tempFile.Name())
 		}
-
-		cmd := exec.Command(editor /* fixme! Cross-platform find editor */, tempFile.Name())
 		cmd.Dir = fen.wd
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
@@ -1165,9 +1164,10 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 			_ = os.Rename(oldNameAbs, preRenameAbs)
 
 			// We can't use fen.GoPath() here because it would enter directories
-			fen.history.AddToHistory(preRenameAbs)
+			fen.sel = preRenameAbs
 			fen.middlePane.SetSelectedEntryFromString(filepath.Base(preRenameAbs)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
-			fen.UpdatePanes(true)                                                  // Need to force a read dir so the new entry is in the filespane for fen.GoPath
+			fen.history.AddToHistory(preRenameAbs)
+			fen.UpdatePanes(true) // Need to force a read dir so the new entry is in the filespane for fen.GoPath
 
 			nFilesRenamedFail++
 			continue
@@ -1185,9 +1185,10 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 		// Select the new name of the first renamed path
 		if j == 0 {
 			// We can't use fen.GoPath() here because it would enter directories
-			fen.history.AddToHistory(newNameAbs)
+			fen.sel = newNameAbs
 			fen.middlePane.SetSelectedEntryFromString(filepath.Base(newNameAbs)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
-			fen.UpdatePanes(true)                                                // Need to force a read dir so the new entry is in the filespane for fen.GoPath
+			fen.history.AddToHistory(newNameAbs)
+			fen.UpdatePanes(true) // Need to force a read dir so the new entry is in the filespane for fen.GoPath
 		}
 		j++
 
