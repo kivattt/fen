@@ -1022,7 +1022,17 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	}
 
 	app.Suspend(func() {
-		cmd := exec.Command(os.Getenv("EDITOR") /* fixme! Cross-platform find editor */, tempFile.Name())
+		var editor string
+		if runtime.GOOS == "windows" {
+			editor = "notepad"
+		} else {
+			editor = os.Getenv("EDITOR")
+			if editor == "" {
+				editor = "vi"
+			}
+		}
+
+		cmd := exec.Command(editor /* fixme! Cross-platform find editor */, tempFile.Name())
 		cmd.Dir = fen.wd
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
