@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -92,7 +94,8 @@ func NewConfigDefaultValues() Config {
 }
 
 const (
-	SORT_NONE           = "none"
+	// SORT_NONE should only be used if fen is too slow loading big folders, because it messes with some things
+	SORT_NONE           = "none" // TODO: Make SORT_NONE also disable the implicit sorting of os.ReadDir()
 	SORT_ALPHABETICAL   = "alphabetical"
 	SORT_MODIFIED       = "modified"
 	SORT_SIZE           = "size"
@@ -788,6 +791,8 @@ func (fen *Fen) GoBookmark(bookmarkNumber int) error {
 		return err
 	}
 
+	fen.DisableSelectingWithV()
+
 	fen.bottomBar.TemporarilyShowTextInstead("Moved to bookmark: \"" + pathMovedTo + "\"")
 	return nil
 }
@@ -805,6 +810,11 @@ func (fen *Fen) GoIndex(index int) {
 // On completion, it always adds fen.sel to the history.
 // Implicitly calls fen.UpdatePanes(false) when no error.
 func (fen *Fen) GoPath(path string) (string, error) {
+	/* PLUGINS:
+	 * We should fen.UpdatePanes(true) when we can't find the newPath in the current middlePane (for going to path on renaming)
+	 * This would slow down "Goto path" when going to a non-existent path, but would guarantee this function always works predictably
+	 * so that Lua plugins won't have to manually call fen.UpdatePanes(true) before a fen.GoPath() for recently renamed/created/etc. files
+	 */
 	if path == "" {
 		return "", errors.New("Empty path provided")
 	}
@@ -823,7 +833,15 @@ func (fen *Fen) GoPath(path string) (string, error) {
 		return "", errors.New("No such file or directory \"" + pathToUse + "\"")
 	}
 
-	fen.DisableSelectingWithV()
+	if stat.IsDir() {
+		if pathToUse != fen.wd {
+			fen.DisableSelectingWithV()
+		}
+	} else {
+		if filepath.Dir(pathToUse) != fen.wd {
+			fen.DisableSelectingWithV()
+		}
+	}
 
 	if stat.IsDir() {
 		fen.wd = pathToUse
@@ -839,10 +857,16 @@ func (fen *Fen) GoPath(path string) (string, error) {
 		fen.sel = pathToUse
 	}
 
-	// XXX: Always adds to history
+	// XXX: Always adds to history when not at the root path
 	if filepath.Dir(fen.sel) != filepath.Clean(fen.sel) {
 		fen.history.AddToHistory(fen.sel)
 	}
+
+	if fen.selectingWithV {
+		fen.UpdatePanes(false) // Have to update panes to get the selectedEntryIndex...
+		fen.selectingWithVEndIndex = fen.middlePane.selectedEntryIndex
+	}
+
 	fen.UpdatePanes(false)
 
 	return pathToUse, nil
@@ -880,6 +904,8 @@ func (fen *Fen) GoRightUpToHistory() {
 	fen.GoPath(path)
 }
 
+// Goes to a random unstaged/untracked file from the currently selected folder
+// TODO: Implement sorting function in gogitstatus so this is deterministic
 func (fen *Fen) GoRightUpToFirstUnstagedOrUntracked(repoPath, currentPath string) error {
 	fen.gitStatusHandler.trackedLocalGitReposMutex.Lock()
 	defer fen.gitStatusHandler.trackedLocalGitReposMutex.Unlock()
@@ -916,4 +942,300 @@ func (fen *Fen) GoRightUpToFirstUnstagedOrUntracked(repoPath, currentPath string
 
 	_, err := fen.GoPath(filepath.Join(currentPath, changedFileClosestToRoot))
 	return err
+}
+
+func (fen *Fen) BulkRename(app *tview.Application) error {
+	if fen.config.NoWrite {
+		return errors.New("Can't bulkrename in no-write mode")
+	}
+
+	tempFile, err := os.CreateTemp("", "fenrename*.txt") // .txt for auto-detect what editor to use on Windows
+	if err != nil {
+		return err
+	}
+	defer func() {
+		tempFile.Close()
+		os.Remove(tempFile.Name())
+	}()
+
+	preRenameList := []string{}
+
+	if fen.middlePane.folder != fen.wd {
+		panic("In BulkRename(): fen.middlePane.folder was not equal to fen.wd")
+	}
+
+	// Write paths to the temporary file
+	if len(fen.selected) > 0 {
+		// We loop over the middlepane entries because they are presumably already sorted
+		fen.middlePane.FilterAndSortEntries()
+		for _, entry := range fen.middlePane.entries.Load().([]os.DirEntry) {
+			entryFullPath := filepath.Join(fen.middlePane.folder, entry.Name())
+
+			_, selected := fen.selected[entryFullPath]
+			if !selected {
+				continue
+			}
+
+			// Only bulkrename selected files in the current working directory
+			if filepath.Dir(entryFullPath) != fen.wd {
+				panic("In BulkRename(): a selected path was not within fen.wd")
+			}
+
+			basePath := filepath.Base(entryFullPath)
+
+			if strings.ContainsRune(basePath, '\n') {
+				return errors.New("A selected path contains a newline, unable to bulkrename")
+			}
+
+			preRenameList = append(preRenameList, basePath)
+		}
+	} else {
+		// Only bulkrename selected files in the current working directory
+		if filepath.Dir(fen.sel) != fen.wd {
+			return nil
+		}
+
+		basePath := filepath.Base(fen.sel)
+
+		if strings.ContainsRune(basePath, '\n') {
+			return errors.New("Path contains a newline, unable to bulkrename")
+		}
+
+		preRenameList = append(preRenameList, basePath)
+	}
+
+	if len(preRenameList) == 0 {
+		panic("In BulkRename(): preRenameList was empty")
+	}
+
+	for _, basePath := range preRenameList {
+		_, err := tempFile.WriteString(basePath + "\n")
+		if err != nil {
+			return err
+		}
+	}
+	tempFile.Close()
+
+	preRenameHashsum, err := SHA256HashSum(tempFile.Name())
+	if err != nil {
+		return err
+	}
+
+	app.Suspend(func() {
+		var cmd *exec.Cmd
+		if runtime.GOOS == "windows" {
+			// FIXME: The Windows program picker (below) runs in the background, making it impossible to bulkrename
+			// Find a way to wait for it to exit, so we don't have to force the user to use notepad...
+			//cmd = exec.Command(filepath.Join(os.Getenv("SYSTEMROOT"), "System32", "rundll32.exe"), "url.dll,FileProtocolHandler", tempFile.Name())
+
+			cmd = exec.Command("notepad", tempFile.Name())
+		} else {
+			editor := os.Getenv("EDITOR")
+			if editor == "" {
+				editor = "vi" // vi is symlinked to vim on macOS, so it should work there aswell
+			}
+			cmd = exec.Command(editor, tempFile.Name())
+		}
+		cmd.Dir = fen.wd
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		_ = cmd.Run()
+	})
+
+	postRenameHashSum, err := SHA256HashSum(tempFile.Name())
+	if err != nil {
+		return errors.New("Nothing renamed! Was the temporary file deleted?")
+	}
+
+	if reflect.DeepEqual(preRenameHashsum, postRenameHashSum) {
+		return errors.New("Nothing renamed!")
+	}
+
+	postRenameList := []string{}
+	file, err := os.Open(tempFile.Name())
+	if err != nil {
+		return errors.New("Nothing renamed! Was the temporary file deleted?")
+	}
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, string(os.PathSeparator)) {
+			return errors.New("Nothing renamed! Because a path contained a path separator \"" + string(os.PathSeparator) + "\"")
+		}
+		postRenameList = append(postRenameList, line)
+	}
+
+	if len(preRenameList) != len(postRenameList) {
+		return errors.New("Nothing renamed! Wanted " + strconv.Itoa(len(preRenameList)) + " but got " + strconv.Itoa(len(postRenameList)) + " lines")
+	}
+
+	if reflect.DeepEqual(preRenameList, postRenameList) {
+		// preRenameList equals postRenameList despite sha256 hashsum differing
+		// This can happen due to the file being saved with carriage returns before newlines
+		//  or more likely, the last line is missing a newline (it is visible and can be removed in notepad)
+		return errors.New("Nothing renamed!")
+	}
+
+	firstDuplicate, err := StringSliceHasDuplicate(postRenameList)
+	if err == nil {
+		return errors.New("Nothing renamed! Duplicate filename \"" + firstDuplicate + "\"")
+	}
+
+	for i, e := range postRenameList {
+		if e == "" {
+			return errors.New("Nothing renamed! Empty filename for \"" + preRenameList[i] + "\"")
+		}
+	}
+
+	shouldBulkRenamePrompt := false
+	app.Suspend(func() {
+		fmt.Print("Bulk-rename on " + strconv.Itoa(len(preRenameList)) + " files? [y/N]: ")
+		reader := bufio.NewReader(os.Stdin)
+		confirmation, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
+			shouldBulkRenamePrompt = true
+		}
+	})
+
+	if !shouldBulkRenamePrompt {
+		return errors.New("Nothing renamed! Cancelled in prompt")
+	}
+
+	/* Remove unchanged entries from both preRenameList and postRenameList */
+	// Code adapted from https://cs.opensource.google/go/go/+/refs/tags/go1.23.2:src/slices/slices.go;l=236
+	i := 0
+	for j := range preRenameList {
+		// Move the changed entries we want to the front
+		if preRenameList[j] != postRenameList[j] {
+			preRenameList[i] = preRenameList[j]
+			postRenameList[i] = postRenameList[j]
+			i++
+		}
+	}
+
+	// Zero out the removed values for GC
+	clear(preRenameList[i:])
+	clear(postRenameList[i:])
+
+	// Remove the unchanged entries
+	preRenameList = preRenameList[:i]
+	postRenameList = postRenameList[:i]
+
+	/* Generate new random names, if one collides with an already existing file then return an error */
+	preRenameRandomNames := make([]string, len(preRenameList))
+	for i := range preRenameList {
+		randomName := "fen_" + RandomStringPathSafe(14) // 14 characters (pow(36, 14) combinations), only lowercase letters a-z and 0-9 numbers
+		_, err := os.Lstat(filepath.Join(fen.wd, randomName))
+		if err == nil {
+			return errors.New("Nothing renamed! Random path \"" + randomName + "\" would've overwritten a file")
+		}
+
+		preRenameRandomNames[i] = randomName
+	}
+
+	if len(preRenameList) != len(preRenameRandomNames) {
+		panic("In BulkRename(): preRenameList and preRenameRandomNames have unequal lengths")
+	}
+
+	/* Rename preRenameList files to their new random names */
+	for i := range preRenameRandomNames {
+		oldName := filepath.Join(fen.wd, preRenameList[i])
+		newRandomName := filepath.Join(fen.wd, preRenameRandomNames[i])
+		_, err := os.Lstat(newRandomName)
+		if err == nil {
+			panic("In BulkRename(): Would've overwritten a file: \"" + newRandomName + "\"")
+		}
+
+		err = os.Rename(oldName, newRandomName)
+		if err != nil {
+			return errors.New("Failed to rename \"" + preRenameList[i] + "\" to the random name \"" + preRenameRandomNames[i] + "\"")
+		}
+	}
+
+	/* Rename preRenameRandomNames to their new correct names */
+	fen.DisableSelectingWithV()
+	fen.selected = make(map[string]bool)
+	fen.yankSelected = make(map[string]bool)
+
+	nFilesRenamed := 0
+	nFilesRenamedFail := 0
+	j := 0
+	for i := 0; i < len(postRenameList); i++ {
+		oldName := preRenameRandomNames[i]
+		newName := postRenameList[i]
+
+		if newName == oldName {
+			continue
+		}
+
+		oldNameAbs := filepath.Join(fen.wd, oldName)
+		newNameAbs := filepath.Join(fen.wd, newName)
+
+		if !filepath.IsAbs(oldNameAbs) || !filepath.IsAbs(newNameAbs) {
+			panic("In BulkRename(): Old random name or new name was a non-absolute path")
+		}
+
+		// Don't overwrite an existing file, rename back to the original name
+		_, err := os.Lstat(newNameAbs)
+		if err == nil {
+			preRenameAbs := filepath.Join(fen.wd, preRenameList[i])
+			_ = os.Rename(oldNameAbs, preRenameAbs)
+
+			// We can't use fen.GoPath() here because it would enter directories
+			fen.sel = preRenameAbs
+			fen.middlePane.SetSelectedEntryFromString(filepath.Base(preRenameAbs)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
+			fen.history.AddToHistory(preRenameAbs)
+			fen.UpdatePanes(true) // Need to force a read dir so the new entry is in the filespane for fen.GoPath
+
+			nFilesRenamedFail++
+			continue
+		}
+
+		err = os.Rename(oldNameAbs, newNameAbs)
+		if err != nil {
+			nFilesRenamedFail++
+			continue
+		}
+
+		// This is also done by file system events, but let's be safe
+		fen.history.RemoveFromHistory(oldNameAbs)
+
+		// Select the new name of the first renamed path
+		if j == 0 {
+			// We can't use fen.GoPath() here because it would enter directories
+			fen.UpdatePanes(true) // Need to force a read dir so the new entry is in the filespane
+			fen.sel = newNameAbs
+			fen.middlePane.SetSelectedEntryFromString(filepath.Base(newNameAbs)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
+			fen.history.AddToHistory(newNameAbs)
+		}
+		j++
+
+		nFilesRenamed++
+	}
+
+	str := ""
+	if nFilesRenamed == 0 {
+		str = "Nothing renamed!"
+	} else {
+		str = "Renamed " + strconv.Itoa(nFilesRenamed)
+		if nFilesRenamed == 1 {
+			str += " file"
+		} else {
+			str += " files"
+		}
+	}
+
+	if nFilesRenamedFail > 0 {
+		str += " (" + strconv.Itoa(nFilesRenamedFail) + " failed)"
+	}
+
+	fen.bottomBar.TemporarilyShowTextInstead(str)
+	return nil
 }

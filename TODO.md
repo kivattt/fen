@@ -1,3 +1,5 @@
+## Source code comments with "PLUGINS:" in them are for things we have to change to make Lua plugins a possibility in the future
+
 ## TODOs, vaguely sorted by priority
 
 - Bulk rename
@@ -25,7 +27,8 @@
 - Warning message or enable hidden files when creating a new hidden file/folder
 - Allow creating new files/folders with absolute paths (use fen.GoPath())
 - A sort of "back arrow" key for going to the last folder we were in
-- Right pane disappearing when no preview/folder
+- Add right pane disappearing when no preview/folder?
+- Remove local tracked git repository when .git folder not found anymore
 
 - Abstract away this common pattern:
 ```go

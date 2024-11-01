@@ -3,9 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"math"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -999,4 +1002,57 @@ func SetClipboardLinuxXClip(text string) error {
 	b.WriteString(text)
 	cmd.Stdin = &b
 	return cmd.Run()
+}
+
+func SHA256HashSum(path string) ([]byte, error) {
+	stat, err := os.Lstat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+
+	data := make([]byte, stat.Size())
+	if _, err := io.ReadFull(file, data); err != nil {
+		return nil, err
+	}
+
+	if _, err := hash.Write(data); err != nil {
+		return nil, err
+	}
+
+	return hash.Sum(nil), nil
+}
+
+// Returns nil error if the string slice has a duplicate value, returns first duplicate value found
+func StringSliceHasDuplicate(strSlice []string) (string, error) {
+	valuesMap := make(map[string]bool)
+	for _, value := range strSlice {
+		_, duplicate := valuesMap[value]
+		if duplicate {
+			return value, nil
+		}
+
+		valuesMap[value] = true
+	}
+
+	return "", errors.New("No duplicate found")
+}
+
+// Returns a random string of length numCharacters containing lowercase a-z and 0-9.
+func RandomStringPathSafe(numCharacters int) string {
+	// It is important not to use mixed case characters because some filesystems are case-insensitive
+	alphabet := "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, numCharacters)
+
+	for i := range b {
+		b[i] = alphabet[rand.Intn(len(alphabet))]
+	}
+	return string(b)
 }

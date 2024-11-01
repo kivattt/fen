@@ -55,6 +55,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `A` Flip selection in folder (select all files)\
 `D` Deselect all, press again to un-yank\
 `a` Rename a file\
+`b` Bulk-rename (rename in editor)\
 `V` Start selecting by moving\
 `n` Create a new file\
 `N` Create a new folder\
@@ -162,5 +163,6 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 - Deleting files sometimes doesn't work on Windows (due to files being open in another program?)
 - `go test` doesn't work on Windows
 - The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal
+- Bulk-renaming a .git folder on Windows hangs fen forever
 
 See [TODO.md](TODO.md) for other issues and possible future features, roughly sorted by priority

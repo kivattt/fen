@@ -241,6 +241,9 @@ type FenLuaGlobal struct {
 }
 
 func (f *FenLuaGlobal) Print(text string, x, y, maxWidth, align int, color tcell.Color) int {
+	if x >= maxWidth {
+		return 0
+	}
 	text = strings.ReplaceAll(text, "\t", "    ")
 	_, widthPrinted := tview.Print(f.screen, text, x+f.x, y+f.y, maxWidth, align, color)
 	return widthPrinted
@@ -335,14 +338,16 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		fp.keepSelectionInBounds()
 	}
 
-	switch fp.fen.config.SortBy {
-	case SORT_ALPHABETICAL:
-		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
-			if a.Name() < b.Name() {
-				return -1
-			}
-			return 1
+	// Sort the files as os.ReadDir() would, to guarantee the order
+	if fp.fen.config.SortBy != SORT_NONE {
+		// Should be similar enough to https://cs.opensource.google/go/go/+/refs/tags/go1.23.2:src/os/dir.go;l=126
+		slices.SortFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
+			return strings.Compare(a.Name(), b.Name())
 		})
+	}
+
+	switch fp.fen.config.SortBy {
+	case SORT_ALPHABETICAL: // Since we already sort alphabetically above, we don't need to do anything
 	case SORT_MODIFIED:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
 			aInfo, aErr := a.Info()
@@ -538,6 +543,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	}
 
 	x, y, w, h := fp.GetInnerRect()
+
+	if fp.isRightFilesPane || fp.fen.config.UiBorders {
+		w++
+	}
+
 	if fp.isRightFilesPane && fp.parentIsEmptyFolder || (!fp.isRightFilesPane && len(fp.entries.Load().([]os.DirEntry)) <= 0) && fp.folder != filepath.Dir(fp.folder) {
 		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
 		return
@@ -546,6 +556,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	// File previews
 	stat, statErr := os.Stat(fp.fen.sel)
 	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
+		w--
+
 		filenameResolved, err := filepath.EvalSymlinks(fp.fen.sel)
 		if err != nil {
 			filenameResolved = fp.fen.sel
@@ -622,6 +634,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				}
 			}
 		}
+
 		return
 	}
 
@@ -649,26 +662,26 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			spaceForSelected = " "
 			style = style.Foreground(tcell.ColorYellow)
 			style = style.Bold(false) // FileColor() makes folders and executables bold
+		} else {
+			// Show unstaged/untracked files in red
+			if fp.fen.config.GitStatus && repoErr == nil {
+				if entry.IsDir() {
+					if fp.fen.gitStatusHandler.FolderContainsUnstagedOrUntrackedPath(entryFullPath, gitRepoContainingPath) {
+						// Same color used in the git status command
+						style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
+					}
+				} else {
+					if fp.fen.gitStatusHandler.PathIsUnstagedOrUntracked(entryFullPath, gitRepoContainingPath) {
+						// Same color used in the git status command
+						style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
+					}
+				}
+			}
 		}
 
 		_, entryInYankSelected := fp.fen.yankSelected[entryFullPath]
 		if entryInYankSelected {
 			style = style.Dim(true)
-		}
-
-		// Show unstaged/untracked files in red
-		if fp.fen.config.GitStatus && repoErr == nil {
-			if entry.IsDir() {
-				if fp.fen.gitStatusHandler.FolderContainsUnstagedOrUntrackedPath(entryFullPath, gitRepoContainingPath) {
-					// Same color used in the git status command
-					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
-				}
-			} else {
-				if fp.fen.gitStatusHandler.PathIsUnstagedOrUntracked(entryFullPath, gitRepoContainingPath) {
-					// Same color used in the git status command
-					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
-				}
-			}
 		}
 
 		//styleStr := StyleToStyleTagString(style)
@@ -700,11 +713,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		xToUse++
 		leftSizePrinted := PrintFilenameInvisibleCharactersAsCodeHighlighted(screen, xToUse, y+i, w-1-entrySizePrintedSize, entry.Name(), style)
 
-		widthOffset := 0
-		if fp.isRightFilesPane {
-			widthOffset = 1
-		}
-		for j := 0; j < w-1-leftSizePrinted-entrySizePrintedSize-(xToUse-x)+widthOffset; j++ {
+		for j := 0; j < w-1-leftSizePrinted-entrySizePrintedSize-(xToUse-x); j++ {
 			screen.SetContent(xToUse+leftSizePrinted+j, y+i, ' ', nil, style)
 		}
 

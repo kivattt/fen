@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.9"
+const version = "v1.7.10"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -322,6 +322,11 @@ func main() {
 			return nil, action
 		}
 
+		if action != tview.MouseMove {
+			fen.bottomBar.alternateText = ""
+		}
+
+		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
 		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && event.Buttons() == tcell.Button1 {
 			_, mouseY := event.Position()
 			if mouseY == 0 {
@@ -419,6 +424,8 @@ func main() {
 		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("shellcommand") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("librariesscreen") || pages.HasPage("gotopath") {
 			return event
 		}
+
+		fen.bottomBar.alternateText = ""
 
 		if event.Rune() == 'q' {
 			fen.fileOperationsHandler.workCountMutex.Lock()
@@ -577,6 +584,7 @@ func main() {
 			fen.DisableSelectingWithV()
 			return nil
 		} else if event.Rune() == 'a' {
+			fen.DisableSelectingWithV()
 			fileToRename := fen.sel
 
 			inputField := tview.NewInputField().
@@ -591,20 +599,29 @@ func main() {
 				} else if key == tcell.KeyEnter {
 					if !fen.config.NoWrite {
 						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
-						_, err := os.Stat(newPath)
+						_, err := os.Lstat(newPath)
 						if err == nil {
 							pages.RemovePage("inputfield")
 							fen.bottomBar.TemporarilyShowTextInstead("Can't rename to an existing file")
 							return
 						}
-						os.Rename(fileToRename, newPath)
 
+						err = os.Rename(fileToRename, newPath)
+						if err != nil {
+							pages.RemovePage("inputfield")
+							fen.bottomBar.TemporarilyShowTextInstead("Can't rename, no access")
+							return
+						}
+
+						// These are also done by file system events, but let's be safe
 						fen.RemoveFromSelectedAndYankSelected(fileToRename)
 						fen.history.RemoveFromHistory(fileToRename)
-						fen.sel = newPath
-						fen.history.AddToHistory(fen.sel)
 
+						// We can't use fen.GoPath() here because it would enter directories
 						fen.UpdatePanes(true)
+						fen.sel = newPath
+						fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
+						fen.history.AddToHistory(newPath)
 					} else {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't rename in no-write mode")
 					}
@@ -626,6 +643,7 @@ func main() {
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'n' || event.Rune() == 'N' {
+			fen.DisableSelectingWithV()
 			inputField := tview.NewInputField().
 				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 
@@ -980,6 +998,11 @@ func main() {
 			}
 			return nil
 		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyRight { // Ctrl+Right
+			if !fen.config.GitStatus {
+				fen.GoRightUpToHistory()
+				return nil
+			}
+
 			path, err := fen.gitStatusHandler.TryFindParentGitRepository(filepath.Dir(fen.sel))
 			if err == nil {
 				err := fen.GoRightUpToFirstUnstagedOrUntracked(path, fen.sel)
@@ -1123,6 +1146,14 @@ func main() {
 			})
 
 			pages.AddPage("shellcommand", centered(inputField, 3), true, true)
+			return nil
+		} else if event.Rune() == 'b' {
+			err := fen.BulkRename(app)
+			if err != nil {
+				fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+				return nil
+			}
+
 			return nil
 		}
 
