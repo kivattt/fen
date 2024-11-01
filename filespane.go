@@ -241,6 +241,9 @@ type FenLuaGlobal struct {
 }
 
 func (f *FenLuaGlobal) Print(text string, x, y, maxWidth, align int, color tcell.Color) int {
+	if x >= maxWidth {
+		return 0
+	}
 	text = strings.ReplaceAll(text, "\t", "    ")
 	_, widthPrinted := tview.Print(f.screen, text, x+f.x, y+f.y, maxWidth, align, color)
 	return widthPrinted
@@ -553,6 +556,8 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	// File previews
 	stat, statErr := os.Stat(fp.fen.sel)
 	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
+		w--
+
 		filenameResolved, err := filepath.EvalSymlinks(fp.fen.sel)
 		if err != nil {
 			filenameResolved = fp.fen.sel
@@ -629,6 +634,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				}
 			}
 		}
+
 		return
 	}
 
