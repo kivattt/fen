@@ -1031,7 +1031,7 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 
 	postRenameHashSum, err := SHA256HashSum(tempFile.Name())
 	if err != nil {
-		return err
+		return errors.New("Nothing renamed! Was the temporary file deleted?")
 	}
 
 	if reflect.DeepEqual(preRenameHashsum, postRenameHashSum) {
