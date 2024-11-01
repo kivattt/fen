@@ -7,7 +7,7 @@ replace github.com/gdamore/tcell/v2 => github.com/kivattt/tcell-naively-faster/v
 replace github.com/rivo/tview => github.com/kivattt/tview v1.0.4
 
 require (
-	github.com/fsnotify/fsnotify v1.8.0
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
 	github.com/kivattt/gogitstatus v0.0.0-20241025103638-d9516b2a89c5
