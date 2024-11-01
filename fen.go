@@ -1069,7 +1069,7 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	}
 
 	if len(preRenameList) != len(postRenameList) {
-		return errors.New("Nothing renamed! Linecount mismatch, wanted " + strconv.Itoa(len(preRenameList)) + " but got " + strconv.Itoa(len(postRenameList)) + " lines")
+		return errors.New("Nothing renamed! Wanted " + strconv.Itoa(len(preRenameList)) + " but got " + strconv.Itoa(len(postRenameList)) + " lines")
 	}
 
 	if reflect.DeepEqual(preRenameList, postRenameList) {
