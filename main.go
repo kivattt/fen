@@ -612,10 +612,10 @@ func main() {
 						fen.history.RemoveFromHistory(fileToRename)
 
 						// We can't use fen.GoPath() here because it would enter directories
+						fen.UpdatePanes(true)
 						fen.sel = newPath
 						fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
 						fen.history.AddToHistory(newPath)
-						fen.UpdatePanes(true)
 					} else {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't rename in no-write mode")
 					}

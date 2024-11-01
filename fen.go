@@ -1185,10 +1185,10 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 		// Select the new name of the first renamed path
 		if j == 0 {
 			// We can't use fen.GoPath() here because it would enter directories
+			fen.UpdatePanes(true) // Need to force a read dir so the new entry is in the filespane
 			fen.sel = newNameAbs
 			fen.middlePane.SetSelectedEntryFromString(filepath.Base(newNameAbs)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
 			fen.history.AddToHistory(newNameAbs)
-			fen.UpdatePanes(true) // Need to force a read dir so the new entry is in the filespane for fen.GoPath
 		}
 		j++
 
