@@ -1073,7 +1073,10 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	}
 
 	if reflect.DeepEqual(preRenameList, postRenameList) {
-		panic("In BulkRename(): preRenameList equals postRenameList despite sha256 hashsum differing")
+		// preRenameList equals postRenameList despite sha256 hashsum differing
+		// This can happen due to the file being saved with carriage returns before newlines
+		//  or more likely, the last line is missing a newline (it is visible and can be removed in notepad)
+		return errors.New("Nothing renamed!")
 	}
 
 	firstDuplicate, err := StringSliceHasDuplicate(postRenameList)
