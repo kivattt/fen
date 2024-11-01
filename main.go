@@ -322,7 +322,9 @@ func main() {
 			return nil, action
 		}
 
-		fen.bottomBar.alternateText = ""
+		if action != tview.MouseMove {
+			fen.bottomBar.alternateText = ""
+		}
 
 		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
 		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && event.Buttons() == tcell.Button1 {
