@@ -1024,13 +1024,17 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	app.Suspend(func() {
 		var cmd *exec.Cmd
 		if runtime.GOOS == "windows" {
-			cmd = exec.Command(filepath.Join(os.Getenv("SYSTEMROOT"), "System32", "rundll32.exe"), "url.dll,FileProtocolHandler", tempFile.Name())
+			// FIXME: The Windows program picker (below) runs in the background, making it impossible to bulkrename
+			// Find a way to wait for it to exit, so we don't have to force the user to use notepad...
+			//cmd = exec.Command(filepath.Join(os.Getenv("SYSTEMROOT"), "System32", "rundll32.exe"), "url.dll,FileProtocolHandler", tempFile.Name())
+
+			cmd = exec.Command("notepad", tempFile.Name())
 		} else {
 			editor := os.Getenv("EDITOR")
 			if editor == "" {
-				editor = "vi"
+				editor = "vi" // vi is symlinked to vim on macOS, so it should work there aswell
 			}
-			cmd = exec.Command(editor /* fixme! Cross-platform find editor */, tempFile.Name())
+			cmd = exec.Command(editor, tempFile.Name())
 		}
 		cmd.Dir = fen.wd
 		cmd.Stdin = os.Stdin
