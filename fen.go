@@ -482,7 +482,7 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 }
 
 // Ask the git status handler to run a "git status" at the currently selected path.
-// It may choose to ignore the request if for example, it would restart a git status on the same path
+// It may choose to ignore the request if for example, it would restart a git status on the same path or fen.git_status is false.
 func (fen *Fen) TriggerGitStatus() {
 	if !fen.config.GitStatus {
 		return
