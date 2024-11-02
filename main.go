@@ -30,12 +30,20 @@ func main() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 
 	tview.Styles.BorderColor = tcell.ColorDefault
-	tview.Borders.TopLeft = '╭'
-	tview.Borders.TopRight = '╮'
-	tview.Borders.BottomLeft = '╰'
-	tview.Borders.BottomRight = '╯'
 	tview.Borders.Horizontal = '─'
 	tview.Borders.Vertical = '│'
+
+	if runtime.GOOS == "freebsd" {
+		tview.Borders.TopLeft = '┌'
+		tview.Borders.TopRight = '┐'
+		tview.Borders.BottomLeft = '└'
+		tview.Borders.BottomRight = '┘'
+	} else {
+		tview.Borders.TopLeft = '╭'
+		tview.Borders.TopRight = '╮'
+		tview.Borders.BottomLeft = '╰'
+		tview.Borders.BottomRight = '╯'
+	}
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
