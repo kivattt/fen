@@ -924,13 +924,23 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 				screen.SetContent(x+offset, y, '…', nil, style)
 			}
 			offset++
-			break
+			return offset
 		}
 
 		// Use printable codes for leading and trailing invisible or non-printable runes
 		if i < leadingInvisibleOrNonPrintableCharLength || len(filename)-i <= trailingInvisibleOrNonPrintableCharLength {
 			printableCode := RuneToPrintableCode(c)
 			for _, character := range printableCode {
+				if offset >= maxWidth-2 {
+					if runtime.GOOS == "freebsd" {
+						screen.SetContent(x+offset, y, '~', nil, style)
+					} else {
+						screen.SetContent(x+offset, y, '…', nil, style)
+					}
+					offset++
+					return offset
+				}
+
 				screen.SetContent(x+offset, y, character, nil, tcell.StyleDefault.Background(tcell.ColorDarkRed))
 				offset++
 			}
@@ -942,6 +952,16 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 		if c != ' ' && isInvisible(c) {
 			printableCode := RuneToPrintableCode(c)
 			for _, character := range printableCode {
+				if offset >= maxWidth-2 {
+					if runtime.GOOS == "freebsd" {
+						screen.SetContent(x+offset, y, '~', nil, style)
+					} else {
+						screen.SetContent(x+offset, y, '…', nil, style)
+					}
+					offset++
+					return offset
+				}
+
 				screen.SetContent(x+offset, y, character, nil, tcell.StyleDefault.Background(tcell.ColorDarkRed))
 				offset++
 			}

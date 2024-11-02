@@ -539,12 +539,24 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		return
 	}
 
+	x, y, w, h := fp.GetInnerRect()
+
 	if fp.fen.config.UiBorders {
+		gitRepo, gitRepoErr := fp.fen.gitStatusHandler.TryFindParentGitRepository(fp.folder)
+		if gitRepoErr == nil {
+			fp.Box.SetBorderColor(tcell.ColorBlue)
+		} else {
+			fp.Box.SetBorderColor(tcell.ColorDefault)
+		}
+
 		// TODO: Make a custom border drawing so it runs faster
 		fp.Box.DrawForSubclass(screen, fp)
-	}
 
-	x, y, w, h := fp.GetInnerRect()
+		if gitRepoErr == nil {
+			// TODO: Show current branch name, maybe show remote name?
+			tview.Print(screen, filepath.Base(gitRepo), x+1, y-1, w-1, tview.AlignLeft, tcell.ColorBlue)
+		}
+	}
 
 	if fp.isRightFilesPane || fp.fen.config.UiBorders {
 		w++
