@@ -990,8 +990,8 @@ func main() {
 			return nil
 		} else if event.Key() == tcell.KeyF5 {
 			fen.UpdatePanes(true)
-			fen.TriggerGitStatus()
 			app.Sync()
+			fen.TriggerGitStatus()
 			return nil
 		} else if event.Rune() >= '0' && event.Rune() <= '9' {
 			err := fen.GoBookmark(int(event.Rune()) - '0')
