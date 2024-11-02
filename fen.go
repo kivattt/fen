@@ -42,6 +42,8 @@ type Fen struct {
 	helpScreenVisible      *bool
 	librariesScreenVisible *bool
 
+	runningGitStatus bool
+
 	topBar     *TopBar
 	bottomBar  *BottomBar
 	leftPane   *FilesPane
@@ -166,7 +168,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
 
 	if fen.config.GitStatus {
-		fen.gitStatusHandler = GitStatusHandler{app: app}
+		fen.gitStatusHandler = GitStatusHandler{app: app, fen: fen}
 		fen.gitStatusHandler.Init()
 	}
 

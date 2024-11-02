@@ -15,6 +15,7 @@ import (
 
 type GitStatusHandler struct {
 	app             *tview.Application
+	fen             *Fen
 	channel         chan string
 	wg              sync.WaitGroup
 	workerWaitGroup sync.WaitGroup
@@ -215,8 +216,10 @@ func (gsh *GitStatusHandler) Init() {
 					panic("GitStatusHandler tried to run StatusWithContext on a non-absolute path: \"" + gsh.repoPathCurrentlyWorkingOn + "\"")
 				}
 
+				gsh.fen.runningGitStatus = true
 				changedFiles, err := gogitstatus.StatusWithContext(gsh.ctx, gsh.repoPathCurrentlyWorkingOn)
 				if err != nil {
+					gsh.fen.runningGitStatus = false // Can't defer this because it has to run before QueueUpdateDraw()
 					return
 				}
 
@@ -227,6 +230,7 @@ func (gsh *GitStatusHandler) Init() {
 				}
 				gsh.trackedLocalGitReposMutex.Unlock()
 
+				gsh.fen.runningGitStatus = false // Can't defer this because it has to run before QueueUpdateDraw()
 				gsh.app.QueueUpdateDraw(func() {})
 			}()
 		}

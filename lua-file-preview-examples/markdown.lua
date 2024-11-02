@@ -15,6 +15,66 @@ local function isEmphasis(char)
 	return char == '*' or char == '_'
 end
 
+local function isList(char)
+	return char == '-' or char == '*'
+end
+
+local function isThematicBreak(char)
+	return char == '-' or char == '_' or char == '*'
+end
+
+-- https://spec.commonmark.org/0.31.2/#thematic-breaks
+local function lineIsThematicBreak(line)
+	local lookingForPrefixSpaces = true
+
+	local prefixSpaceCount = 0
+	local thematicBreakCharCount = 0
+	for i = 1, #line do
+		local c = line:sub(i,i)
+
+		if lookingForPrefixSpaces then
+			if c == ' ' then
+				prefixSpaceCount = prefixSpaceCount + 1
+				-- Four spaces of indentation is too many
+				if prefixSpaceCount > 3 then
+					return false
+				end
+			else
+				lookingForPrefixSpaces = false
+			end
+
+			goto continue
+		end
+
+		-- Spaces and tabs are allowed between the characters
+		if c == ' ' or c == '\t' then
+			goto continue
+		end
+
+		if isThematicBreak(line:sub(i,i)) then
+			thematicBreakCharCount = thematicBreakCharCount + 1
+			-- A sequence of three or more matching -, _, or * characters forms a thematic break.
+			if thematicBreakCharCount >= 3 then
+				-- Spaces and tabs are allowed at the end
+				-- However, no other characters may occur in the line
+				for j = i, #line do
+					local c2 = line:sub(j,j)
+					if not (isThematicBreak(c2) or c2 == ' ' or c2 == '\t') then
+						return false
+					end
+				end
+				return true
+			end
+		else
+			return false
+		end
+
+	    ::continue::
+	end
+
+	return false
+end
+
 local punctuation = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 local punctuationTable = {}
 for i = 1, #punctuation do
@@ -29,6 +89,16 @@ end
 -- https://spec.commonmark.org/0.31.2/#code-fence
 local function isCodeFence(char)
 	return char == '`' or char == '~'
+end
+
+local function printThematicBreak(yPosition)
+	local lineChar = "━"
+	if fen:RuntimeOS() == "freebsd" then
+		lineChar = "-"
+	end
+	for i = 0, fen.Width do
+		fen:PrintSimple("[gray]"..lineChar, i, yPosition)
+	end
 end
 
 local italic, bold, codeblock, backtickString = false, false, false, false
@@ -167,7 +237,9 @@ for line in io.lines(fen.SelectedFile) do
 		end
 	end
 
-	if lineTrimLeftSpaces:sub(1,1) == "-" then
+	if lineIsThematicBreak(line) then
+		printThematicBreak(y)
+	elseif isList(lineTrimLeftSpaces:sub(1,1)) then
 		-- The non-graphical FreeBSD console would print a '?' instead of the fancy character, so fallback to an asterix
 		if fen:RuntimeOS() == "freebsd" then
 			fen:PrintSimple("[::d]*", 0, y)
