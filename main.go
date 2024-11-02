@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.10"
+const version = "v1.7.11"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -989,6 +989,8 @@ func main() {
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Key() == tcell.KeyF5 {
+			fen.UpdatePanes(true)
+			fen.TriggerGitStatus()
 			app.Sync()
 			return nil
 		} else if event.Rune() >= '0' && event.Rune() <= '9' {

@@ -19,11 +19,12 @@ import (
 )
 
 type Fen struct {
-	app     *tview.Application
-	wd      string // Current working directory
-	sel     string
-	lastSel string
-	history History
+	app              *tview.Application
+	wd               string // Current working directory
+	sel              string
+	lastSel          string
+	lastInRepository string
+	history          History
 
 	selected     map[string]bool
 	yankSelected map[string]bool
@@ -445,11 +446,39 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 
 	fen.UpdateSelectingWithV()
 
-	// Selection changed, ask for a git status
+	defer func() {
+		fen.lastSel = fen.sel
+	}()
+
+	// If the current Git repository changed or fen.sel is a directory, ask for a git status
 	if fen.sel != fen.lastSel {
-		fen.TriggerGitStatus()
+		stat, err := os.Lstat(fen.sel)
+		if err != nil {
+			return
+		}
+
+		var inRepository string
+		if stat.IsDir() {
+			inRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.sel)
+		} else {
+			inRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.wd)
+		}
+
+		if err != nil {
+			// When we're no longer in a Git repository, set empty so it can ask for a git status next time we enter one
+			fen.lastInRepository = ""
+		}
+
+		if !stat.IsDir() && err != nil {
+			return
+		}
+
+		if stat.IsDir() || inRepository != fen.lastInRepository {
+			fen.TriggerGitStatus()
+		}
+
+		fen.lastInRepository = inRepository
 	}
-	fen.lastSel = fen.sel
 }
 
 // Ask the git status handler to run a "git status" at the currently selected path.
