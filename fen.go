@@ -501,6 +501,9 @@ func (fen *Fen) TriggerGitStatus() {
 	}
 
 	stat, err := os.Lstat(fen.sel)
+	if err != nil {
+		return
+	}
 
 	var currentRepository string
 	if stat.IsDir() {
