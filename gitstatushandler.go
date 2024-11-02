@@ -106,41 +106,6 @@ func (gsh *GitStatusHandler) PathIsUnstagedOrUntracked(path, repositoryPath stri
 	return false
 }
 
-// Returns true if folderPath contains an unstaged/untracked file in the local Git repository at repositoryPath.
-// Takes in absolute paths (panics when either are non-absolute).
-func (gsh *GitStatusHandler) FolderContainsUnstagedOrUntrackedPath(folderPath, repositoryPath string) bool {
-	if !filepath.IsAbs(folderPath) || !filepath.IsAbs(repositoryPath) {
-		panic("AbsolutePathIsUnstagedOrUntracked received a non-absolute path")
-	}
-
-	gsh.trackedLocalGitReposMutex.Lock()
-	defer gsh.trackedLocalGitReposMutex.Unlock()
-
-	repo, repoOk := gsh.trackedLocalGitRepos[repositoryPath]
-	if !repoOk {
-		return false
-	}
-
-	folderRelativePathToRepo, err := filepath.Rel(repositoryPath, folderPath)
-	if err != nil {
-		return false
-	}
-
-	for path := range repo.changedFiles {
-		// TODO: Improve performance? filepath.Rel() seems a little slow
-		rel, err := filepath.Rel(folderRelativePathToRepo, path)
-		if err != nil {
-			continue
-		}
-
-		if !strings.HasPrefix(rel, "..") {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (gsh *GitStatusHandler) Init() {
 	if gsh.app == nil {
 		panic("In GitStatusHandler Init(), app was nil")
@@ -259,6 +224,8 @@ func (gsh *GitStatusHandler) Init() {
 				gsh.app.QueueUpdateDraw(func() {})
 
 				changedFiles, err := gogitstatus.StatusWithContext(gsh.ctx, gsh.repoPathCurrentlyWorkingOn)
+				changedFiles = gogitstatus.ChangedFilesIncludingDirectories(changedFiles)
+
 				if err != nil {
 					gsh.fen.runningGitStatus = false // Can't defer this because it has to run before QueueUpdateDraw()
 					return

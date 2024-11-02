@@ -640,7 +640,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		return
 	}
 
-	gitRepoContainingPath, repoErr := fp.fen.gitStatusHandler.TryFindTrackedParentGitRepository(fp.folder)
+	var gitRepoContainingPath string
+	var repoErr error
+	if fp.fen.config.GitStatus {
+		gitRepoContainingPath, repoErr = fp.fen.gitStatusHandler.TryFindTrackedParentGitRepository(fp.folder)
+	}
 
 	scrollOffset := fp.GetTopScreenEntryIndex()
 	for i, entry := range fp.entries.Load().([]os.DirEntry)[scrollOffset:] {
@@ -667,16 +671,9 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		} else {
 			// Show unstaged/untracked files in red
 			if fp.fen.config.GitStatus && repoErr == nil {
-				if entry.IsDir() {
-					if fp.fen.gitStatusHandler.FolderContainsUnstagedOrUntrackedPath(entryFullPath, gitRepoContainingPath) {
-						// Same color used in the git status command
-						style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
-					}
-				} else {
-					if fp.fen.gitStatusHandler.PathIsUnstagedOrUntracked(entryFullPath, gitRepoContainingPath) {
-						// Same color used in the git status command
-						style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
-					}
+				if fp.fen.gitStatusHandler.PathIsUnstagedOrUntracked(entryFullPath, gitRepoContainingPath) {
+					// Same color used in the git status command
+					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
 				}
 			}
 		}
