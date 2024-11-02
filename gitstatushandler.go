@@ -9,17 +9,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/kivattt/gogitstatus"
 	"github.com/rivo/tview"
 )
 
 type GitStatusHandler struct {
 	app             *tview.Application
+	fen             *Fen
 	channel         chan string
 	wg              sync.WaitGroup
 	workerWaitGroup sync.WaitGroup
 	ctx             context.Context
 	cancelFunc      context.CancelFunc
+
+	gitIndexFileWatcher *fsnotify.Watcher
 
 	repoPathCurrentlyWorkingOn string // Does not require a mutex due to workerWaitGroup
 
@@ -102,45 +106,48 @@ func (gsh *GitStatusHandler) PathIsUnstagedOrUntracked(path, repositoryPath stri
 	return false
 }
 
-// Returns true if folderPath contains an unstaged/untracked file in the local Git repository at repositoryPath.
-// Takes in absolute paths (panics when either are non-absolute).
-func (gsh *GitStatusHandler) FolderContainsUnstagedOrUntrackedPath(folderPath, repositoryPath string) bool {
-	if !filepath.IsAbs(folderPath) || !filepath.IsAbs(repositoryPath) {
-		panic("AbsolutePathIsUnstagedOrUntracked received a non-absolute path")
-	}
-
-	gsh.trackedLocalGitReposMutex.Lock()
-	defer gsh.trackedLocalGitReposMutex.Unlock()
-
-	repo, repoOk := gsh.trackedLocalGitRepos[repositoryPath]
-	if !repoOk {
-		return false
-	}
-
-	folderRelativePathToRepo, err := filepath.Rel(repositoryPath, folderPath)
-	if err != nil {
-		return false
-	}
-
-	for path := range repo.changedFiles {
-		// TODO: Improve performance? filepath.Rel() seems a little slow
-		rel, err := filepath.Rel(folderRelativePathToRepo, path)
-		if err != nil {
-			continue
-		}
-
-		if !strings.HasPrefix(rel, "..") {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (gsh *GitStatusHandler) Init() {
 	if gsh.app == nil {
 		panic("In GitStatusHandler Init(), app was nil")
 	}
+
+	gsh.gitIndexFileWatcher, _ = fsnotify.NewWatcher()
+
+	// Git index file watcher
+	// This is so we update in real-time on "git add" / "git restore"
+	go func() {
+		for {
+			select {
+			case event, ok := <-gsh.gitIndexFileWatcher.Events:
+				if !ok {
+					return
+				}
+
+				// Git writes the new index to a temporary file called "index.lock"
+				// which is then renamed to "index", resulting in a Create event for "index".
+				// We need to ignore earlier events, so that we git status on the up-to-date index
+				if !event.Op.Has(fsnotify.Create) || filepath.Base(event.Name) != "index" {
+					continue
+				}
+
+				watchList := gsh.gitIndexFileWatcher.WatchList()
+				if watchList != nil {
+					if len(watchList) > 1 {
+						panic("In GitStatusHandler: Length of watchList exceeded 1")
+					}
+
+					if len(watchList) == 1 {
+						// TODO: Make this forcefully re-run the StatusWithContext()
+						gsh.channel <- filepath.Dir(watchList[0])
+					}
+				}
+			case _, ok := <-gsh.gitIndexFileWatcher.Errors:
+				if !ok {
+					return
+				}
+			}
+		}
+	}()
 
 	gsh.wg.Add(1)
 
@@ -215,8 +222,14 @@ func (gsh *GitStatusHandler) Init() {
 					panic("GitStatusHandler tried to run StatusWithContext on a non-absolute path: \"" + gsh.repoPathCurrentlyWorkingOn + "\"")
 				}
 
+				gsh.fen.runningGitStatus = true
+				gsh.app.QueueUpdateDraw(func() {})
+
 				changedFiles, err := gogitstatus.StatusWithContext(gsh.ctx, gsh.repoPathCurrentlyWorkingOn)
+				changedFiles = gogitstatus.ChangedFilesIncludingDirectories(changedFiles)
+
 				if err != nil {
+					gsh.fen.runningGitStatus = false // Can't defer this because it has to run before QueueUpdateDraw()
 					return
 				}
 
@@ -227,6 +240,7 @@ func (gsh *GitStatusHandler) Init() {
 				}
 				gsh.trackedLocalGitReposMutex.Unlock()
 
+				gsh.fen.runningGitStatus = false // Can't defer this because it has to run before QueueUpdateDraw()
 				gsh.app.QueueUpdateDraw(func() {})
 			}()
 		}

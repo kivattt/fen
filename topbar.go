@@ -77,4 +77,8 @@ func (topBar *TopBar) Draw(screen tcell.Screen) {
 	if topBar.showAdditionalText {
 		tview.Print(screen, "« "+topBar.additionalText, x+usernameAndHostnameLength+1+pathPrintedLength+1, y, w, tview.AlignLeft, tcell.ColorDefault)
 	}
+
+	if topBar.fen.runningGitStatus {
+		tview.Print(screen, "Refreshing Git status...", x, y, w, tview.AlignRight, tcell.ColorDefault)
+	}
 }

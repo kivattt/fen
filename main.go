@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.10"
+const version = "v1.7.11"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -30,12 +30,20 @@ func main() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 
 	tview.Styles.BorderColor = tcell.ColorDefault
-	tview.Borders.TopLeft = '╭'
-	tview.Borders.TopRight = '╮'
-	tview.Borders.BottomLeft = '╰'
-	tview.Borders.BottomRight = '╯'
 	tview.Borders.Horizontal = '─'
 	tview.Borders.Vertical = '│'
+
+	if runtime.GOOS == "freebsd" {
+		tview.Borders.TopLeft = '┌'
+		tview.Borders.TopRight = '┐'
+		tview.Borders.BottomLeft = '└'
+		tview.Borders.BottomRight = '┘'
+	} else {
+		tview.Borders.TopLeft = '╭'
+		tview.Borders.TopRight = '╮'
+		tview.Borders.BottomLeft = '╰'
+		tview.Borders.BottomRight = '╯'
+	}
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
@@ -669,7 +677,11 @@ func main() {
 					if !fen.config.NoWrite && err != nil {
 						var createFileOrFolderErr error
 						if event.Rune() == 'n' {
-							_, createFileOrFolderErr = os.Create(pathToUse)
+							var file *os.File
+							file, createFileOrFolderErr = os.Create(pathToUse)
+							if createFileOrFolderErr == nil {
+								defer file.Close()
+							}
 						} else if event.Rune() == 'N' {
 							createFileOrFolderErr = os.Mkdir(pathToUse, 0775)
 						}
@@ -989,7 +1001,9 @@ func main() {
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Key() == tcell.KeyF5 {
+			fen.UpdatePanes(true)
 			app.Sync()
+			fen.TriggerGitStatus()
 			return nil
 		} else if event.Rune() >= '0' && event.Rune() <= '9' {
 			err := fen.GoBookmark(int(event.Rune()) - '0')

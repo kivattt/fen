@@ -19,11 +19,12 @@ import (
 )
 
 type Fen struct {
-	app     *tview.Application
-	wd      string // Current working directory
-	sel     string
-	lastSel string
-	history History
+	app              *tview.Application
+	wd               string // Current working directory
+	sel              string
+	lastSel          string
+	lastInRepository string
+	history          History
 
 	selected     map[string]bool
 	yankSelected map[string]bool
@@ -40,6 +41,8 @@ type Fen struct {
 
 	helpScreenVisible      *bool
 	librariesScreenVisible *bool
+
+	runningGitStatus bool
 
 	topBar     *TopBar
 	bottomBar  *BottomBar
@@ -165,7 +168,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
 
 	if fen.config.GitStatus {
-		fen.gitStatusHandler = GitStatusHandler{app: app}
+		fen.gitStatusHandler = GitStatusHandler{app: app, fen: fen}
 		fen.gitStatusHandler.Init()
 	}
 
@@ -237,7 +240,13 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 }
 
 func (fen *Fen) Fini() {
+	fen.leftPane.fileWatcher.Close()
+	fen.middlePane.fileWatcher.Close()
+	fen.rightPane.fileWatcher.Close()
+
 	if fen.config.GitStatus {
+		fen.gitStatusHandler.gitIndexFileWatcher.Close()
+
 		close(fen.gitStatusHandler.channel)
 		fen.gitStatusHandler.wg.Wait()
 	}
@@ -445,21 +454,84 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 
 	fen.UpdateSelectingWithV()
 
-	// Selection changed, ask for a git status
-	if fen.sel != fen.lastSel {
-		fen.TriggerGitStatus()
+	if !fen.config.GitStatus {
+		return
 	}
-	fen.lastSel = fen.sel
+
+	defer func() {
+		fen.lastSel = fen.sel
+	}()
+
+	// If the current Git repository changed or fen.sel is a directory, ask for a git status
+	if fen.sel != fen.lastSel {
+		stat, err := os.Lstat(fen.sel)
+		if err != nil {
+			return
+		}
+
+		var inRepository string
+		if stat.IsDir() {
+			inRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.sel)
+		} else {
+			inRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.wd)
+		}
+
+		if err != nil {
+			// When we're no longer in a Git repository, set empty so it can ask for a git status next time we enter one
+			fen.lastInRepository = ""
+		}
+
+		if !stat.IsDir() && err != nil {
+			return
+		}
+
+		// Seems like the fsnotify events don't catch up on FreeBSD, need to always trigger a Git status
+		if stat.IsDir() || inRepository != fen.lastInRepository || runtime.GOOS == "freebsd" {
+			fen.TriggerGitStatus() // TODO: Fix redundant os.Lstat() and TryFindParentGitRepository calls...
+		}
+
+		fen.lastInRepository = inRepository
+	}
 }
 
 // Ask the git status handler to run a "git status" at the currently selected path.
-// It may choose to ignore the request if for example, it would restart a git status on the same path
+// It may choose to ignore the request if for example, it would restart a git status on the same path or fen.git_status is false.
 func (fen *Fen) TriggerGitStatus() {
 	if !fen.config.GitStatus {
 		return
 	}
 
 	stat, err := os.Lstat(fen.sel)
+	if err != nil {
+		return
+	}
+
+	var currentRepository string
+	if stat.IsDir() {
+		currentRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.sel)
+	} else {
+		currentRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.wd)
+	}
+
+	if err != nil {
+		return
+	}
+
+	if currentRepository != fen.lastInRepository {
+		// Remove previous watched path
+		watchList := fen.gitStatusHandler.gitIndexFileWatcher.WatchList()
+		if watchList == nil {
+			return
+		}
+
+		for _, e := range watchList {
+			fen.gitStatusHandler.gitIndexFileWatcher.Remove(e)
+		}
+
+		// Watch the new path
+		fen.gitStatusHandler.gitIndexFileWatcher.Add(filepath.Join(currentRepository, ".git"))
+	}
+
 	if err == nil {
 		if stat.IsDir() {
 			fen.gitStatusHandler.channel <- fen.sel

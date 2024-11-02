@@ -59,7 +59,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `V` Start selecting by moving\
 `n` Create a new file\
 `N` Create a new folder\
-`F5` Sync the screen, fixes broken output that can be caused by running a command, or filenames with certain Unicode characters\
+`F5` Refreshes files, syncs the screen (fixes possible broken output) and then refreshes git status when `fen.git_status=true`\
 `0-9` Go to a configured bookmark
 
 # Configuration
@@ -160,7 +160,6 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 - fen intentionally does not handle Unicode "grapheme clusters" (like chinese text) in filenames correctly for performance reasons. You need to manually build fen with the replace directive for my [tcell fork](https://github.com/kivattt/tcell-naively-faster) in the go.mod file removed to show them correctly
 - Symlinks have no special distinction, a folder symlink will appear like a normal folder
 - On FreeBSD, when the disk is full, fen may erroneously show a very large amount of disk space available (like `18.446 EB free`), when in reality there is no available space
-- Deleting files sometimes doesn't work on Windows (due to files being open in another program?)
 - `go test` doesn't work on Windows
 - The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal
 - Bulk-renaming a .git folder on Windows hangs fen forever

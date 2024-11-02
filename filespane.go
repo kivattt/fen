@@ -320,11 +320,14 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 	} else {
 		fp.fileWatcher.Remove(fp.folder)
 		fp.entries.Store([]os.DirEntry{})
+		fp.folder = path
 	}
 
 	fp.parentIsEmptyFolder = statIsDir && len(fp.entries.Load().([]os.DirEntry)) <= 0
 }
 
+// When a file event happens in a filespane it only sorts itself, but the parent directory might then have a new modified time and thus need to be sorted.
+// This results in an inconsistency with SORT_MODIFIED
 func (fp *FilesPane) FilterAndSortEntries() {
 	if !fp.fen.config.HiddenFiles {
 		withoutHiddenFiles := []os.DirEntry{}
@@ -537,12 +540,24 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		return
 	}
 
+	x, y, w, h := fp.GetInnerRect()
+
 	if fp.fen.config.UiBorders {
+		gitRepo, gitRepoErr := fp.fen.gitStatusHandler.TryFindParentGitRepository(fp.folder)
+		if gitRepoErr == nil {
+			fp.Box.SetBorderColor(tcell.ColorBlue)
+		} else {
+			fp.Box.SetBorderColor(tcell.ColorDefault)
+		}
+
 		// TODO: Make a custom border drawing so it runs faster
 		fp.Box.DrawForSubclass(screen, fp)
-	}
 
-	x, y, w, h := fp.GetInnerRect()
+		if gitRepoErr == nil {
+			// TODO: Show current branch name, maybe show remote name?
+			tview.Print(screen, filepath.Base(gitRepo), x+1, y-1, w-1, tview.AlignLeft, tcell.ColorBlue)
+		}
+	}
 
 	if fp.isRightFilesPane || fp.fen.config.UiBorders {
 		w++
@@ -638,7 +653,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		return
 	}
 
-	gitRepoContainingPath, repoErr := fp.fen.gitStatusHandler.TryFindTrackedParentGitRepository(fp.folder)
+	var gitRepoContainingPath string
+	var repoErr error
+	if fp.fen.config.GitStatus {
+		gitRepoContainingPath, repoErr = fp.fen.gitStatusHandler.TryFindTrackedParentGitRepository(fp.folder)
+	}
 
 	scrollOffset := fp.GetTopScreenEntryIndex()
 	for i, entry := range fp.entries.Load().([]os.DirEntry)[scrollOffset:] {
@@ -665,16 +684,9 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		} else {
 			// Show unstaged/untracked files in red
 			if fp.fen.config.GitStatus && repoErr == nil {
-				if entry.IsDir() {
-					if fp.fen.gitStatusHandler.FolderContainsUnstagedOrUntrackedPath(entryFullPath, gitRepoContainingPath) {
-						// Same color used in the git status command
-						style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
-					}
-				} else {
-					if fp.fen.gitStatusHandler.PathIsUnstagedOrUntracked(entryFullPath, gitRepoContainingPath) {
-						// Same color used in the git status command
-						style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
-					}
+				if fp.fen.gitStatusHandler.PathIsUnstagedOrUntracked(entryFullPath, gitRepoContainingPath) {
+					// Same color used in the git status command
+					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
 				}
 			}
 		}
