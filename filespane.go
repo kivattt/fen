@@ -320,6 +320,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 	} else {
 		fp.fileWatcher.Remove(fp.folder)
 		fp.entries.Store([]os.DirEntry{})
+		fp.folder = path
 	}
 
 	fp.parentIsEmptyFolder = statIsDir && len(fp.entries.Load().([]os.DirEntry)) <= 0
