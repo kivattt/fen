@@ -114,6 +114,7 @@ func (gsh *GitStatusHandler) Init() {
 	gsh.gitIndexFileWatcher, _ = fsnotify.NewWatcher()
 
 	// Git index file watcher
+	// This is so we update in real-time on "git add" / "git restore"
 	go func() {
 		for {
 			select {
@@ -136,6 +137,7 @@ func (gsh *GitStatusHandler) Init() {
 					}
 
 					if len(watchList) == 1 {
+						// TODO: Make this forcefully re-run the StatusWithContext()
 						gsh.channel <- filepath.Dir(watchList[0])
 					}
 				}
