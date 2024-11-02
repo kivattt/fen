@@ -446,6 +446,10 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 
 	fen.UpdateSelectingWithV()
 
+	if !fen.config.GitStatus {
+		return
+	}
+
 	defer func() {
 		fen.lastSel = fen.sel
 	}()
@@ -474,7 +478,7 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 		}
 
 		if stat.IsDir() || inRepository != fen.lastInRepository {
-			fen.TriggerGitStatus()
+			fen.TriggerGitStatus() // Redundant os.Lstat() call
 		}
 
 		fen.lastInRepository = inRepository

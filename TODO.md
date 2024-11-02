@@ -29,6 +29,7 @@
 - A sort of "back arrow" key for going to the last folder we were in
 - Add right pane disappearing when no preview/folder?
 - Remove local tracked git repository when .git folder not found anymore
+- topbar.go: Show left part of path also with invisible unicode symbols as codepoints highlighted, and also show symlinks in blue like ranger
 
 - Abstract away this common pattern:
 ```go
