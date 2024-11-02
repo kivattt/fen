@@ -325,6 +325,8 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 	fp.parentIsEmptyFolder = statIsDir && len(fp.entries.Load().([]os.DirEntry)) <= 0
 }
 
+// When a file event happens in a filespane it only sorts itself, but the parent directory might then have a new modified time and thus need to be sorted.
+// This results in an inconsistency with SORT_MODIFIED
 func (fp *FilesPane) FilterAndSortEntries() {
 	if !fp.fen.config.HiddenFiles {
 		withoutHiddenFiles := []os.DirEntry{}

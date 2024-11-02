@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/kivattt/gogitstatus"
 	"github.com/rivo/tview"
 )
@@ -21,6 +22,8 @@ type GitStatusHandler struct {
 	workerWaitGroup sync.WaitGroup
 	ctx             context.Context
 	cancelFunc      context.CancelFunc
+
+	gitIndexFileWatcher *fsnotify.Watcher
 
 	repoPathCurrentlyWorkingOn string // Does not require a mutex due to workerWaitGroup
 
@@ -143,6 +146,42 @@ func (gsh *GitStatusHandler) Init() {
 		panic("In GitStatusHandler Init(), app was nil")
 	}
 
+	gsh.gitIndexFileWatcher, _ = fsnotify.NewWatcher()
+
+	// Git index file watcher
+	go func() {
+		for {
+			select {
+			case event, ok := <-gsh.gitIndexFileWatcher.Events:
+				if !ok {
+					return
+				}
+
+				// Git writes the new index to a temporary file called "index.lock"
+				// which is then renamed to "index", resulting in a Create event for "index".
+				// We need to ignore earlier events, so that we git status on the up-to-date index
+				if !event.Op.Has(fsnotify.Create) || filepath.Base(event.Name) != "index" {
+					continue
+				}
+
+				watchList := gsh.gitIndexFileWatcher.WatchList()
+				if watchList != nil {
+					if len(watchList) > 1 {
+						panic("In GitStatusHandler: Length of watchList exceeded 1")
+					}
+
+					if len(watchList) == 1 {
+						gsh.channel <- filepath.Dir(watchList[0])
+					}
+				}
+			case _, ok := <-gsh.gitIndexFileWatcher.Errors:
+				if !ok {
+					return
+				}
+			}
+		}
+	}()
+
 	gsh.wg.Add(1)
 
 	// Buffer size of 100 (arbitrary) prevents blocking when scrolling fast
@@ -217,6 +256,8 @@ func (gsh *GitStatusHandler) Init() {
 				}
 
 				gsh.fen.runningGitStatus = true
+				gsh.app.QueueUpdateDraw(func() {})
+
 				changedFiles, err := gogitstatus.StatusWithContext(gsh.ctx, gsh.repoPathCurrentlyWorkingOn)
 				if err != nil {
 					gsh.fen.runningGitStatus = false // Can't defer this because it has to run before QueueUpdateDraw()

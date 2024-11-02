@@ -240,7 +240,13 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 }
 
 func (fen *Fen) Fini() {
+	fen.leftPane.fileWatcher.Close()
+	fen.middlePane.fileWatcher.Close()
+	fen.rightPane.fileWatcher.Close()
+
 	if fen.config.GitStatus {
+		fen.gitStatusHandler.gitIndexFileWatcher.Close()
+
 		close(fen.gitStatusHandler.channel)
 		fen.gitStatusHandler.wg.Wait()
 	}
@@ -480,7 +486,7 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 		}
 
 		if stat.IsDir() || inRepository != fen.lastInRepository {
-			fen.TriggerGitStatus() // Redundant os.Lstat() call
+			fen.TriggerGitStatus() // TODO: Fix redundant os.Lstat() and TryFindParentGitRepository calls...
 		}
 
 		fen.lastInRepository = inRepository
@@ -495,6 +501,33 @@ func (fen *Fen) TriggerGitStatus() {
 	}
 
 	stat, err := os.Lstat(fen.sel)
+
+	var currentRepository string
+	if stat.IsDir() {
+		currentRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.sel)
+	} else {
+		currentRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.wd)
+	}
+
+	if err != nil {
+		return
+	}
+
+	if currentRepository != fen.lastInRepository {
+		// Remove previous watched path
+		watchList := fen.gitStatusHandler.gitIndexFileWatcher.WatchList()
+		if watchList == nil {
+			return
+		}
+
+		for _, e := range watchList {
+			fen.gitStatusHandler.gitIndexFileWatcher.Remove(e)
+		}
+
+		// Watch the new path
+		fen.gitStatusHandler.gitIndexFileWatcher.Add(filepath.Join(currentRepository, ".git"))
+	}
+
 	if err == nil {
 		if stat.IsDir() {
 			fen.gitStatusHandler.channel <- fen.sel
