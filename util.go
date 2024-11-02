@@ -1047,6 +1047,10 @@ func StringSliceHasDuplicate(strSlice []string) (string, error) {
 
 // Returns a random string of length numCharacters containing lowercase a-z and 0-9.
 func RandomStringPathSafe(numCharacters int) string {
+	if numCharacters < 0 {
+		numCharacters = 0
+	}
+
 	// It is important not to use mixed case characters because some filesystems are case-insensitive
 	alphabet := "abcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, numCharacters)

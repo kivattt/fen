@@ -116,3 +116,43 @@ func TestMapStringBoolKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestStringSliceHasDuplicate(t *testing.T) {
+	s := []string{"hello", "world", "", "hi"}
+	_, err := StringSliceHasDuplicate(s)
+	if err == nil {
+		t.Fatal("Expected an error, but got nil")
+	}
+
+	s = []string{}
+	_, err = StringSliceHasDuplicate(s)
+	if err == nil {
+		t.Fatal("Expected an error, but got nil")
+	}
+
+	s = []string{"", ""}
+	found, err := StringSliceHasDuplicate(s)
+	if err != nil {
+		t.Fatal("Expected no error, but got: " + err.Error())
+	}
+	if found != "" {
+		t.Fatal("Expected \"\", but got: " + found)
+	}
+}
+
+func TestRandomStringPathSafe(t *testing.T) {
+	r := RandomStringPathSafe(0)
+	if r != "" {
+		t.Fatal("Expected \"\", but got: " + r)
+	}
+
+	r = RandomStringPathSafe(1)
+	if len(r) != 1 {
+		t.Fatal("Expected len(r) == 1, but got: " + strconv.Itoa(len(r)))
+	}
+
+	r = RandomStringPathSafe(-1)
+	if r != "" {
+		t.Fatal("Expected \"\" (for -1 length), but got: " + r)
+	}
+}
