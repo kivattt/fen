@@ -677,7 +677,11 @@ func main() {
 					if !fen.config.NoWrite && err != nil {
 						var createFileOrFolderErr error
 						if event.Rune() == 'n' {
-							_, createFileOrFolderErr = os.Create(pathToUse)
+							var file *os.File
+							file, createFileOrFolderErr = os.Create(pathToUse)
+							if createFileOrFolderErr == nil {
+								defer file.Close()
+							}
 						} else if event.Rune() == 'N' {
 							createFileOrFolderErr = os.Mkdir(pathToUse, 0775)
 						}
