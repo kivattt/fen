@@ -59,7 +59,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `V` Start selecting by moving\
 `n` Create a new file\
 `N` Create a new folder\
-`F5` Refresh files (and refresh git status when `fen.git_status=true`), then syncs the screen, fixes broken output that can be caused by running a command, or filenames with certain Unicode characters\
+`F5` Refreshes files, syncs the screen (fixes possible broken output) and then refreshes git status when `fen.git_status=true`\
 `0-9` Go to a configured bookmark
 
 # Configuration
