@@ -485,7 +485,8 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 			return
 		}
 
-		if stat.IsDir() || inRepository != fen.lastInRepository {
+		// Seems like the fsnotify events don't catch up on FreeBSD, need to always trigger a Git status
+		if stat.IsDir() || inRepository != fen.lastInRepository || runtime.GOOS == "freebsd" {
 			fen.TriggerGitStatus() // TODO: Fix redundant os.Lstat() and TryFindParentGitRepository calls...
 		}
 
