@@ -160,7 +160,6 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 - fen intentionally does not handle Unicode "grapheme clusters" (like chinese text) in filenames correctly for performance reasons. You need to manually build fen with the replace directive for my [tcell fork](https://github.com/kivattt/tcell-naively-faster) in the go.mod file removed to show them correctly
 - Symlinks have no special distinction, a folder symlink will appear like a normal folder
 - On FreeBSD, when the disk is full, fen may erroneously show a very large amount of disk space available (like `18.446 EB free`), when in reality there is no available space
-- Deleting files sometimes doesn't work on Windows (due to files being open in another program?)
 - `go test` doesn't work on Windows
 - The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal
 - Bulk-renaming a .git folder on Windows hangs fen forever
