@@ -1,7 +1,6 @@
 --[[
 -- File preview for go.mod files in Golang projects
 --]]
---
 local function trimLeftAndRightSpaces(s)
    return (s:gsub("^%s*(.-)%s*$", "%1"))
 end
