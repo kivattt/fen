@@ -34,11 +34,11 @@ for line in io.lines(fen.SelectedFile) do
 
 		style = "[yellow]"
 	elseif line:sub(-#indirect) == indirect then
-		style = "[gray::d]"
+		style = "[gray]"
 	elseif line:sub(1, #module) == module then
-		style = "[lime]"
+		style = "[yellow]"
 	elseif line:sub(1, #go) == go then
-		style = "[blue]"
+		style = "[yellow]"
 	elseif line:sub(1, #require) == require then
 		style = "[yellow]"
 	elseif line == ")" then
