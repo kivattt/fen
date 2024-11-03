@@ -666,9 +666,8 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 				L := lua.NewState()
 				defer L.Close()
 
-				userConfigDir, _ := os.UserConfigDir()
 				fenOpenWithLuaGlobal := &FenOpenWithLuaGlobal{
-					ConfigPath: PathWithEndSeparator(filepath.Join(userConfigDir, "fen")),
+					ConfigPath: PathWithEndSeparator(filepath.Dir(fen.configPath)),
 					Version:    version,
 					RuntimeOS:  runtime.GOOS,
 				}
