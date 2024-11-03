@@ -148,14 +148,16 @@ for line in io.lines(fen.SelectedFile) do
 
 	local lineLength = 0
 	for i = 1, #line do
+		char = line:sub(i,i)
+
 		-- Remove single trailing backslash if present
 		if i == #line then
-			if line:sub(i,i) == '\\' then
+			if char == '\\' then
+				lastChar = char
 				goto continue
 			end
 		end
 
-		char = line:sub(i,i)
 		local peekChar = line:sub(i+1,i+1)
 		if i == #line - 1 then
 			peekChar = ""
@@ -171,7 +173,6 @@ for line in io.lines(fen.SelectedFile) do
 			if char == '`' and lastChar ~= '`' then
 				backtickString = not backtickString
 				-- It messes up table alignment if we skip over the backticks, so we just replace them with blank space instead
-				--xOffset = xOffset - 1
 				fen:PrintSimple("[:black] ", i+xOffset-1, y)
 				lastChar = char
 				goto continue
