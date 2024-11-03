@@ -25,7 +25,7 @@ print(fen.version) -- Something like "v1.6.6"
 -- The current operating system
 print(fen.runtime_os) -- "linux", "darwin" (for macOS), "freebsd", "windows"
 
--- The OS-specific config path
+-- The OS-specific config path OR parent directory of `--config` argument
 print(fen.config_path) -- Something like "/home/YOUR_USER/.config/fen/" (always ends in a slash)
 
 -- The OS-specific home folder (nil if not found), details: https://pkg.go.dev/os#UserHomeDir
