@@ -19,7 +19,7 @@ for line in io.lines(fen.SelectedFile) do
 	local style = ""
 
 	if line:sub(1,2) == "//" then
-		style = "[blue::d]"
+		style = "[teal]"
 	elseif line:sub(1, #replace) == replace then
 		local separator = line:find("=>")
 		if separator ~= nil then
