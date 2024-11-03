@@ -19,7 +19,7 @@ Download and run the latest version in the [Releases](https://github.com/kivattt
 Add it to your path environment variable, or (on Linux/FreeBSD) place the executable in `/usr/local/bin`
 
 ### Building from source
-This requires Go 1.21.5 or above [install Go](https://go.dev/dl/)
+This requires Go 1.21.5 or above ([install Go](https://go.dev/dl/))
 ```
 git clone https://github.com/kivattt/fen
 cd fen
