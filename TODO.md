@@ -2,7 +2,6 @@
 
 ## TODOs, vaguely sorted by priority
 
-- Bulk rename
 - Scrollable search history
 - Better scrolling
 - It sometimes exits badly, stuff is left on screen ever since async file operations were added
@@ -11,14 +10,11 @@
 - Changing owner/group, chmod inside fen (probably not, since you can do it with open-with)
 - Make draw functions for top bar / bottom bar scriptable with lua
 - Global selection (selection stored in a file under UserCacheDir ?)
-- A sort of "pause" (cross-platform please) after opening a file, configurable, maybe excluding it for certain programs like vim
-- Shortcuts / bookmarks (think the 1,2,3,4 number row idea (maybe Ctrl+\<Number\> for it?)
 - Ctrl+Shift+n, Ctrl+Shift+n search by content, search by path name like telescope
 - Check if [dragon](https://github.com/mwh/dragon) works, maybe just make my own built into fen with some gtk wrapper? (bad idea lol)
 - Show current folder size beside disk size?
 - A sort of --no-unicode option, to print the character codes instead of fancy unicode characters
 - Configuration: Matching based on file permission flags (like executables)? (Maybe not now that we have open Lua scripts
-- Handle symlinks (show them as separate colors / a " ->" after file size in filespane.go (symlinks also mess with FoldersAtBeginning())
 - Configurable colors / respect LS\_COLORS?
 - Fix a crash (fen hanging) on something like `/proc/.../oom_score_adj`
 - Fix the bottom bar sometimes not showing info on files inside `/proc/.../map_files`
@@ -45,7 +41,6 @@ if strings.HasPrefix(rel, "..") {
 }
 ```
 
-- Ctrl+Right arrow goes to end of history
 - File list mode ("flattened mode", "flattened folder view" ?)
   - Recursive directory iterator in separate thread updating the entries
   - Color change in UI, like (red? maybe something friendlier...) background for the topbar
@@ -54,24 +49,16 @@ if strings.HasPrefix(rel, "..") {
   - Show more file info in filespane drawing
 
 - System-wide configuration file instructions
-- Make file previews not run every time the terminal is resized?
 - Installation instructions for Windows in the README
 - Allow spaces in "programs" path in config with `\ `? (Maybe not, this might be annoying on Windows), maybe add os package ExpandEnv to allow using environment variables in "programs"
 - .deb file in Releases
-- Fix selecting text with mouse when noMouse = false
 - Allow opening images with 'feh', fix it not breaking fen, 'xviewer' can also break fen rarely
 - Make the "open with" modal a selectable list with tab/shift+tab controls aswell as arrow keys, would replace inputfield placeholder and reset input text to blank
 - Configurable keybindings
 - Configurable custom themes by changing `tview.Styles`
-- Jump to file/folder created on n/N
-- Commands like :mkdir etc.?
-- Fix some hidden file toggle bugs?
 - Disallow recursive copies or whatever
-- (Maybe...) Vim/ranger stuff like `5<space>` selecting 5 files, or `5j` going down 5
-- 'n' is a little too close to 'M', maybe change it?
 - Fix `history_test.go` for Windows paths
 - Fix green color for all executables (the current bitmask check doesn't work for everything)
 - Fix invisibility near root dir (easy to see on Android with Termux)
-- Performance: Caching stuff (maybe only re-dirlist for left/right)
 - `H` and `L` controls feel weird because the screen scrolls in a specific way instead of just setting the cursor to the bottom of the screen like the behaviour in vim
 - Optional xdg trash specification? https://specifications.freedesktop.org/trash-spec/trashspec-latest.html
