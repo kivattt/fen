@@ -12,23 +12,22 @@ Works for Linux, macOS, FreeBSD and Windows
 <img src="screenshots/windows.png" alt="fen running on Windows, showing the open-with modal" width="48%">
 </p>
 
-# Try it out now!
+## Installing
+### Prebuilt binaries
+Download and run the latest version in the [Releases](https://github.com/kivattt/fen/releases) page
+
+Add it to your path environment variable, or (on Linux/FreeBSD) place the executable in `/usr/local/bin`
+
+### Building from source
+This requires Go 1.21.5 or above ([install Go](https://go.dev/dl/))
 ```
 git clone https://github.com/kivattt/fen
 cd fen
-go build # Install Go: https://go.dev/dl/
+go build
 ./fen # fen.exe on Windows
 ```
 
-# Installing on Linux/FreeBSD
-Download the latest version in the [Releases](https://github.com/kivattt/fen/releases) page, and put it inside `/usr/local/bin`
-
-Alternatively:
-```
-sudo -i GOBIN=/usr/local/bin go install github.com/kivattt/fen@latest
-```
-
-# Controls
+## Controls
 Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
 
 `?` or `F1` Toggle help menu\
@@ -62,7 +61,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 `F5` Refreshes files, syncs the screen (fixes possible broken output) and then refreshes git status when `fen.git_status=true`\
 `0-9` Go to a configured bookmark
 
-# Configuration
+## Configuration
 You can find a complete default config with extra examples in the [config.lua](config.lua) file\
 For a full config folder example, see [my personal config](https://github.com/kivattt/dotfiles/blob/main/.config/fen/config.lua)
 
@@ -74,7 +73,7 @@ You can specify a different config file with the `--config` flag
 
 Left-clicking to copy the selected path on Linux/FreeBSD requires `xclip` to be installed
 
-# File previews
+## File previews
 fen does not (yet!) have file previews by default\
 For file previews with programs like `cat` or `head`, you can add something like this to your config.lua:
 ```lua
@@ -99,7 +98,7 @@ If "script" is set, "program" will be ignored in the same preview entry.\
 "script" can not be a list like "program" can, because we want to see syntax errors when writing lua code instead of falling back to anything.\
 The "script" key has to be an absolute file path
 
-# Changing directory
+## Changing directory
 You can change the current working directory to the one in fen on exit:
 ```bash
 cd $(fen --print-folder-on-exit)
@@ -115,7 +114,7 @@ alias fen=cd_fen
 NOTE: Using this alias will break command-line arguments, like `fen -v` since the output will be passed to `cd`.
 
 <details>
-<summary><h1>Lua scripting (click to expand)</h1></summary>
+<summary><h2>Lua scripting (click to expand)</h2></summary>
 
 fen uses [gopher-lua](https://github.com/yuin/gopher-lua) as its Lua runtime.
 
@@ -154,7 +153,7 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 `fen.Version` fen version string
 </details>
 
-# Known issues
+## Known issues
 - fen may crash in the middle of deleting files due to a data race, most commonly when deleting a lot of files (like 4000)
 - File previews are ran synchronously, which means they slow down fen
 - fen intentionally does not handle Unicode "grapheme clusters" (like chinese text) in filenames correctly for performance reasons. You need to manually build fen with the replace directive for my [tcell fork](https://github.com/kivattt/tcell-naively-faster) in the go.mod file removed to show them correctly

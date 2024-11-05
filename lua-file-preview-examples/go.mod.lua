@@ -1,7 +1,6 @@
 --[[
 -- File preview for go.mod files in Golang projects
 --]]
---
 local function trimLeftAndRightSpaces(s)
    return (s:gsub("^%s*(.-)%s*$", "%1"))
 end
@@ -20,7 +19,7 @@ for line in io.lines(fen.SelectedFile) do
 	local style = ""
 
 	if line:sub(1,2) == "//" then
-		style = "[blue::d]"
+		style = "[teal]"
 	elseif line:sub(1, #replace) == replace then
 		local separator = line:find("=>")
 		if separator ~= nil then
@@ -34,11 +33,11 @@ for line in io.lines(fen.SelectedFile) do
 
 		style = "[yellow]"
 	elseif line:sub(-#indirect) == indirect then
-		style = "[gray::d]"
+		style = "[gray]"
 	elseif line:sub(1, #module) == module then
-		style = "[lime]"
+		style = "[yellow]"
 	elseif line:sub(1, #go) == go then
-		style = "[blue]"
+		style = "[yellow]"
 	elseif line:sub(1, #require) == require then
 		style = "[yellow]"
 	elseif line == ")" then

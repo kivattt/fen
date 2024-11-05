@@ -36,6 +36,7 @@ type Fen struct {
 	selectedBeforeSelectingWithV map[string]bool
 
 	config                Config
+	configPath            string // Config path as read by ReadConfig()
 	fileOperationsHandler FileOperationsHandler
 	gitStatusHandler      GitStatusHandler
 
@@ -254,6 +255,7 @@ func (fen *Fen) Fini() {
 
 func (fen *Fen) ReadConfig(path string) error {
 	fen.config = NewConfigDefaultValues()
+	fen.configPath = path
 
 	if !strings.HasSuffix(filepath.Base(path), ".lua") {
 		fmt.Fprintln(os.Stderr, "Warning: Config file "+path+" has no .lua file extension.\nSince v1.3.0, config files can only be Lua.\n")
@@ -292,9 +294,8 @@ func (fen *Fen) ReadConfig(path string) error {
 		}
 	}
 
-	userConfigDir, err := os.UserConfigDir()
 	if err == nil {
-		luaInitialConfigTable.RawSetString("config_path", lua.LString(PathWithEndSeparator(filepath.Join(userConfigDir, "fen"))))
+		luaInitialConfigTable.RawSetString("config_path", lua.LString(PathWithEndSeparator(filepath.Dir(fen.configPath))))
 	}
 	luaInitialConfigTable.RawSetString("version", lua.LString(version))
 	luaInitialConfigTable.RawSetString("runtime_os", lua.LString(runtime.GOOS))
