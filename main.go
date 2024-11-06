@@ -357,8 +357,12 @@ func main() {
 			if mouseY == 0 {
 				if fen.showHomePathAsTilde {
 					fen.showHomePathAsTilde = false
-					if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") {
-						fen.topBar.additionalText = "Click to copy"
+					if runtime.GOOS == "linux" || runtime.GOOS == "freebsd" {
+						if fen.config.NoWrite {
+							fen.topBar.additionalText = "[red]Copying unavailable (no-write)"
+						} else {
+							fen.topBar.additionalText = "Click to copy"
+						}
 						fen.topBar.showAdditionalText = true
 					}
 					return nil, action
@@ -366,9 +370,7 @@ func main() {
 			} else {
 				if !fen.showHomePathAsTilde {
 					fen.showHomePathAsTilde = true
-					if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") {
-						fen.topBar.showAdditionalText = false
-					}
+					fen.topBar.showAdditionalText = false
 					return nil, action
 				}
 			}
