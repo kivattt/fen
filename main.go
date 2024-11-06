@@ -280,15 +280,15 @@ func main() {
 		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
 			helpScreen.visible = false
 			helpScreen.scrollIndex = 0
-			pages.RemovePage("helpscreen")
+			pages.RemovePage("popup")
 			fen.ShowFilepanes()
 			return nil
 		} else if event.Key() == tcell.KeyF2 {
 			helpScreen.visible = false
 			helpScreen.scrollIndex = 0
-			pages.RemovePage("helpscreen")
+			pages.RemovePage("popup")
 			librariesScreen.visible = true
-			pages.AddPage("librariesscreen", librariesScreen, true, true)
+			pages.AddPage("popup", librariesScreen, true, true)
 			return nil
 		}
 		return event
@@ -297,16 +297,16 @@ func main() {
 	librariesScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyF2 || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
 			librariesScreen.visible = false
-			pages.RemovePage("librariesscreen")
+			pages.RemovePage("popup")
 			fen.ShowFilepanes()
 			return nil
 		}
 
 		if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
 			librariesScreen.visible = false
-			pages.RemovePage("librariesscreen")
+			pages.RemovePage("popup")
 			helpScreen.visible = true
-			pages.AddPage("helpscreen", helpScreen, true, true)
+			pages.AddPage("popup", helpScreen, true, true)
 			return nil
 		}
 		return event
@@ -315,7 +315,7 @@ func main() {
 	lastWheelUpTime := time.Now()
 	lastWheelDownTime := time.Now()
 	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("shellcommand") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("librariesscreen") || pages.HasPage("gotopath") {
+		if pages.HasPage("popup") {
 			// Since `return nil, action` redraws the screen for some reason,
 			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
 			if action == tview.MouseMove {
@@ -429,7 +429,7 @@ func main() {
 	enterWillSelectAutoCompleteInGotoPath := false
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if pages.HasPage("deletemodal") || pages.HasPage("inputfield") || pages.HasPage("newfilemodal") || pages.HasPage("searchbox") || pages.HasPage("openwith") || pages.HasPage("shellcommand") || pages.HasPage("forcequitmodal") || pages.HasPage("helpscreen") || pages.HasPage("librariesscreen") || pages.HasPage("gotopath") {
+		if pages.HasPage("popup") {
 			return event
 		}
 
@@ -466,7 +466,7 @@ func main() {
 				AddButtons([]string{"Force quit", "Cancel"}).
 				SetFocus(1). // Default is "No"
 				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-					pages.RemovePage("forcequitmodal")
+					pages.RemovePage("popup")
 
 					if buttonIndex != 0 {
 						return
@@ -482,7 +482,7 @@ func main() {
 			modal.SetButtonBackgroundColor(tcell.ColorDefault)
 			modal.SetButtonTextColor(tcell.ColorRed)
 
-			pages.AddPage("forcequitmodal", modal, true, true)
+			pages.AddPage("popup", modal, true, true)
 			app.SetFocus(modal)
 			return nil
 		}
@@ -546,7 +546,7 @@ func main() {
 			})
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
-				pages.RemovePage("searchbox")
+				pages.RemovePage("popup")
 
 				if key == tcell.KeyEscape {
 					return
@@ -572,7 +572,7 @@ func main() {
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
 
-			pages.AddPage("searchbox", centered(inputField, 3), true, true)
+			pages.AddPage("popup", centered(inputField, 3), true, true)
 			return nil
 		} else if event.Rune() == 'A' {
 			for _, e := range fen.middlePane.entries.Load().([]os.DirEntry) {
@@ -602,21 +602,21 @@ func main() {
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEscape {
-					pages.RemovePage("inputfield")
+					pages.RemovePage("popup")
 					return
 				} else if key == tcell.KeyEnter {
 					if !fen.config.NoWrite {
 						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
 						_, err := os.Lstat(newPath)
 						if err == nil {
-							pages.RemovePage("inputfield")
+							pages.RemovePage("popup")
 							fen.bottomBar.TemporarilyShowTextInstead("Can't rename to an existing file")
 							return
 						}
 
 						err = os.Rename(fileToRename, newPath)
 						if err != nil {
-							pages.RemovePage("inputfield")
+							pages.RemovePage("popup")
 							fen.bottomBar.TemporarilyShowTextInstead("Can't rename, no access")
 							return
 						}
@@ -634,7 +634,7 @@ func main() {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't rename in no-write mode")
 					}
 
-					pages.RemovePage("inputfield")
+					pages.RemovePage("popup")
 					return
 				}
 			})
@@ -647,7 +647,7 @@ func main() {
 			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
 
-			pages.AddPage("inputfield", centered(inputField, 3), true, true)
+			pages.AddPage("popup", centered(inputField, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'n' || event.Rune() == 'N' {
@@ -663,13 +663,13 @@ func main() {
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEscape {
-					pages.RemovePage("newfilemodal")
+					pages.RemovePage("popup")
 					return
 				} else if key == tcell.KeyEnter {
 					pathToUse := filepath.Join(fen.wd, inputField.GetText())
 					if filepath.Dir(pathToUse) != fen.wd || (runtime.GOOS != "windows" && pathToUse == string(os.PathSeparator)) || strings.ContainsRune(inputField.GetText(), os.PathSeparator) {
 						fen.bottomBar.TemporarilyShowTextInstead("Paths outside of the current folder are not yet supported")
-						pages.RemovePage("newfilemodal")
+						pages.RemovePage("popup")
 						return
 					}
 
@@ -701,7 +701,7 @@ func main() {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't create an existing file")
 					}
 
-					pages.RemovePage("newfilemodal")
+					pages.RemovePage("popup")
 					return
 				}
 			})
@@ -715,7 +715,7 @@ func main() {
 			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
 
-			pages.AddPage("newfilemodal", centered(inputField, 3), true, true)
+			pages.AddPage("popup", centered(inputField, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Rune() == 'y' {
@@ -805,20 +805,20 @@ func main() {
 		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
 			helpScreen.visible = !helpScreen.visible
 			if helpScreen.visible {
-				pages.AddPage("helpscreen", helpScreen, true, true)
+				pages.AddPage("popup", helpScreen, true, true)
 				fen.HideFilepanes()
 			} else {
-				pages.RemovePage("helpscreen")
+				pages.RemovePage("popup")
 				fen.ShowFilepanes()
 			}
 			return nil
 		} else if event.Key() == tcell.KeyF2 {
 			librariesScreen.visible = !librariesScreen.visible
 			if librariesScreen.visible {
-				pages.AddPage("librariesscreen", librariesScreen, true, true)
+				pages.AddPage("popup", librariesScreen, true, true)
 				fen.HideFilepanes()
 			} else {
-				pages.RemovePage("librariesscreen")
+				pages.RemovePage("popup")
 				fen.ShowFilepanes()
 			}
 			return nil
@@ -875,7 +875,7 @@ func main() {
 				AddButtons([]string{"Yes", "No"}).
 				SetFocus(1). // Default is "No"
 				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-					pages.RemovePage("deletemodal")
+					pages.RemovePage("popup")
 
 					if buttonIndex != 0 {
 						return
@@ -908,7 +908,7 @@ func main() {
 			modal.SetButtonBackgroundColor(tcell.ColorDefault)
 			modal.SetButtonTextColor(tcell.ColorRed)
 
-			pages.AddPage("deletemodal", modal, true, true)
+			pages.AddPage("popup", modal, true, true)
 			app.SetFocus(modal)
 			return nil
 		} else if event.Rune() == 'c' {
@@ -919,22 +919,22 @@ func main() {
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEscape {
-					pages.RemovePage("gotopath")
+					pages.RemovePage("popup")
 					return
 				} else if key == tcell.KeyEnter {
 					if inputField.GetText() == "" {
-						pages.RemovePage("gotopath")
+						pages.RemovePage("popup")
 						return
 					}
 
 					path, err := fen.GoPath(inputField.GetText())
 					if err != nil {
-						pages.RemovePage("gotopath")
+						pages.RemovePage("popup")
 						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 						return
 					}
 
-					pages.RemovePage("gotopath")
+					pages.RemovePage("popup")
 					fen.bottomBar.TemporarilyShowTextInstead("Moved to path: \"" + path + "\"")
 					return
 				}
@@ -997,7 +997,7 @@ func main() {
 
 			enterWillSelectAutoCompleteInGotoPath = false
 
-			pages.AddPage("gotopath", centered(inputField, 3), true, true)
+			pages.AddPage("popup", centered(inputField, 3), true, true)
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Key() == tcell.KeyF5 {
@@ -1067,7 +1067,7 @@ func main() {
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEscape {
-					pages.RemovePage("openwith")
+					pages.RemovePage("popup")
 					return
 				}
 
@@ -1077,7 +1077,7 @@ func main() {
 						programNameToUse = programs[0]
 					}
 				}
-				pages.RemovePage("openwith")
+				pages.RemovePage("popup")
 				fen.GoRight(app, programNameToUse)
 			})
 
@@ -1088,7 +1088,7 @@ func main() {
 			flex.SetBorder(true)
 			flex.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 
-			pages.AddPage("openwith", centered(flex, inputFieldHeight+2+len(programs)), true, true)
+			pages.AddPage("popup", centered(flex, inputFieldHeight+2+len(programs)), true, true)
 			return nil
 		} else if event.Rune() == '!' {
 			shellName := GetShellArgs()[0]
@@ -1108,18 +1108,18 @@ func main() {
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEscape {
-					pages.RemovePage("shellcommand")
+					pages.RemovePage("popup")
 					return
 				}
 
 				if fen.config.NoWrite {
-					pages.RemovePage("shellcommand")
+					pages.RemovePage("popup")
 					fen.bottomBar.TemporarilyShowTextInstead("Can't run shell commands in no-write mode")
 					return
 				}
 
 				if inputField.GetText() == "" {
-					pages.RemovePage("shellcommand")
+					pages.RemovePage("popup")
 					fen.bottomBar.TemporarilyShowTextInstead("Empty command, nothing done")
 					return
 				}
@@ -1156,10 +1156,10 @@ func main() {
 					fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 				}
 
-				pages.RemovePage("shellcommand")
+				pages.RemovePage("popup")
 			})
 
-			pages.AddPage("shellcommand", centered(inputField, 3), true, true)
+			pages.AddPage("popup", centered(inputField, 3), true, true)
 			return nil
 		} else if event.Rune() == 'b' {
 			err := fen.BulkRename(app)
