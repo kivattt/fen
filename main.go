@@ -335,7 +335,7 @@ func main() {
 		}
 
 		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
-		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && event.Buttons() == tcell.Button1 {
+		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && (event.Buttons() == tcell.Button1 || event.Buttons() == tcell.Button2) {
 			_, mouseY := event.Position()
 			if mouseY == 0 {
 				err := SetClipboardLinuxXClip(fen.sel)
@@ -381,7 +381,7 @@ func main() {
 
 		// Movement/navigation keys
 		switch event.Buttons() {
-		case tcell.Button1:
+		case tcell.Button1, tcell.Button2:
 			x, y, w, h := fen.middlePane.GetInnerRect()
 			mouseX, mouseY := event.Position()
 
