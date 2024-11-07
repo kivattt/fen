@@ -9,8 +9,6 @@ github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uh
 github.com/gdamore/encoding v1.0.1/go.mod h1:0Z0cMFinngz9kS1QfMjCP8TY7em3bZYeeklsSDPivEo=
 github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f h1:myfMHJX0b7esBOYuclPjnBOclu2uIxe0XDJG0Y7ToGA=
 github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f/go.mod h1:XbVdQu8SHHjoqISPmGcFvHQ8xFuutDrbc4pdw1US62s=
-github.com/kivattt/gogitstatus v0.0.0-20241107130111-b05c1858b701 h1:FQ0tpGHDqdvgHzUbY1tP3CptBMGarWHdmmI8XZ8YX5A=
-github.com/kivattt/gogitstatus v0.0.0-20241107130111-b05c1858b701/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
 github.com/kivattt/gogitstatus v0.0.0-20241107135129-774c1fde4675 h1:qHH8zRTLAANxZiaObrZgpDTOFoZF2tAvirr7Tp509tQ=
 github.com/kivattt/gogitstatus v0.0.0-20241107135129-774c1fde4675/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1 h1:+kTjmvCYTLoEb7evW3UoJM3lMaV+TQKaVzAou2xMoqw=
