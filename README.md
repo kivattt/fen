@@ -36,10 +36,10 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 <kbd>z</kbd> or <kbd>Backspace</kbd> Toggle hidden files\
 <kbd>Ctrl + Space</kbd> or <kbd>Ctrl + n</kbd> Open file(s) with specific program\
 <kbd>!</kbd> Run system shell command (cmd on Windows)\
-<kbd>Home</kbd> or <kbd>g</kbd> to go to the top\
-<kbd>End</kbd> or <kbd>G</kbd> to go to the bottom\
-<kbd>Ctrl + Left arrow</kbd> to go to the root folder (or current Git repository if `fen.git_status=true`)\
-<kbd>Ctrl + Right arrow</kbd> to go to the path furthest down in history (or first changed file if `fen.git_status=true`)\
+<kbd>Home</kbd> or <kbd>g</kbd> Go to the top\
+<kbd>End</kbd> or <kbd>G</kbd> Go to the bottom\
+<kbd>Ctrl + Left arrow</kbd> Go to the root folder (or current Git repository if `fen.git_status=true`)\
+<kbd>Ctrl + Right arrow</kbd> Go to the path furthest down in history (or first changed file if `fen.git_status=true`)\
 <kbd>M</kbd> Go to the middle\
 <kbd>Page Up</kbd> / <kbd>Page Down</kbd> Scroll up/down an entire page\
 <kbd>H</kbd> Go to the top of the screen\
