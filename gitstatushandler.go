@@ -226,7 +226,7 @@ func (gsh *GitStatusHandler) Init() {
 				gsh.app.QueueUpdateDraw(func() {})
 
 				changedFiles, err := gogitstatus.StatusWithContext(gsh.ctx, gsh.repoPathCurrentlyWorkingOn)
-				changedFiles = gogitstatus.ChangedFilesIncludingDirectories(changedFiles)
+				changedFiles = gogitstatus.IncludingDirectories(changedFiles)
 
 				if err != nil {
 					gsh.fen.runningGitStatus = false // Can't defer this because it has to run before QueueUpdateDraw()

@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kivattt/gogitstatus"
 	"github.com/rivo/tview"
 	"github.com/yuin/gluamapper"
 	lua "github.com/yuin/gopher-lua"
@@ -978,6 +979,7 @@ func (fen *Fen) GoRightUpToHistory() {
 }
 
 // Goes to a random unstaged/untracked file from the currently selected folder
+// It will select the shortest filepath, if there are filepaths of equal length they will be chosen at random
 // TODO: Implement sorting function in gogitstatus so this is deterministic
 func (fen *Fen) GoRightUpToFirstUnstagedOrUntracked(repoPath, currentPath string) error {
 	fen.gitStatusHandler.trackedLocalGitReposMutex.Lock()
@@ -989,7 +991,7 @@ func (fen *Fen) GoRightUpToFirstUnstagedOrUntracked(repoPath, currentPath string
 	}
 
 	changedFileClosestToRoot := ""
-	for changedFilePath := range repo.changedFiles {
+	for changedFilePath := range gogitstatus.ExcludingDirectories(repo.changedFiles) {
 		bruhRel, bruhErr := filepath.Rel(repoPath, currentPath)
 		if bruhErr != nil {
 			continue
