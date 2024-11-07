@@ -58,7 +58,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 <kbd>V</kbd> Start selecting by moving\
 <kbd>n</kbd> Create a new file\
 <kbd>N</kbd> Create a new folder\
-<kbd>F5</kbd> Refreshes files, syncs the screen (fixes possible broken output) and then refreshes git status when `fen.git_status=true`\
+<kbd>F5</kbd> Refreshes files, syncs the screen (fixes possible broken output), refreshes git status when `fen.git_status=true`\
 <kbd>0-9</kbd> Go to a configured bookmark
 
 ## Configuration
