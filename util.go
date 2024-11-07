@@ -107,14 +107,13 @@ func EntrySizeText(stat os.FileInfo, path string, hiddenFiles bool) (string, err
 	var ret strings.Builder
 
 	// Show the size of the target, not the symlink
+	// TODO: Use filepath.EvalSymlinks() ?
 	if stat.Mode()&os.ModeSymlink != 0 {
 		var err error
 		stat, err = os.Stat(path)
 		if err != nil {
 			return "", err
 		}
-
-		ret.WriteString("-> ")
 	}
 
 	if !stat.IsDir() {

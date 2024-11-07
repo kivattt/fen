@@ -30,36 +30,36 @@ go build
 ## Controls
 Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Escape key to cancel an action
 
-`?` or `F1` Toggle help menu\
-`F2` Show libraries used in fen\
-`q` Quit fen\
-`z` or `Backspace` Toggle hidden files\
-`Ctrl + Space` or `Ctrl + n` Open file(s) with specific program\
-`!` Run system shell command (cmd on Windows)\
-`Home` or `g` to go to the top\
-`End` or `G` to go to the bottom\
-`Ctrl + Left arrow` to go to the root folder (or current Git repository if `fen.git_status=true`)\
-`Ctrl + Right arrow` to go to the path furthest down in history (or first changed file if `fen.git_status=true`)\
-`M` Go to the middle\
-`Page Up` / `Page Down` Scroll up/down an entire page\
-`H` Go to the top of the screen\
-`L` Go to the bottom of the screen\
-`Del` or `x` Delete file(s)\
-`y` Copy file(s)\
-`d` Cut file(s)\
-`p` Paste file(s)\
-`/` or `Ctrl + f` Search\
-`c` Goto path\
-`Space` Select files\
-`A` Flip selection in folder (select all files)\
-`D` Deselect all, press again to un-yank\
-`a` Rename a file\
-`b` Bulk-rename (rename in editor)\
-`V` Start selecting by moving\
-`n` Create a new file\
-`N` Create a new folder\
-`F5` Refreshes files, syncs the screen (fixes possible broken output) and then refreshes git status when `fen.git_status=true`\
-`0-9` Go to a configured bookmark
+<kbd>?</kbd> or <kbd>F1</kbd> Toggle help menu\
+<kbd>F2</kbd> Show libraries used in fen\
+<kbd>q</kbd> Quit fen\
+<kbd>z</kbd> or <kbd>Backspace</kbd> Toggle hidden files\
+<kbd>Ctrl + Space</kbd> or <kbd>Ctrl + n</kbd> Open file(s) with specific program\
+<kbd>!</kbd> Run system shell command (cmd on Windows)\
+<kbd>Home</kbd> or <kbd>g</kbd> Go to the top\
+<kbd>End</kbd> or <kbd>G</kbd> Go to the bottom\
+<kbd>Ctrl + Left arrow</kbd> Go to the root folder (or current Git repository if `fen.git_status=true`)\
+<kbd>Ctrl + Right arrow</kbd> Go to the path furthest down in history, follow a symlink or go to the first changed file if `fen.git_status=true`\
+<kbd>M</kbd> Go to the middle\
+<kbd>Page Up</kbd> / <kbd>Page Down</kbd> Scroll up/down an entire page\
+<kbd>H</kbd> Go to the top of the screen\
+<kbd>L</kbd> Go to the bottom of the screen\
+<kbd>Del</kbd> or <kbd>x</kbd> Delete file(s)\
+<kbd>y</kbd> Copy file(s)\
+<kbd>d</kbd> Cut file(s)\
+<kbd>p</kbd> Paste file(s)\
+<kbd>/</kbd> or <kbd>Ctrl + f</kbd> Search\
+<kbd>c</kbd> Goto path\
+<kbd>Space</kbd> Select files\
+<kbd>A</kbd> Flip selection in folder (select all files)\
+<kbd>D</kbd> Deselect all, press again to un-yank\
+<kbd>a</kbd> Rename a file\
+<kbd>b</kbd> Bulk-rename (rename in editor)\
+<kbd>V</kbd> Start selecting by moving\
+<kbd>n</kbd> Create a new file\
+<kbd>N</kbd> Create a new folder\
+<kbd>F5</kbd> Refreshes files, syncs the screen (fixes broken output), refreshes git status when `fen.git_status=true`\
+<kbd>0-9</kbd> Go to a configured bookmark
 
 ## Configuration
 You can find a complete default config with extra examples in the [config.lua](config.lua) file\

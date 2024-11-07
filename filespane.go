@@ -705,6 +705,10 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				entrySizeText = "?"
 			}
 
+			if entryInfo.Mode()&os.ModeSymlink != 0 {
+				entrySizeText = "-> " + entrySizeText
+			}
+
 			entrySizeText = " " + entrySizeText + " "
 			for j := 0; j < len(entrySizeText); j++ {
 				screen.SetContent(x+w-len(entrySizeText)+j-1, y+i, rune(entrySizeText[j]), nil, style)
