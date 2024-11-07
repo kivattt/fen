@@ -1015,6 +1015,15 @@ func main() {
 			}
 			return nil
 		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyRight { // Ctrl+Right
+			stat, err := os.Lstat(fen.sel)
+			if err == nil && stat.Mode()&os.ModeSymlink != 0 {
+				err := fen.GoSymlink(fen.sel)
+				if err != nil {
+					fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+				}
+				return nil
+			}
+
 			if !fen.config.GitStatus {
 				fen.GoRightUpToHistory()
 				return nil

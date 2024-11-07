@@ -884,6 +884,8 @@ func (fen *Fen) GoIndex(index int) {
 // On completion, it always adds fen.sel to the history.
 // Implicitly calls fen.UpdatePanes(false) when no error.
 func (fen *Fen) GoPath(path string) (string, error) {
+	// TODO: Add an option to not enter directories
+
 	/* PLUGINS:
 	 * We should fen.UpdatePanes(true) when we can't find the newPath in the current middlePane (for going to path on renaming)
 	 * This would slow down "Goto path" when going to a non-existent path, but would guarantee this function always works predictably
@@ -1016,6 +1018,23 @@ func (fen *Fen) GoRightUpToFirstUnstagedOrUntracked(repoPath, currentPath string
 	}
 
 	_, err := fen.GoPath(filepath.Join(currentPath, changedFileClosestToRoot))
+	return err
+}
+
+// Resolves the symlink and uses fen.GoPath() under the hood
+func (fen *Fen) GoSymlink(symlinkPath string) error {
+	// Should not happen
+	if !filepath.IsAbs(symlinkPath) {
+		return errors.New("Selected file was not an absolute path")
+	}
+
+	target, err := os.Readlink(fen.sel)
+	if err != nil {
+		return errors.New("Unable to readlink selected file")
+	}
+
+	// FIXME: GoPath() enters directories, when we don't want to (need to Lstat the target)
+	_, err = fen.GoPath(target)
 	return err
 }
 
