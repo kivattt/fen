@@ -20,7 +20,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.12"
+const version = "v1.7.13"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
