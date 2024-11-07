@@ -384,6 +384,7 @@ func main() {
 		// Movement/navigation keys
 		switch event.Buttons() {
 		case tcell.Button1, tcell.Button2:
+			// Small inconsistency with --ui-borders when clicking the left border of the middlepane, not important
 			x, y, w, h := fen.middlePane.GetInnerRect()
 			mouseX, mouseY := event.Position()
 
@@ -1020,14 +1021,17 @@ func main() {
 			}
 
 			path, err := fen.gitStatusHandler.TryFindParentGitRepository(filepath.Dir(fen.sel))
-			if err == nil {
-				err := fen.GoRightUpToFirstUnstagedOrUntracked(path, fen.sel)
-				if err != nil {
-					fen.GoRightUpToHistory()
-				}
-			} else {
+			if err != nil {
 				fen.GoRightUpToHistory()
+				return nil
 			}
+
+			err = fen.GoRightUpToFirstUnstagedOrUntracked(path, fen.sel)
+			if err != nil {
+				fen.GoRightUpToHistory()
+				return nil
+			}
+
 			return nil
 		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyLeft { // Ctrl+Left
 			if !fen.config.GitStatus {
