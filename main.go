@@ -30,6 +30,8 @@ func main() {
 	//	defer pprof.StopCPUProfile()
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+	// For the dropdown in the options menu
+	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
 
 	tview.Styles.BorderColor = tcell.ColorDefault
 	tview.Borders.Horizontal = '─'
@@ -1210,8 +1212,40 @@ func main() {
 			configTypes := reflect.TypeOf(fen.config)
 			configValues := reflect.ValueOf(&fen.config).Elem()
 
-			numOptions := 0
+			// Loop through the fields in alphabetically sorted order
+			type indexAndText struct {
+				index int
+				text  string
+			}
+			sortedIndices := []indexAndText{}
 			for i := 0; i < configTypes.NumField(); i++ {
+				fieldName := configTypes.Field(i).Tag.Get(luaTagName)
+				sortedIndices = append(sortedIndices, indexAndText{index: i, text: fieldName})
+			}
+
+			optionsAtTheTop := []string{
+				"sort_by",
+				"ui_borders",
+			}
+			slices.SortFunc(sortedIndices, func(a, b indexAndText) int {
+				for _, shouldBeOnTop := range optionsAtTheTop {
+					if a.text == shouldBeOnTop {
+						return -1
+					} else if b.text == shouldBeOnTop {
+						return 1
+					}
+				}
+
+				return strings.Compare(a.text, b.text)
+			})
+
+			if len(sortedIndices) != configTypes.NumField() {
+				panic("Length of sorted field indices did not match the actual number of fields")
+			}
+
+			numOptions := 0
+			for _, v := range sortedIndices {
+				i := v.index
 				value := configValues.Field(i)
 				fieldPtr := value.Addr().Interface()
 				fieldName := configTypes.Field(i).Tag.Get(luaTagName)
@@ -1235,9 +1269,27 @@ func main() {
 							app.EnableMouse(checked)
 							fen.UpdatePanes(true)
 						}
+					} else if fieldName == "git_status" {
+						// Don't show the git_status option if it was disabled on startup, to prevent crashes
+						if !fen.initializedGitStatus {
+							continue
+						}
+					} else if fieldName == "show_hostname" && runtime.GOOS == "windows" {
+						// Don't show the show_hostname option on Windows, it does nothing on Windows
+						continue
 					}
 
 					optionsForm.AddCheckbox(fieldName, fieldValue, f)
+				case reflect.String:
+					if fieldName != "sort_by" {
+						panic("Options menu expected the only config string to be sort_by")
+					}
+
+					fieldValue := value.String()
+					optionsForm.AddDropDown(fieldName, ValidSortByValues[:], slices.Index(ValidSortByValues[:], fieldValue), func(option string, optionIndex int) {
+						*fieldPtr.(*string) = option
+						fen.UpdatePanes(true)
+					})
 				default:
 					continue
 				}
@@ -1268,7 +1320,7 @@ func main() {
 			optionsForm.SetBackgroundColor(tcell.ColorBlack)
 			optionsForm.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 			optionsForm.SetBorderPadding(0, 0, 1, 1)
-			optionsForm.SetButtonStyle(tcell.StyleDefault.Foreground(tcell.ColorRed))
+			optionsForm.SetFieldBackgroundColor(tcell.ColorBlack)
 
 			pages.AddPage("popup", centered(optionsForm, numOptions+2), true, true)
 			return nil

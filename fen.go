@@ -44,7 +44,8 @@ type Fen struct {
 	helpScreenVisible      *bool
 	librariesScreenVisible *bool
 
-	runningGitStatus bool
+	runningGitStatus     bool
+	initializedGitStatus bool // This is for Fini() because the user might have disabled git_status in the options menu
 
 	topBar     *TopBar
 	bottomBar  *BottomBar
@@ -177,6 +178,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	if fen.config.GitStatus {
 		fen.gitStatusHandler = GitStatusHandler{app: app, fen: fen}
 		fen.gitStatusHandler.Init()
+		fen.initializedGitStatus = true
 	}
 
 	fen.helpScreenVisible = helpScreenVisible
@@ -245,7 +247,7 @@ func (fen *Fen) Fini() {
 	fen.middlePane.fileWatcher.Close()
 	fen.rightPane.fileWatcher.Close()
 
-	if fen.config.GitStatus {
+	if fen.initializedGitStatus {
 		fen.gitStatusHandler.gitIndexFileWatcher.Close()
 
 		close(fen.gitStatusHandler.channel)
