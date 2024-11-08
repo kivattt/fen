@@ -621,7 +621,12 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 	fen.DisableSelectingWithV()
 }
 
-func (fen *Fen) GoUp(numEntries ...int) {
+// Returns false if nothing happened (at the top, would've moved to the same position)
+func (fen *Fen) GoUp(numEntries ...int) bool {
+	if fen.middlePane.selectedEntryIndex <= 0 {
+		return false
+	}
+
 	numEntriesToMove := 1
 	if len(numEntries) > 0 {
 		numEntriesToMove = max(1, numEntries[0])
@@ -635,13 +640,19 @@ func (fen *Fen) GoUp(numEntries ...int) {
 
 	if fen.middlePane.selectedEntryIndex-numEntriesToMove < 0 {
 		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
-		return
+		return true
 	}
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex-numEntriesToMove))
+	return true
 }
 
-func (fen *Fen) GoDown(numEntries ...int) {
+// Returns false if nothing happened (at the bottom, would've moved to the same position)
+func (fen *Fen) GoDown(numEntries ...int) bool {
+	if fen.middlePane.selectedEntryIndex >= len(fen.middlePane.entries.Load().([]os.DirEntry))-1 {
+		return false
+	}
+
 	numEntriesToMove := 1
 	if len(numEntries) > 0 {
 		numEntriesToMove = max(1, numEntries[0])
@@ -655,10 +666,11 @@ func (fen *Fen) GoDown(numEntries ...int) {
 
 	if fen.middlePane.selectedEntryIndex+numEntriesToMove >= len(fen.middlePane.entries.Load().([]os.DirEntry)) {
 		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries.Load().([]os.DirEntry))-1))
-		return
+		return true
 	}
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex+numEntriesToMove))
+	return true
 }
 
 func (fen *Fen) GoTop() {

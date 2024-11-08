@@ -404,19 +404,31 @@ func main() {
 		case tcell.WheelRight:
 			fen.GoRight(app, "")
 		case tcell.WheelUp:
+			moved := false
 			if time.Since(lastWheelUpTime) > time.Duration(30*time.Millisecond) {
-				fen.GoUp()
+				moved = fen.GoUp()
 			} else {
-				fen.GoUp(fen.config.ScrollSpeed)
+				moved = fen.GoUp(fen.config.ScrollSpeed)
 			}
+
 			lastWheelUpTime = time.Now()
-		case tcell.WheelDown:
-			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
-				fen.GoDown()
-			} else {
-				fen.GoDown(fen.config.ScrollSpeed)
+			if !moved {
+				app.DontDrawOnThisEventMouse()
+				return nil, action
 			}
+		case tcell.WheelDown:
+			moved := false
+			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
+				moved = fen.GoDown()
+			} else {
+				moved = fen.GoDown(fen.config.ScrollSpeed)
+			}
+
 			lastWheelDownTime = time.Now()
+			if !moved {
+				app.DontDrawOnThisEventMouse()
+				return nil, action
+			}
 		default:
 			return nil, action
 		}
@@ -497,9 +509,15 @@ func main() {
 		} else if (event.Modifiers()&tcell.ModCtrl == 0 && event.Key() == tcell.KeyRight) || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
 			fen.GoRight(app, "")
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
-			fen.GoUp()
+			if !fen.GoUp() {
+				app.DontDrawOnThisEventKey()
+				return nil
+			}
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
-			fen.GoDown()
+			if !fen.GoDown() {
+				app.DontDrawOnThisEventKey()
+				return nil
+			}
 		} else if event.Rune() == ' ' {
 			fen.ToggleSelection(fen.sel)
 			fen.GoDown()
@@ -1186,6 +1204,7 @@ func main() {
 			return nil
 		}
 
+		app.DontDrawOnThisEventKey()
 		return event
 	})
 
