@@ -1225,6 +1225,7 @@ func main() {
 
 			optionsAtTheTop := []string{
 				"sort_by",
+				"sort_reverse",
 				"ui_borders",
 			}
 			slices.SortFunc(sortedIndices, func(a, b indexAndText) int {
@@ -1315,12 +1316,20 @@ func main() {
 			})
 
 			optionsForm.SetItemPadding(0)
-			optionsForm.SetTitle("Options")
+			optionsForm.SetTitle("Options this session")
 			optionsForm.SetBorder(true)
 			optionsForm.SetBackgroundColor(tcell.ColorBlack)
 			optionsForm.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 			optionsForm.SetBorderPadding(0, 0, 1, 1)
 			optionsForm.SetFieldBackgroundColor(tcell.ColorBlack)
+			optionsForm.SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
+				if width < 75 {
+					return x + 1, y + 1, width - 2, height - 1
+				}
+				xOffset := width/2 - 21
+				theX := max(x+1, x+xOffset)
+				return theX, y + 1, width - (theX - x) - 1, height - 1
+			})
 
 			pages.AddPage("popup", centered(optionsForm, numOptions+2), true, true)
 			return nil
