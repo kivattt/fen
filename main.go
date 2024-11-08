@@ -8,7 +8,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"slices"
 	"time"
 
 	//	"runtime/pprof"
@@ -1202,22 +1204,89 @@ func main() {
 			}
 
 			return nil
+		} else if event.Rune() == 'o' {
+			optionsForm := tview.NewForm()
+
+			configTypes := reflect.TypeOf(fen.config)
+			configValues := reflect.ValueOf(&fen.config).Elem()
+
+			numOptions := 0
+			for i := 0; i < configTypes.NumField(); i++ {
+				value := configValues.Field(i)
+				fieldPtr := value.Addr().Interface()
+				fieldName := configTypes.Field(i).Tag.Get(luaTagName)
+
+				if slices.Contains(ConfigKeysByTagNameNotToIncludeInOptionsMenu, fieldName) {
+					continue
+				}
+
+				switch value.Kind() {
+				case reflect.Bool:
+					fieldValue := value.Bool()
+
+					f := func(checked bool) {
+						*fieldPtr.(*bool) = checked
+						fen.UpdatePanes(true)
+					}
+
+					if fieldName == "mouse" {
+						f = func(checked bool) {
+							*fieldPtr.(*bool) = checked
+							app.EnableMouse(checked)
+							fen.UpdatePanes(true)
+						}
+					}
+
+					optionsForm.AddCheckbox(fieldName, fieldValue, f)
+				default:
+					continue
+				}
+
+				numOptions++
+			}
+
+			optionsForm.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+				if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+					pages.RemovePage("popup")
+					return nil
+				}
+
+				if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
+					return tcell.NewEventKey(tcell.KeyTab, event.Rune(), event.Modifiers())
+				} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
+					return tcell.NewEventKey(tcell.KeyBacktab, event.Rune(), event.Modifiers())
+				} else if event.Key() == tcell.KeyLeft || event.Key() == tcell.KeyRight || event.Rune() == 'h' || event.Rune() == 'l' {
+					return tcell.NewEventKey(tcell.KeyEnter, event.Rune(), event.Modifiers())
+				}
+
+				return event
+			})
+
+			optionsForm.SetItemPadding(0)
+			optionsForm.SetTitle("Options")
+			optionsForm.SetBorder(true)
+			optionsForm.SetBackgroundColor(tcell.ColorBlack)
+			optionsForm.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
+			optionsForm.SetBorderPadding(0, 0, 1, 1)
+			optionsForm.SetButtonStyle(tcell.StyleDefault.Foreground(tcell.ColorRed))
+
+			pages.AddPage("popup", centered(optionsForm, numOptions+2), true, true)
+			return nil
 		}
 
 		app.DontDrawOnThisEventKey()
 		return event
 	})
 
-	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
-		os.Stderr.WriteString("\x1b[22t")                       // Push current terminal title
-		os.Stderr.WriteString("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen"
+	if fen.config.TerminalTitle {
+		fen.PushAndSetTerminalTitle()
 	}
 	if err := app.SetRoot(pages, true).EnableMouse(fen.config.Mouse).EnablePaste(true).Run(); err != nil {
 		log.Fatal(err)
 	}
 
-	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
-		os.Stderr.WriteString("\x1b[23t") // Pop terminal title, sets it back to normal
+	if fen.config.TerminalTitle {
+		fen.PopTerminalTitle()
 	}
 
 	if *printFolderOnExit {

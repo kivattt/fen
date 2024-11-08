@@ -60,6 +60,11 @@ type Fen struct {
 // we have to define them manually with a new table where I use these struct tags to look up the names
 const luaTagName = "lua"
 
+var ConfigKeysByTagNameNotToIncludeInOptionsMenu = []string{
+	"no_write",       // Would be unsafe to allow disabling no-write (always assume fen --no-write is being ran by a bad actor)
+	"terminal_title", // The push/pop terminal title escape codes don't work properly while fen is running
+}
+
 type Config struct {
 	UiBorders               bool                 `lua:"ui_borders"`
 	Mouse                   bool                 `lua:"mouse"`
@@ -199,12 +204,6 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	fen.middlePane.Init()
 	fen.rightPane.Init()
 
-	if fen.config.UiBorders {
-		fen.leftPane.SetBorder(true)
-		fen.middlePane.SetBorder(true)
-		fen.rightPane.SetBorder(true)
-	}
-
 	fen.bottomBar = NewBottomBar(fen)
 
 	wdFiles, err := os.ReadDir(fen.wd)
@@ -251,6 +250,19 @@ func (fen *Fen) Fini() {
 
 		close(fen.gitStatusHandler.channel)
 		fen.gitStatusHandler.wg.Wait()
+	}
+}
+
+func (fen *Fen) PushAndSetTerminalTitle() {
+	if runtime.GOOS == "linux" {
+		os.Stderr.WriteString("\x1b[22t")                       // Push current terminal title
+		os.Stderr.WriteString("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen <version>"
+	}
+}
+
+func (fen *Fen) PopTerminalTitle() {
+	if runtime.GOOS == "linux" {
+		os.Stderr.WriteString("\x1b[23t") // Pop terminal title, sets it back to normal
 	}
 }
 
@@ -425,6 +437,10 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 		fen.wd = filepath.Dir(fen.wd)
 		_, err = os.Stat(fen.wd)
 	}
+
+	fen.leftPane.SetBorder(fen.config.UiBorders)
+	fen.middlePane.SetBorder(fen.config.UiBorders)
+	fen.rightPane.SetBorder(fen.config.UiBorders)
 
 	fen.leftPane.ChangeDir(filepath.Dir(fen.wd), forceReadDir)
 	fen.middlePane.ChangeDir(fen.wd, forceReadDir)
