@@ -588,7 +588,11 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				i++
 			}
 
-			tview.Print(screen, "[::d]Set fen.preview_safety_blocklist = false to disable", x, y+yOffset+i, w, tview.AlignCenter, tcell.ColorRed)
+			text2 := "Set fen.preview_safety_blocklist = false to disable"
+			lines = tview.WordWrap(text2, w)
+			for j, line := range lines {
+				tview.Print(screen, "[::d]"+line, x, y+yOffset+i+j, w, tview.AlignCenter, tcell.ColorRed)
+			}
 			return
 		}
 

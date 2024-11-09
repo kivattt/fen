@@ -8,7 +8,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"slices"
 	"time"
 
 	//	"runtime/pprof"
@@ -20,7 +22,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.13"
+const version = "v1.7.14"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -28,6 +30,8 @@ func main() {
 	//	defer pprof.StopCPUProfile()
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+	// For the dropdown in the options menu
+	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
 
 	tview.Styles.BorderColor = tcell.ColorDefault
 	tview.Borders.Horizontal = '─'
@@ -404,19 +408,31 @@ func main() {
 		case tcell.WheelRight:
 			fen.GoRight(app, "")
 		case tcell.WheelUp:
+			moved := false
 			if time.Since(lastWheelUpTime) > time.Duration(30*time.Millisecond) {
-				fen.GoUp()
+				moved = fen.GoUp()
 			} else {
-				fen.GoUp(fen.config.ScrollSpeed)
+				moved = fen.GoUp(fen.config.ScrollSpeed)
 			}
+
 			lastWheelUpTime = time.Now()
-		case tcell.WheelDown:
-			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
-				fen.GoDown()
-			} else {
-				fen.GoDown(fen.config.ScrollSpeed)
+			if !moved {
+				app.DontDrawOnThisEventMouse()
+				return nil, action
 			}
+		case tcell.WheelDown:
+			moved := false
+			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
+				moved = fen.GoDown()
+			} else {
+				moved = fen.GoDown(fen.config.ScrollSpeed)
+			}
+
 			lastWheelDownTime = time.Now()
+			if !moved {
+				app.DontDrawOnThisEventMouse()
+				return nil, action
+			}
 		default:
 			return nil, action
 		}
@@ -497,9 +513,15 @@ func main() {
 		} else if (event.Modifiers()&tcell.ModCtrl == 0 && event.Key() == tcell.KeyRight) || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
 			fen.GoRight(app, "")
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
-			fen.GoUp()
+			if !fen.GoUp() {
+				app.DontDrawOnThisEventKey()
+				return nil
+			}
 		} else if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
-			fen.GoDown()
+			if !fen.GoDown() {
+				app.DontDrawOnThisEventKey()
+				return nil
+			}
 		} else if event.Rune() == ' ' {
 			fen.ToggleSelection(fen.sel)
 			fen.GoDown()
@@ -1184,21 +1206,148 @@ func main() {
 			}
 
 			return nil
+		} else if event.Rune() == 'o' {
+			optionsForm := tview.NewForm()
+
+			configTypes := reflect.TypeOf(fen.config)
+			configValues := reflect.ValueOf(&fen.config).Elem()
+
+			// Loop through the fields in alphabetically sorted order
+			type indexAndText struct {
+				index int
+				text  string
+			}
+			sortedIndices := []indexAndText{}
+			for i := 0; i < configTypes.NumField(); i++ {
+				fieldName := configTypes.Field(i).Tag.Get(luaTagName)
+				sortedIndices = append(sortedIndices, indexAndText{index: i, text: fieldName})
+			}
+
+			optionsAtTheTop := []string{
+				"sort_by",
+				"sort_reverse",
+				"ui_borders",
+			}
+			slices.SortFunc(sortedIndices, func(a, b indexAndText) int {
+				for _, shouldBeOnTop := range optionsAtTheTop {
+					if a.text == shouldBeOnTop {
+						return -1
+					} else if b.text == shouldBeOnTop {
+						return 1
+					}
+				}
+
+				return strings.Compare(a.text, b.text)
+			})
+
+			if len(sortedIndices) != configTypes.NumField() {
+				panic("Length of sorted field indices did not match the actual number of fields")
+			}
+
+			numOptions := 0
+			for _, v := range sortedIndices {
+				i := v.index
+				value := configValues.Field(i)
+				fieldPtr := value.Addr().Interface()
+				fieldName := configTypes.Field(i).Tag.Get(luaTagName)
+
+				if slices.Contains(ConfigKeysByTagNameNotToIncludeInOptionsMenu, fieldName) {
+					continue
+				}
+
+				switch value.Kind() {
+				case reflect.Bool:
+					fieldValue := value.Bool()
+
+					f := func(checked bool) {
+						*fieldPtr.(*bool) = checked
+						fen.UpdatePanes(true)
+					}
+
+					if fieldName == "mouse" {
+						f = func(checked bool) {
+							*fieldPtr.(*bool) = checked
+							app.EnableMouse(checked)
+							fen.UpdatePanes(true)
+						}
+					} else if fieldName == "git_status" {
+						// Don't show the git_status option if it was disabled on startup, to prevent crashes
+						if !fen.initializedGitStatus {
+							continue
+						}
+					} else if fieldName == "show_hostname" && runtime.GOOS == "windows" {
+						// Don't show the show_hostname option on Windows, it does nothing on Windows
+						continue
+					}
+
+					optionsForm.AddCheckbox(fieldName, fieldValue, f)
+				case reflect.String:
+					if fieldName != "sort_by" {
+						panic("Options menu expected the only config string to be sort_by")
+					}
+
+					fieldValue := value.String()
+					optionsForm.AddDropDown(fieldName, ValidSortByValues[:], slices.Index(ValidSortByValues[:], fieldValue), func(option string, optionIndex int) {
+						*fieldPtr.(*string) = option
+						fen.UpdatePanes(true)
+					})
+				default:
+					continue
+				}
+
+				numOptions++
+			}
+
+			optionsForm.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+				if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+					pages.RemovePage("popup")
+					return nil
+				}
+
+				if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
+					return tcell.NewEventKey(tcell.KeyTab, event.Rune(), event.Modifiers())
+				} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
+					return tcell.NewEventKey(tcell.KeyBacktab, event.Rune(), event.Modifiers())
+				} else if event.Key() == tcell.KeyLeft || event.Key() == tcell.KeyRight || event.Rune() == 'h' || event.Rune() == 'l' {
+					return tcell.NewEventKey(tcell.KeyEnter, event.Rune(), event.Modifiers())
+				}
+
+				return event
+			})
+
+			optionsForm.SetItemPadding(0)
+			optionsForm.SetTitle("Options this session")
+			optionsForm.SetBorder(true)
+			optionsForm.SetBackgroundColor(tcell.ColorBlack)
+			optionsForm.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
+			optionsForm.SetBorderPadding(0, 0, 1, 1)
+			optionsForm.SetFieldBackgroundColor(tcell.ColorBlack)
+			optionsForm.SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
+				if width < 75 {
+					return x + 1, y + 1, width - 2, height - 1
+				}
+				xOffset := width/2 - 20
+				theX := max(x+1, x+xOffset)
+				return theX, y + 1, width - (theX - x) - 1, height - 1
+			})
+
+			pages.AddPage("popup", centered(optionsForm, numOptions+2), true, true)
+			return nil
 		}
 
+		app.DontDrawOnThisEventKey()
 		return event
 	})
 
-	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
-		os.Stderr.WriteString("\x1b[22t")                       // Push current terminal title
-		os.Stderr.WriteString("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen"
+	if fen.config.TerminalTitle {
+		fen.PushAndSetTerminalTitle()
 	}
 	if err := app.SetRoot(pages, true).EnableMouse(fen.config.Mouse).EnablePaste(true).Run(); err != nil {
 		log.Fatal(err)
 	}
 
-	if fen.config.TerminalTitle && runtime.GOOS == "linux" {
-		os.Stderr.WriteString("\x1b[23t") // Pop terminal title, sets it back to normal
+	if fen.config.TerminalTitle {
+		fen.PopTerminalTitle()
 	}
 
 	if *printFolderOnExit {

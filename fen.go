@@ -44,7 +44,8 @@ type Fen struct {
 	helpScreenVisible      *bool
 	librariesScreenVisible *bool
 
-	runningGitStatus bool
+	runningGitStatus     bool
+	initializedGitStatus bool // This is for Fini() because the user might have disabled git_status in the options menu
 
 	topBar     *TopBar
 	bottomBar  *BottomBar
@@ -59,6 +60,11 @@ type Fen struct {
 // I happen to like this, but since I can't set the "fen" global to the actual Config value,
 // we have to define them manually with a new table where I use these struct tags to look up the names
 const luaTagName = "lua"
+
+var ConfigKeysByTagNameNotToIncludeInOptionsMenu = []string{
+	"no_write",       // Would be unsafe to allow disabling no-write (always assume fen --no-write is being ran by a bad actor)
+	"terminal_title", // The push/pop terminal title escape codes don't work properly while fen is running
+}
 
 type Config struct {
 	UiBorders               bool                 `lua:"ui_borders"`
@@ -172,6 +178,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	if fen.config.GitStatus {
 		fen.gitStatusHandler = GitStatusHandler{app: app, fen: fen}
 		fen.gitStatusHandler.Init()
+		fen.initializedGitStatus = true
 	}
 
 	fen.helpScreenVisible = helpScreenVisible
@@ -198,12 +205,6 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	fen.leftPane.Init()
 	fen.middlePane.Init()
 	fen.rightPane.Init()
-
-	if fen.config.UiBorders {
-		fen.leftPane.SetBorder(true)
-		fen.middlePane.SetBorder(true)
-		fen.rightPane.SetBorder(true)
-	}
 
 	fen.bottomBar = NewBottomBar(fen)
 
@@ -246,11 +247,24 @@ func (fen *Fen) Fini() {
 	fen.middlePane.fileWatcher.Close()
 	fen.rightPane.fileWatcher.Close()
 
-	if fen.config.GitStatus {
+	if fen.initializedGitStatus {
 		fen.gitStatusHandler.gitIndexFileWatcher.Close()
 
 		close(fen.gitStatusHandler.channel)
 		fen.gitStatusHandler.wg.Wait()
+	}
+}
+
+func (fen *Fen) PushAndSetTerminalTitle() {
+	if runtime.GOOS == "linux" {
+		os.Stderr.WriteString("\x1b[22t")                       // Push current terminal title
+		os.Stderr.WriteString("\x1b]0;fen " + version + "\x07") // Set terminal title to "fen <version>"
+	}
+}
+
+func (fen *Fen) PopTerminalTitle() {
+	if runtime.GOOS == "linux" {
+		os.Stderr.WriteString("\x1b[23t") // Pop terminal title, sets it back to normal
 	}
 }
 
@@ -425,6 +439,10 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 		fen.wd = filepath.Dir(fen.wd)
 		_, err = os.Stat(fen.wd)
 	}
+
+	fen.leftPane.SetBorder(fen.config.UiBorders)
+	fen.middlePane.SetBorder(fen.config.UiBorders)
+	fen.rightPane.SetBorder(fen.config.UiBorders)
 
 	fen.leftPane.ChangeDir(filepath.Dir(fen.wd), forceReadDir)
 	fen.middlePane.ChangeDir(fen.wd, forceReadDir)
@@ -621,7 +639,12 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 	fen.DisableSelectingWithV()
 }
 
-func (fen *Fen) GoUp(numEntries ...int) {
+// Returns false if nothing happened (at the top, would've moved to the same position)
+func (fen *Fen) GoUp(numEntries ...int) bool {
+	if fen.middlePane.selectedEntryIndex <= 0 {
+		return false
+	}
+
 	numEntriesToMove := 1
 	if len(numEntries) > 0 {
 		numEntriesToMove = max(1, numEntries[0])
@@ -635,13 +658,19 @@ func (fen *Fen) GoUp(numEntries ...int) {
 
 	if fen.middlePane.selectedEntryIndex-numEntriesToMove < 0 {
 		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
-		return
+		return true
 	}
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex-numEntriesToMove))
+	return true
 }
 
-func (fen *Fen) GoDown(numEntries ...int) {
+// Returns false if nothing happened (at the bottom, would've moved to the same position)
+func (fen *Fen) GoDown(numEntries ...int) bool {
+	if fen.middlePane.selectedEntryIndex >= len(fen.middlePane.entries.Load().([]os.DirEntry))-1 {
+		return false
+	}
+
 	numEntriesToMove := 1
 	if len(numEntries) > 0 {
 		numEntriesToMove = max(1, numEntries[0])
@@ -655,10 +684,11 @@ func (fen *Fen) GoDown(numEntries ...int) {
 
 	if fen.middlePane.selectedEntryIndex+numEntriesToMove >= len(fen.middlePane.entries.Load().([]os.DirEntry)) {
 		fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries.Load().([]os.DirEntry))-1))
-		return
+		return true
 	}
 
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(fen.middlePane.selectedEntryIndex+numEntriesToMove))
+	return true
 }
 
 func (fen *Fen) GoTop() {
