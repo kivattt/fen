@@ -1326,7 +1326,7 @@ func main() {
 				if width < 75 {
 					return x + 1, y + 1, width - 2, height - 1
 				}
-				xOffset := width/2 - 21
+				xOffset := width/2 - 20
 				theX := max(x+1, x+xOffset)
 				return theX, y + 1, width - (theX - x) - 1, height - 1
 			})
