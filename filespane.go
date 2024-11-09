@@ -709,7 +709,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				entrySizeText = "?"
 			}
 
-			if entryInfo.Mode()&os.ModeSymlink != 0 {
+			if entryInfo != nil && entryInfo.Mode()&os.ModeSymlink != 0 {
 				entrySizeText = "-> " + entrySizeText
 			}
 
