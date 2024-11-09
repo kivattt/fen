@@ -33,6 +33,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 <kbd>?</kbd> or <kbd>F1</kbd> Toggle help menu\
 <kbd>F2</kbd> Show libraries used in fen\
 <kbd>q</kbd> Quit fen\
+<kbd>o</kbd> Options\
 <kbd>z</kbd> or <kbd>Backspace</kbd> Toggle hidden files\
 <kbd>Ctrl + Space</kbd> or <kbd>Ctrl + n</kbd> Open file(s) with specific program\
 <kbd>!</kbd> Run system shell command (cmd on Windows)\

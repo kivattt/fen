@@ -30,6 +30,7 @@ var helpScreenControlsList = []control{
 	{KeyBindings: []string{"?", "F1"}, Description: "Toggle help menu (you are here!)"},
 	{KeyBindings: []string{"F2"}, Description: "Show libraries used in fen"},
 	{KeyBindings: []string{"q"}, Description: "Quit fen"},
+	{KeyBindings: []string{"o"}, Description: "Options"},
 
 	{KeyBindings: []string{"z", "Backspace"}, Description: "Toggle hidden files"},
 	{KeyBindings: []string{"^Space", "^N"}, Description: "Open file(s) with specific program"},
