@@ -99,11 +99,7 @@ func (gsh *GitStatusHandler) PathIsUnstagedOrUntracked(path, repositoryPath stri
 	}
 
 	_, pathUnstagedOrUntracked := repo.changedFiles[relativePathToRepo]
-	if pathUnstagedOrUntracked {
-		return true
-	}
-
-	return false
+	return pathUnstagedOrUntracked
 }
 
 func (gsh *GitStatusHandler) Init() {
