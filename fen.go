@@ -620,7 +620,10 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 	}
 
 	if !fi.IsDir() || openWith != "" {
-		OpenFile(fen, app, openWith)
+		err := OpenFile(fen, app, openWith)
+		if err != nil {
+			fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+		}
 		return
 	}
 
