@@ -1,6 +1,8 @@
 //go:build !windows
 // +build !windows
 
+//lint:file-ignore ST1005 some user-visible messages are stored in error values and thus occasionally require capitalization
+
 package main
 
 import (

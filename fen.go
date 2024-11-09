@@ -1,5 +1,7 @@
 package main
 
+//lint:file-ignore ST1005 some user-visible messages are stored in error values and thus occasionally require capitalization
+
 import (
 	"bufio"
 	"errors"
