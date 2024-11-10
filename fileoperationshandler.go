@@ -1,5 +1,7 @@
 package main
 
+//lint:file-ignore ST1005 some user-visible messages are stored in error values and thus occasionally require capitalization
+
 import (
 	"errors"
 	"io"
@@ -14,17 +16,17 @@ import (
 type Operation int
 
 const (
-	Rename Operation = 0
-	Delete           = 1
-	Copy             = 2
+	Rename Operation = iota
+	Delete
+	Copy
 )
 
 type Status int
 
 const (
-	Queued    Status = 0
-	Completed        = 1
-	Failed           = 2
+	Queued Status = iota
+	Completed
+	Failed
 )
 
 type FileOperation struct {

@@ -1,5 +1,7 @@
 package main
 
+//lint:file-ignore ST1005 some user-visible messages are stored in error values and thus occasionally require capitalization
+
 import (
 	"bufio"
 	"bytes"
@@ -619,33 +621,32 @@ func MapStringBoolKeys(theMap map[string]bool) []string {
 	return ret
 }
 
-func OpenFile(fen *Fen, app *tview.Application, openWith string) {
+func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 	if fen.config.PrintPathOnOpen {
 		app.Stop()
 
 		if len(fen.selected) <= 0 {
 			if strings.ContainsRune(fen.sel, '\n') {
 				fmt.Fprintln(os.Stderr, "The file you've selected has a newline (0x0a) in it's filename, exiting...")
-				return
+				return nil
 			}
 			fmt.Println(fen.sel)
 		} else {
 			for selectedFile := range fen.selected {
 				if strings.ContainsRune(selectedFile, '\n') {
 					fmt.Fprintln(os.Stderr, "A file you've selected has a newline (0x0a) in it's filename, exiting...")
-					return
+					return nil
 				}
 			}
 			for selectedFile := range fen.selected {
 				fmt.Println(selectedFile)
 			}
 		}
-		return
+		return nil
 	}
 
 	if fen.config.NoWrite {
-		fen.bottomBar.TemporarilyShowTextInstead("Can't open files in no-write mode")
-		return
+		return errors.New("Can't open files in no-write mode")
 	}
 
 	programsAndFallbacks, descriptions := ProgramsAndDescriptionsForFile(fen)
@@ -715,6 +716,8 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) {
 			}
 		}
 	})
+
+	return nil
 }
 
 func FoldersAtBeginning(dirEntries []os.DirEntry) []os.DirEntry {

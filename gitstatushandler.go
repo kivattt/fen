@@ -1,5 +1,7 @@
 package main
 
+//lint:file-ignore ST1005 some user-visible messages are stored in error values and thus occasionally require capitalization
+
 import (
 	"context"
 	"errors"
@@ -99,11 +101,7 @@ func (gsh *GitStatusHandler) PathIsUnstagedOrUntracked(path, repositoryPath stri
 	}
 
 	_, pathUnstagedOrUntracked := repo.changedFiles[relativePathToRepo]
-	if pathUnstagedOrUntracked {
-		return true
-	}
-
-	return false
+	return pathUnstagedOrUntracked
 }
 
 func (gsh *GitStatusHandler) Init() {

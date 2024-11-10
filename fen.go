@@ -1,5 +1,7 @@
 package main
 
+//lint:file-ignore ST1005 some user-visible messages are stored in error values and thus occasionally require capitalization
+
 import (
 	"bufio"
 	"errors"
@@ -620,7 +622,10 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 	}
 
 	if !fi.IsDir() || openWith != "" {
-		OpenFile(fen, app, openWith)
+		err := OpenFile(fen, app, openWith)
+		if err != nil {
+			fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+		}
 		return
 	}
 
