@@ -178,7 +178,7 @@ for line in io.lines(fen.SelectedFile) do
 				goto continue
 			end
 
-			if not backtickString and lastChar ~= '\\' then
+			if not backtickString and lastChar ~= '\\' and not isList(lineTrimLeftSpaces:sub(1,1)) then
 				if isEmphasis(lastChar) and isEmphasis(char) then
 					bold = not bold
 					italic = false
@@ -241,11 +241,24 @@ for line in io.lines(fen.SelectedFile) do
 	if lineIsThematicBreak(line) then
 		printThematicBreak(y)
 	elseif isList(lineTrimLeftSpaces:sub(1,1)) then
+		local listXPos = 0
+		for i = 1, #line do
+			local c = line:sub(i,i)
+			if c == ' ' then
+				listXPos = listXPos + 1
+			elseif c == '\t' then
+				listXPos = listXPos + 4
+			end
+			if c ~= ' ' and c ~= '\t' then
+				break
+			end
+		end
+
 		-- The non-graphical FreeBSD console would print a '?' instead of the fancy character, so fallback to an asterix
 		if fen:RuntimeOS() == "freebsd" then
-			fen:PrintSimple("[::d]*", 0, y)
+			fen:PrintSimple("[::d]*", listXPos, y)
 		else
-			fen:PrintSimple("[::d]●", 0, y)
+			fen:PrintSimple("[::d]●", listXPos, y)
 		end
 	end
 
