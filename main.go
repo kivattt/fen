@@ -773,6 +773,7 @@ func main() {
 			return nil
 		} else if event.Rune() == 'z' || event.Key() == tcell.KeyBackspace {
 			fen.config.HiddenFiles = !fen.config.HiddenFiles
+			fen.InvalidateFolderFileCountCache()
 			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
 			fen.UpdatePanes(true)
 			fen.history.AddToHistory(fen.sel)

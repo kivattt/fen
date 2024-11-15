@@ -381,12 +381,12 @@ func (fp *FilesPane) FilterAndSortEntries() {
 			// If folder, we consider the folder file count as bytes (though it's kind of messed up with symlinks...)
 			aSize := int(aInfo.Size())
 			if a.IsDir() {
-				aSize, _ = FolderFileCount(filepath.Join(fp.folder, a.Name()), fp.fen.config.HiddenFiles)
+				aSize, _ = FolderFileCountCached(fp.fen.folderFileCountCache, filepath.Join(fp.folder, a.Name()), fp.fen.config.HiddenFiles)
 			}
 
 			bSize := int(bInfo.Size())
 			if b.IsDir() {
-				bSize, _ = FolderFileCount(filepath.Join(fp.folder, b.Name()), fp.fen.config.HiddenFiles)
+				bSize, _ = FolderFileCountCached(fp.fen.folderFileCountCache, filepath.Join(fp.folder, b.Name()), fp.fen.config.HiddenFiles)
 			}
 
 			if aSize < bSize {
@@ -706,7 +706,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		entrySizePrintedSize := 0
 		if fp.showEntrySizes {
-			entrySizeText, err := EntrySizeText(entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
+			entrySizeText, err := EntrySizeText(fp.fen.folderFileCountCache, entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
 			if err != nil {
 				entrySizeText = "?"
 			}

@@ -101,7 +101,7 @@ func PathWithoutEndSeparator(path string) string {
 // TODO: Maybe make these file functions take a fs.FileInfo from a previously done os.Stat()
 
 // stat should be from an os.Lstat(). If stat is nil, it returns an error.
-func EntrySizeText(stat os.FileInfo, path string, hiddenFiles bool) (string, error) {
+func EntrySizeText(folderFileCountCache map[string]int, stat os.FileInfo, path string, hiddenFiles bool) (string, error) {
 	if stat == nil {
 		return "", errors.New("stat was nil")
 	}
@@ -121,7 +121,7 @@ func EntrySizeText(stat os.FileInfo, path string, hiddenFiles bool) (string, err
 	if !stat.IsDir() {
 		ret.WriteString(BytesToHumanReadableUnitString(uint64(stat.Size()), 2))
 	} else {
-		count, err := FolderFileCount(path, hiddenFiles)
+		count, err := FolderFileCountCached(folderFileCountCache, path, hiddenFiles)
 		if err != nil {
 			return "", err
 		}
@@ -130,6 +130,26 @@ func EntrySizeText(stat os.FileInfo, path string, hiddenFiles bool) (string, err
 	}
 
 	return ret.String(), nil
+}
+
+func FolderFileCountCached(cache map[string]int, path string, hiddenFiles bool) (int, error) {
+	if cache == nil {
+		panic("In FolderFileCountCached(): cache (fen.folderFileCountCache) was nil")
+	}
+
+	count, ok := cache[path]
+	if ok {
+		return count, nil
+	}
+
+	var err error
+	count, err = FolderFileCount(path, hiddenFiles)
+	if err != nil {
+		return 0, err
+	}
+
+	cache[path] = count
+	return count, nil
 }
 
 func FolderFileCount(path string, hiddenFiles bool) (int, error) {
