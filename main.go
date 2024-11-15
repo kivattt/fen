@@ -631,6 +631,12 @@ func main() {
 					return
 				} else if key == tcell.KeyEnter {
 					if !fen.config.NoWrite {
+						if inputField.GetText() == "" {
+							pages.RemovePage("popup")
+							fen.bottomBar.TemporarilyShowTextInstead("Can't rename with an empty name")
+							return
+						}
+
 						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
 						_, err := os.Lstat(newPath)
 						if err == nil {
