@@ -5,7 +5,6 @@ package main
 import (
 	"context"
 	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -68,7 +67,7 @@ func (gsh *GitStatusHandler) TryFindParentGitRepository(path string) (string, er
 			return "", errors.New("path is not in a local Git repository")
 		}
 
-		stat, err := os.Lstat(filepath.Join(repoPathFound, ".git"))
+		stat, err := theFS.(ReadlinkFS).Lstat(filepath.Join(repoPathFound, ".git"))
 		if err == nil && stat.IsDir() {
 			break
 		}

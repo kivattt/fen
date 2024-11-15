@@ -1,0 +1,15 @@
+- Added "Can't rename with an empty name" message
+- Folder file counts are now cached, improving performance
+
+- transferring between HostFileSystem and SFTPFileSystem
+- check that file := theFS.Open(...) is actually closeable etc
+- on filesystem change, reset history (or keep specific one per fs)
+- show sftp server username in the top-left
+- add a menu to the left of root to login to sftp server (filezilla integration on user accept)
+
+- DONE: disabled `!` for sftp
+- DONE: removed cmd.Dir = fen.wd for bulkrename
+- DONE: Disable file watching for SFTPFileSystem
+- DONE (we just createtemp on host): os.CreateTemp might not work out on SFTPFileSystem (maybe disable bulk-rename on SFTPFileSystem)
+- DONE (disallow opening files on non-host): file previews and opening files need to download them first...
+- DONE: prevent path separator bugs by not using os.PathSeparator, instead it is determined by theFS current file system

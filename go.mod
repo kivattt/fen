@@ -12,9 +12,11 @@ require (
 	github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
 	github.com/kivattt/gogitstatus v0.0.0-20241109231310-7362d587a6fd
 	github.com/otiai10/copy v1.14.0
+	github.com/pkg/sftp v1.13.7
 	github.com/rivo/tview v0.0.0-20241030223020-e34b54cd4c27
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 	github.com/yuin/gopher-lua v1.1.1
+	golang.org/x/crypto v0.17.0
 	golang.org/x/sys v0.26.0
 	golang.org/x/term v0.25.0
 	layeh.com/gopher-luar v1.0.11
@@ -22,6 +24,7 @@ require (
 
 require (
 	github.com/gdamore/encoding v1.0.1 // indirect
+	github.com/kr/fs v0.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

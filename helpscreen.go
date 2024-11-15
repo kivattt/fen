@@ -86,11 +86,11 @@ func (helpScreen *HelpScreen) Draw(screen tcell.Screen) {
 		controlsYOffset = 1
 	}
 	controlsYOffset++
-	stat, err := os.Lstat(helpScreen.fen.sel)
+	stat, err := theFS.(ReadlinkFS).Lstat(helpScreen.fen.sel)
 	if err != nil {
 		return
 	}
-	username, groupname, err := FileUserAndGroupName(stat)
+	username, groupname, err := theFS.(FileUserAndGroupNameFS).FileUserAndGroupName(stat)
 
 	topUser, _ := user.Current()
 	topUsernameColor := "[lime::b]"

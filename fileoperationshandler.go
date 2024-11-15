@@ -5,6 +5,7 @@ package main
 import (
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"strconv"
 	"sync"
@@ -114,7 +115,7 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 		return errors.New("Empty path")
 	}
 
-	_, err := os.Lstat(fileOperation.path)
+	_, err := theFS.(ReadlinkFS).Lstat(fileOperation.path)
 	if err != nil {
 		return err
 	}
@@ -125,43 +126,43 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 			return errors.New("Empty newPath")
 		}
 
-		_, err := os.Stat(fileOperation.newPath)
+		_, err := fs.Stat(theFS, fileOperation.newPath)
 		if err == nil {
 			return errors.New("Can't rename to an existing file")
 		}
-		err = os.Rename(fileOperation.path, fileOperation.newPath)
+		err = theFS.(RenameFS).Rename(fileOperation.path, fileOperation.newPath)
 		if err != nil {
 			return err
 		}
 	case Delete:
-		err := os.RemoveAll(fileOperation.path)
+		err := theFS.(RemoveFS).RemoveAll(fileOperation.path)
 		if err != nil {
 			return err
 		}
 	case Copy:
-		stat, err := os.Lstat(fileOperation.path)
+		stat, err := theFS.(ReadlinkFS).Lstat(fileOperation.path)
 		if err != nil {
 			return err
 		}
 
 		if stat.IsDir() {
-			err := os.Mkdir(fileOperation.newPath, 0755)
+			err := theFS.(MkdirFS).Mkdir(fileOperation.newPath, 0755)
 			if err != nil {
 				return err
 			}
 
-			err = dirCopy.Copy(fileOperation.path, fileOperation.newPath)
+			err = dirCopy.Copy(fileOperation.path, fileOperation.newPath, dirCopy.Options{FS: theFS})
 			if err != nil {
 				return err
 			}
 		} else if stat.Mode().IsRegular() {
-			source, err := os.Open(fileOperation.path)
+			source, err := theFS.Open(fileOperation.path)
 			if err != nil {
 				return err
 			}
 			defer source.Close()
 
-			destination, err := os.Create(fileOperation.newPath)
+			destination, err := theFS.(CreateFS).Create(fileOperation.newPath)
 			if err != nil {
 				return err
 			}
@@ -175,12 +176,12 @@ func (handler *FileOperationsHandler) doOperation(fileOperation FileOperation, b
 
 			destination.Chmod(stat.Mode())
 		} else if stat.Mode()&os.ModeSymlink != 0 {
-			target, err := os.Readlink(fileOperation.path)
+			target, err := theFS.(ReadlinkFS).Readlink(fileOperation.path)
 			if err != nil {
 				return err
 			}
 
-			if err := os.Symlink(target, fileOperation.newPath); err != nil {
+			if err := theFS.(SymlinkFS).Symlink(target, fileOperation.newPath); err != nil {
 				return err
 			}
 		} else {

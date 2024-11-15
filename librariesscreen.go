@@ -36,6 +36,7 @@ var librariesList = []library{
 	{name: "gluamapper", url: "https://github.com/yuin/gluamapper", version: "commit d836955", license: "MIT", licenseURL: "https://github.com/yuin/gluamapper/blob/master/LICENSE"},
 	{name: "gopher-luar", url: "https://layeh.com/gopher-luar", version: "v1.0.11", license: "MPL 2.0", licenseURL: "https://github.com/layeh/gopher-luar/blob/master/LICENSE"},
 	{name: "rsc/getopt", url: "https://github.com/rsc/getopt", customRevisionURL: "https://github.com/kivattt/getopt", license: "BSD 3-Clause", licenseURL: "https://github.com/rsc/getopt/blob/master/LICENSE"},
+	{name: "pkg/sftp", url: "https://github.com/pkg/sftp", version: "v1.13.7", license: "BSD 2-Clause", licenseURL: "https://github.com/pkg/sftp/blob/master/LICENSE"},
 	{name: "kivattt/gogitstatus", url: "https://github.com/kivattt/gogitstatus", version: "commit 7362d58", license: "MIT", licenseURL: "https://github.com/kivattt/gogitstatus/blob/main/LICENSE"},
 }
 

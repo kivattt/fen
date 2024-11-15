@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -24,6 +25,7 @@ import (
 type Fen struct {
 	app              *tview.Application
 	wd               string // Current working directory
+	lastWD           string
 	sel              string
 	lastSel          string
 	lastInRepository string
@@ -48,6 +50,8 @@ type Fen struct {
 
 	runningGitStatus     bool
 	initializedGitStatus bool // This is for Fini() because the user might have disabled git_status in the options menu
+
+	folderFileCountCache map[string]int
 
 	topBar     *TopBar
 	bottomBar  *BottomBar
@@ -176,6 +180,7 @@ type PreviewOrOpenEntry struct {
 func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool, librariesScreenVisible *bool) error {
 	fen.app = app
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
+	fen.folderFileCountCache = make(map[string]int)
 
 	if fen.config.GitStatus {
 		fen.gitStatusHandler = GitStatusHandler{app: app, fen: fen}
@@ -210,10 +215,10 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 
 	fen.bottomBar = NewBottomBar(fen)
 
-	wdFiles, err := os.ReadDir(fen.wd)
+	wdFiles, err := theFS.(fs.ReadDirFS).ReadDir(fen.wd)
 	shouldSelectSpecifiedFile := false
 
-	stat, statErr := os.Stat(fen.wd)
+	stat, statErr := fs.Stat(theFS, fen.wd)
 	if statErr == nil && !stat.IsDir() {
 		shouldSelectSpecifiedFile = true
 	}
@@ -225,7 +230,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 		}
 
 		fen.wd = filepath.Dir(fen.wd)
-		wdFiles, err = os.ReadDir(fen.wd)
+		wdFiles, err = theFS.(fs.ReadDirFS).ReadDir(fen.wd)
 	}
 
 	if len(wdFiles) > 0 {
@@ -257,6 +262,11 @@ func (fen *Fen) Fini() {
 	}
 }
 
+// This is to invalidate the folder file count cache when fen.config.HiddenFiles changes, or the current working directory is changed.
+func (fen *Fen) InvalidateFolderFileCountCache() {
+	fen.folderFileCountCache = make(map[string]int)
+}
+
 func (fen *Fen) PushAndSetTerminalTitle() {
 	if runtime.GOOS == "linux" {
 		os.Stderr.WriteString("\x1b[22t")                       // Push current terminal title
@@ -278,10 +288,10 @@ func (fen *Fen) ReadConfig(path string) error {
 		fmt.Fprintln(os.Stderr, "Warning: Config file "+path+" has no .lua file extension.\nSince v1.3.0, config files can only be Lua.\n")
 	}
 
-	_, err := os.Stat(path)
+	_, err := fs.Stat(theFS, path)
 	if err != nil {
 		oldJSONConfigPath := filepath.Join(filepath.Dir(path), "fenrc.json")
-		_, err := os.Stat(oldJSONConfigPath)
+		_, err := fs.Stat(theFS, oldJSONConfigPath)
 		if err == nil {
 			return errors.New("Could not find " + path + ", but found " + oldJSONConfigPath + "\nSince v1.3.0, config files can only be Lua.\n")
 		}
@@ -432,19 +442,24 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 	}
 
 	// TODO: Preserve last available selection index (so it doesn't reset to the top)
-	_, err := os.Stat(fen.wd)
+	_, err := fs.Stat(theFS, fen.wd)
 	for err != nil {
 		if filepath.Dir(fen.wd) == fen.wd {
 			panic("Could not find usable parent path")
 		}
 
 		fen.wd = filepath.Dir(fen.wd)
-		_, err = os.Stat(fen.wd)
+		_, err = fs.Stat(theFS, fen.wd)
 	}
 
 	fen.leftPane.SetBorder(fen.config.UiBorders)
 	fen.middlePane.SetBorder(fen.config.UiBorders)
 	fen.rightPane.SetBorder(fen.config.UiBorders)
+
+	if fen.wd != fen.lastWD {
+		// Has to happen before the filespane ChangeDir() calls which will repopulate the cache
+		fen.InvalidateFolderFileCountCache()
+	}
 
 	fen.leftPane.ChangeDir(filepath.Dir(fen.wd), forceReadDir)
 	fen.middlePane.ChangeDir(fen.wd, forceReadDir)
@@ -476,6 +491,24 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 
 	fen.UpdateSelectingWithV()
 
+	selStat, selStatErr := theFS.(ReadlinkFS).Lstat(fen.sel)
+	if selStatErr != nil {
+		return
+	}
+
+	// Overwrite the cached folder file count for the currently selected folder
+	// If fen.wd changed, we already invalidated the cache so this isn't needed
+	if fen.wd == fen.lastWD && selStat.IsDir() {
+		count, err := FolderFileCount(fen.sel, fen.config.HiddenFiles)
+		if err == nil {
+			fen.folderFileCountCache[fen.sel] = count
+		}
+	}
+
+	defer func() {
+		fen.lastWD = fen.wd
+	}()
+
 	if !fen.config.GitStatus {
 		return
 	}
@@ -486,13 +519,8 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 
 	// If the current Git repository changed or fen.sel is a directory, ask for a git status
 	if fen.sel != fen.lastSel {
-		stat, err := os.Lstat(fen.sel)
-		if err != nil {
-			return
-		}
-
 		var inRepository string
-		if stat.IsDir() {
+		if selStat.IsDir() {
 			inRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.sel)
 		} else {
 			inRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.wd)
@@ -503,13 +531,13 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 			fen.lastInRepository = ""
 		}
 
-		if !stat.IsDir() && err != nil {
+		if !selStat.IsDir() && err != nil {
 			return
 		}
 
 		// Seems like the fsnotify events don't catch up on FreeBSD, need to always trigger a Git status
-		if stat.IsDir() || inRepository != fen.lastInRepository || runtime.GOOS == "freebsd" {
-			fen.TriggerGitStatus() // TODO: Fix redundant os.Lstat() and TryFindParentGitRepository calls...
+		if selStat.IsDir() || inRepository != fen.lastInRepository || runtime.GOOS == "freebsd" {
+			fen.TriggerGitStatus() // TODO: Fix redundant Lstat() and TryFindParentGitRepository calls...
 		}
 
 		fen.lastInRepository = inRepository
@@ -523,7 +551,7 @@ func (fen *Fen) TriggerGitStatus() {
 		return
 	}
 
-	stat, err := os.Lstat(fen.sel)
+	stat, err := theFS.(ReadlinkFS).Lstat(fen.sel)
 	if err != nil {
 		return
 	}
@@ -616,7 +644,7 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 		return
 	}
 
-	fi, err := os.Stat(fen.sel)
+	fi, err := fs.Stat(theFS, fen.sel)
 	if err != nil {
 		return
 	}
@@ -629,7 +657,7 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 		return
 	}
 
-	/*	rightFiles, _ := os.ReadDir(fen.sel)
+	/*	rightFiles, _ := theFS.(fs.ReadDirFS).ReadDir(fen.sel)
 		if len(rightFiles) <= 0 {
 			return
 		}*/
@@ -727,7 +755,7 @@ func (fen *Fen) GoBottomFolderOrBottom() {
 		panic("GoBottomFolderOrBottom() was called with FoldersFirst disabled")
 	}
 
-	stat, err := os.Lstat(fen.sel)
+	stat, err := theFS.(ReadlinkFS).Lstat(fen.sel)
 	if err != nil {
 		return
 	}
@@ -769,7 +797,7 @@ func (fen *Fen) GoTopFileOrTop() {
 		panic("GoTopFileOrTop() was called with FoldersFirst disabled")
 	}
 
-	stat, err := os.Lstat(fen.sel)
+	stat, err := theFS.(ReadlinkFS).Lstat(fen.sel)
 	if err != nil {
 		return
 	}
@@ -939,7 +967,7 @@ func (fen *Fen) GoPath(path string) (string, error) {
 		}
 	}
 
-	stat, err := os.Lstat(pathToUse)
+	stat, err := theFS.(ReadlinkFS).Lstat(pathToUse)
 	if err != nil {
 		return "", errors.New("No such file or directory \"" + pathToUse + "\"")
 	}
@@ -985,8 +1013,8 @@ func (fen *Fen) GoPath(path string) (string, error) {
 
 func (fen *Fen) GoRootPath() {
 	var path string
-	if runtime.GOOS == "windows" {
-		path = filepath.VolumeName(fen.sel) + string(os.PathSeparator)
+	if theFSPathSeparator != '/' { // Windows
+		path = filepath.VolumeName(fen.sel) + string(theFSPathSeparator)
 	} else {
 		path = "/"
 	}
@@ -1063,7 +1091,7 @@ func (fen *Fen) GoSymlink(symlinkPath string) error {
 		return errors.New("Selected file was not an absolute path")
 	}
 
-	target, err := os.Readlink(fen.sel)
+	target, err := theFS.(ReadlinkFS).Readlink(fen.sel)
 	if err != nil {
 		return errors.New("Unable to readlink selected file")
 	}
@@ -1073,6 +1101,7 @@ func (fen *Fen) GoSymlink(symlinkPath string) error {
 	return err
 }
 
+// The temporary file that is opened is stored on the host which doesn't use theFS
 func (fen *Fen) BulkRename(app *tview.Application) error {
 	if fen.config.NoWrite {
 		return errors.New("Can't bulkrename in no-write mode")
@@ -1145,7 +1174,7 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	}
 	tempFile.Close()
 
-	preRenameHashsum, err := SHA256HashSum(tempFile.Name())
+	preRenameHashsum, err := SHA256HashSumLocalFile(tempFile.Name())
 	if err != nil {
 		return err
 	}
@@ -1165,7 +1194,6 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 			}
 			cmd = exec.Command(editor, tempFile.Name())
 		}
-		cmd.Dir = fen.wd
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -1173,7 +1201,7 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 		_ = cmd.Run()
 	})
 
-	postRenameHashSum, err := SHA256HashSum(tempFile.Name())
+	postRenameHashSum, err := SHA256HashSumLocalFile(tempFile.Name())
 	if err != nil {
 		return errors.New("Nothing renamed! Was the temporary file deleted?")
 	}
@@ -1191,8 +1219,8 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, string(os.PathSeparator)) {
-			return errors.New("Nothing renamed! Because a path contained a path separator \"" + string(os.PathSeparator) + "\"")
+		if strings.Contains(line, string(theFSPathSeparator)) {
+			return errors.New("Nothing renamed! Because a path contained a path separator \"" + string(theFSPathSeparator) + "\"")
 		}
 		postRenameList = append(postRenameList, line)
 	}
@@ -1261,7 +1289,7 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	preRenameRandomNames := make([]string, len(preRenameList))
 	for i := range preRenameList {
 		randomName := "fen_" + RandomStringPathSafe(14) // 14 characters (pow(36, 14) combinations), only lowercase letters a-z and 0-9 numbers
-		_, err := os.Lstat(filepath.Join(fen.wd, randomName))
+		_, err := theFS.(ReadlinkFS).Lstat(filepath.Join(fen.wd, randomName))
 		if err == nil {
 			return errors.New("Nothing renamed! Random path \"" + randomName + "\" would've overwritten a file")
 		}
@@ -1277,12 +1305,12 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	for i := range preRenameRandomNames {
 		oldName := filepath.Join(fen.wd, preRenameList[i])
 		newRandomName := filepath.Join(fen.wd, preRenameRandomNames[i])
-		_, err := os.Lstat(newRandomName)
+		_, err := theFS.(ReadlinkFS).Lstat(newRandomName)
 		if err == nil {
 			panic("In BulkRename(): Would've overwritten a file: \"" + newRandomName + "\"")
 		}
 
-		err = os.Rename(oldName, newRandomName)
+		err = theFS.(RenameFS).Rename(oldName, newRandomName)
 		if err != nil {
 			return errors.New("Failed to rename \"" + preRenameList[i] + "\" to the random name \"" + preRenameRandomNames[i] + "\"")
 		}
@@ -1312,10 +1340,10 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 		}
 
 		// Don't overwrite an existing file, rename back to the original name
-		_, err := os.Lstat(newNameAbs)
+		_, err := theFS.(ReadlinkFS).Lstat(newNameAbs)
 		if err == nil {
 			preRenameAbs := filepath.Join(fen.wd, preRenameList[i])
-			_ = os.Rename(oldNameAbs, preRenameAbs)
+			_ = theFS.(RenameFS).Rename(oldNameAbs, preRenameAbs)
 
 			// We can't use fen.GoPath() here because it would enter directories
 			fen.sel = preRenameAbs
@@ -1327,7 +1355,7 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 			continue
 		}
 
-		err = os.Rename(oldNameAbs, newNameAbs)
+		err = theFS.(RenameFS).Rename(oldNameAbs, newNameAbs)
 		if err != nil {
 			nFilesRenamedFail++
 			continue

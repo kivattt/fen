@@ -188,7 +188,7 @@ func (fp *FilesPane) AddEntry(path string) error {
 		return errors.New("Entry already exists") // Maybe we still want to re-stat the file
 	}
 
-	stat, err := os.Lstat(path)
+	stat, err := theFS.(ReadlinkFS).Lstat(path)
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (fp *FilesPane) UpdateEntry(path string) error {
 		return errors.New("Entry not found")
 	}
 
-	stat, err := os.Lstat(path)
+	stat, err := theFS.(ReadlinkFS).Lstat(path)
 	if err != nil {
 		return err
 	}
@@ -281,10 +281,14 @@ func (f *FenLuaGlobal) Version() string {
 
 // It might os.ReadDir() even if forceReadDir is false. If forceReadDir is true, it will always os.ReadDir() if path is a folder.
 func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
-	stat, err := os.Stat(path)
+	stat, err := fs.Stat(theFS, path)
 	statIsDir := false
 	if err == nil {
 		statIsDir = stat.IsDir()
+	}
+
+	if theFSType != Host {
+		fp.fileWatcher.Remove(fp.folder)
 	}
 
 	if !forceReadDir {
@@ -314,9 +318,11 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 	if err == nil && statIsDir {
 		fp.fileWatcher.Remove(fp.folder)
 		fp.folder = path
-		newEntries, _ := os.ReadDir(fp.folder)
+		newEntries, _ := theFS.(fs.ReadDirFS).ReadDir(fp.folder)
 		fp.entries.Store(newEntries)
-		fp.fileWatcher.Add(fp.folder) // This has to be after the os.ReadDir() so we have something to update
+		if theFSType == Host {
+			fp.fileWatcher.Add(fp.folder) // This has to be after the os.ReadDir() so we have something to update
+		}
 
 		fp.FilterAndSortEntries()
 	} else {
@@ -381,12 +387,12 @@ func (fp *FilesPane) FilterAndSortEntries() {
 			// If folder, we consider the folder file count as bytes (though it's kind of messed up with symlinks...)
 			aSize := int(aInfo.Size())
 			if a.IsDir() {
-				aSize, _ = FolderFileCount(filepath.Join(fp.folder, a.Name()), fp.fen.config.HiddenFiles)
+				aSize, _ = FolderFileCountCached(fp.fen.folderFileCountCache, filepath.Join(fp.folder, a.Name()), fp.fen.config.HiddenFiles)
 			}
 
 			bSize := int(bInfo.Size())
 			if b.IsDir() {
-				bSize, _ = FolderFileCount(filepath.Join(fp.folder, b.Name()), fp.fen.config.HiddenFiles)
+				bSize, _ = FolderFileCountCached(fp.fen.folderFileCountCache, filepath.Join(fp.folder, b.Name()), fp.fen.config.HiddenFiles)
 			}
 
 			if aSize < bSize {
@@ -528,7 +534,7 @@ func (fp *FilesPane) GetBottomScreenEntryIndex() int {
 func (fp *FilesPane) CanOpenFile(path string) bool {
 	// We let the Go garbage collector close the file, because manually calling .Close() on it can be really slow, atleast on Linux
 	// It seems to only get up to about 7 duplicate file descriptors for a single path at a time
-	_, readErr := os.OpenFile(path, os.O_RDONLY, 0)
+	_, readErr := theFS.Open(path)
 	return readErr == nil
 }
 
@@ -571,7 +577,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 	}
 
 	// File previews
-	stat, statErr := os.Stat(fp.fen.sel)
+	stat, statErr := fs.Stat(theFS, fp.fen.sel)
 	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
 		w--
 
@@ -706,7 +712,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		entrySizePrintedSize := 0
 		if fp.showEntrySizes {
-			entrySizeText, err := EntrySizeText(entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
+			entrySizeText, err := EntrySizeText(fp.fen.folderFileCountCache, entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
 			if err != nil {
 				entrySizeText = "?"
 			}

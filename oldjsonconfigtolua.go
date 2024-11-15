@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,7 +38,7 @@ type previewWithEntry struct {
 }
 
 func GenerateLuaConfigFromOldJSONConfig(oldJSONConfigPath, newLuaConfigPath string, fen *Fen) error {
-	bytes, err := os.ReadFile(oldJSONConfigPath)
+	bytes, err := fs.ReadFile(theFS, oldJSONConfigPath)
 	if err != nil {
 		return err
 	}
@@ -48,12 +49,13 @@ func GenerateLuaConfigFromOldJSONConfig(oldJSONConfigPath, newLuaConfigPath stri
 		return err
 	}
 
-	_, err = os.Stat(newLuaConfigPath)
+	_, err = fs.Stat(theFS, newLuaConfigPath)
 	if err == nil {
 		return errors.New(newLuaConfigPath + " already exists")
 	}
 
-	newConfigFile, err := os.Create(newLuaConfigPath)
+	newConfigFileWritable, err := theFS.(CreateFS).Create(newLuaConfigPath)
+	newConfigFile := newConfigFileWritable.(*os.File)
 	if err != nil {
 		return err
 	}

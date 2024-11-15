@@ -33,7 +33,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	x, y, w, _ := bottomBar.GetInnerRect()
 
-	freeBytes, err := FreeDiskSpaceBytes(bottomBar.fen.sel)
+	freeBytes, err := theFS.(FreeDiskSpaceBytesFS).FreeDiskSpaceBytes(bottomBar.fen.sel) // FreeDiskSpaceBytes(bottomBar.fen.sel)
 	freeBytesStr := BytesToHumanReadableUnitString(freeBytes, 3)
 	if err != nil {
 		freeBytesStr = "?"
@@ -45,12 +45,12 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 		tview.Print(screen, "[teal:]"+tview.Escape(bottomBar.alternateText), x, y, w, tview.AlignLeft, tcell.ColorDefault)
 	}
 
-	stat, err := os.Lstat(bottomBar.fen.sel)
+	stat, err := theFS.(ReadlinkFS).Lstat(bottomBar.fen.sel)
 	if err != nil {
 		return
 	}
 
-	username, groupname, err := FileUserAndGroupName(stat)
+	username, groupname, err := theFS.(FileUserAndGroupNameFS).FileUserAndGroupName(stat)
 	fileOwners := ""
 	if err == nil {
 		fileOwners = " " + UsernameWithColor(username) + ":" + GroupnameWithColor(groupname)
@@ -59,7 +59,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	if !*bottomBar.fen.helpScreenVisible && !*bottomBar.fen.librariesScreenVisible {
 		if stat.Mode()&os.ModeSymlink != 0 {
-			target, err := os.Readlink(bottomBar.fen.sel)
+			target, err := theFS.(ReadlinkFS).Readlink(bottomBar.fen.sel)
 			if err != nil {
 				text += " [default:]" + "-> " + "[red:]unable to read link[default:]"
 			} else {
@@ -67,7 +67,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 				if !filepath.IsAbs(target) {
 					targetAbsolutePath = filepath.Join(filepath.Dir(bottomBar.fen.sel), target)
 				}
-				targetStat, err := os.Lstat(targetAbsolutePath)
+				targetStat, err := theFS.(ReadlinkFS).Lstat(targetAbsolutePath)
 				redIfNonExistent := ""
 				if err != nil {
 					redIfNonExistent = "[red:]"

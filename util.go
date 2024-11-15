@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math"
 	"math/rand"
 	"os"
@@ -83,25 +84,26 @@ func BytesToHumanReadableUnitString(bytes uint64, maxDecimals int) string {
 }
 
 func PathWithEndSeparator(path string) string {
-	if strings.HasSuffix(path, string(os.PathSeparator)) {
+	if strings.HasSuffix(path, string(theFSPathSeparator)) {
 		return path
 	}
 
-	return path + string(os.PathSeparator)
+	return path + string(theFSPathSeparator)
 }
 
 func PathWithoutEndSeparator(path string) string {
-	if strings.HasSuffix(path, string(os.PathSeparator)) {
-		return path[:len(path)-1] // os.PathSeparator is a rune, so always 1 character long
+	if strings.HasSuffix(path, string(theFSPathSeparator)) {
+		return path[:len(path)-1] // theFSPathSeparator is a rune, so always 1 character long
 	}
 
 	return path
 }
 
-// TODO: Maybe make these file functions take a fs.FileInfo from a previously done os.Stat()
+// TODO: Maybe make these file functions take a fs.FileInfo from a previously done fs.Stat()
 
-// stat should be from an os.Lstat(). If stat is nil, it returns an error.
-func EntrySizeText(stat os.FileInfo, path string, hiddenFiles bool) (string, error) {
+// stat should be from an Lstat(). If stat is nil, it returns an error.
+// For folders, it returns the amount of files.
+func EntrySizeText(folderFileCountCache map[string]int, stat os.FileInfo, path string, hiddenFiles bool) (string, error) {
 	if stat == nil {
 		return "", errors.New("stat was nil")
 	}
@@ -112,7 +114,7 @@ func EntrySizeText(stat os.FileInfo, path string, hiddenFiles bool) (string, err
 	// TODO: Use filepath.EvalSymlinks() ?
 	if stat.Mode()&os.ModeSymlink != 0 {
 		var err error
-		stat, err = os.Stat(path)
+		stat, err = fs.Stat(theFS, path)
 		if err != nil {
 			return "", err
 		}
@@ -121,7 +123,7 @@ func EntrySizeText(stat os.FileInfo, path string, hiddenFiles bool) (string, err
 	if !stat.IsDir() {
 		ret.WriteString(BytesToHumanReadableUnitString(uint64(stat.Size()), 2))
 	} else {
-		count, err := FolderFileCount(path, hiddenFiles)
+		count, err := FolderFileCountCached(folderFileCountCache, path, hiddenFiles)
 		if err != nil {
 			return "", err
 		}
@@ -132,8 +134,28 @@ func EntrySizeText(stat os.FileInfo, path string, hiddenFiles bool) (string, err
 	return ret.String(), nil
 }
 
+func FolderFileCountCached(cache map[string]int, path string, hiddenFiles bool) (int, error) {
+	if cache == nil {
+		panic("In FolderFileCount(): cache (fen.folderFileCountCache) was nil")
+	}
+
+	count, ok := cache[path]
+	if ok {
+		return count, nil
+	}
+
+	var err error
+	count, err = FolderFileCount(path, hiddenFiles)
+	if err != nil {
+		return 0, err
+	}
+
+	cache[path] = count
+	return count, nil
+}
+
 func FolderFileCount(path string, hiddenFiles bool) (int, error) {
-	files, err := os.ReadDir(path)
+	files, err := theFS.(fs.ReadDirFS).ReadDir(path)
 	if err != nil {
 		return 0, err
 	}
@@ -457,7 +479,7 @@ var windowsExecutableTypes = []string{
 	".msi",
 }
 
-// stat should be from an os.Lstat(). If stat is nil, it returns tcell.StyleDefault
+// stat should be from an Lstat(). If stat is nil, it returns tcell.StyleDefault
 func FileColor(stat os.FileInfo, path string) tcell.Style {
 	if stat == nil {
 		return tcell.StyleDefault
@@ -483,7 +505,7 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 				return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
 			}
 		} else if stat.Mode()&os.ModeSymlink != 0 {
-			targetStat, err := os.Stat(path)
+			targetStat, err := fs.Stat(theFS, path)
 			if err == nil && targetStat.IsDir() {
 				return ret.Foreground(tcell.ColorTeal).Bold(true)
 			}
@@ -649,6 +671,10 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 		return errors.New("Can't open files in no-write mode")
 	}
 
+	if theFSType != Host { // theFSType == SFTP
+		return errors.New("Can't open files from SFTP servers")
+	}
+
 	programsAndFallbacks, descriptions := ProgramsAndDescriptionsForFile(fen)
 	if openWith != "" {
 		programsAndFallbacks = append([]string{openWith}, programsAndFallbacks...)
@@ -743,13 +769,13 @@ func FilePathUniqueNameIfAlreadyExists(path string) string {
 		panic("FilePathUniqueNameIfAlreadyExists got an uncleaned file path")
 	}
 
-	if strings.HasSuffix(path, string(os.PathSeparator)) {
-		panic("FilePathUniqueNameIfAlreadyExists got a file path ending in " + string(os.PathSeparator))
+	if strings.HasSuffix(path, string(theFSPathSeparator)) {
+		panic("FilePathUniqueNameIfAlreadyExists got a file path ending in " + string(theFSPathSeparator))
 	}
 
 	newPath := path
 	for i := -1; ; i++ {
-		_, err := os.Stat(newPath)
+		_, err := fs.Stat(theFS, newPath)
 		if err != nil {
 			return newPath
 		}
@@ -1025,7 +1051,8 @@ func SetClipboardLinuxXClip(text string) error {
 	return cmd.Run()
 }
 
-func SHA256HashSum(path string) ([]byte, error) {
+// Doesn't use theFS
+func SHA256HashSumLocalFile(path string) ([]byte, error) {
 	stat, err := os.Lstat(path)
 	if err != nil {
 		return nil, err

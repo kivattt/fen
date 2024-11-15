@@ -4,9 +4,7 @@ package main
 
 import (
 	"errors"
-	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -46,8 +44,8 @@ func (h *History) GetHistoryEntryForPath(path string, hiddenFiles bool) (string,
 				continue
 			}
 
-			if runtime.GOOS == "windows" {
-				drivePath := filepath.VolumeName(path) + string(os.PathSeparator)
+			if theFSPathSeparator != '/' { // Windows host filesystem
+				drivePath := filepath.VolumeName(path) + string(theFSPathSeparator)
 				if path == drivePath {
 					e = e[len(drivePath):]
 				} else {
@@ -60,7 +58,7 @@ func (h *History) GetHistoryEntryForPath(path string, hiddenFiles bool) (string,
 					e = e[len(path)+1:]
 				}
 			}
-			nextSlashIdx := strings.Index(e, string(os.PathSeparator))
+			nextSlashIdx := strings.Index(e, string(theFSPathSeparator))
 			if nextSlashIdx == -1 {
 				return filepath.Join(path, e), nil
 			}

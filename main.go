@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -19,15 +20,45 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/kivattt/getopt"
+	"github.com/pkg/sftp"
 	"github.com/rivo/tview"
+	"golang.org/x/crypto/ssh"
 )
 
 const version = "v1.7.16"
+
+var theFS fs.FS
+var theFSType FSType
+var theFSPathSeparator rune = os.PathSeparator
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
 	//	pprof.StartCPUProfile(f)
 	//	defer pprof.StopCPUProfile()
+
+	theFS = NewHostFileSystem()
+
+	host := "1234"
+	port := 1234
+	user := "1234"
+	password := "1234"
+	config := &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(password),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", host, port), config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	sftpClient, err := sftp.NewClient(conn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer sftpClient.Close()
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 	// For the dropdown in the options menu
@@ -125,15 +156,16 @@ func main() {
 	var fen Fen
 	// Presumably a different value passed by command-line argument
 	if *configFilename != defaultConfigFilenamePath {
-		_, err := os.Stat(*configFilename)
+		_, err := fs.Stat(theFS, *configFilename)
 		if err != nil {
 			log.Fatal("Could not find file: " + *configFilename)
 		}
 	}
 	err = fen.ReadConfig(*configFilename)
+	theFS.(NoWriteFS).SetNoWrite(fen.config.NoWrite)
 
 	if !fen.config.NoWrite {
-		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
+		theFS.(MkdirFS).Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
 	}
 
 	if err != nil {
@@ -176,6 +208,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Comment this to go back to the normal host filesystem
+	theFS = NewSFTPFileSystem(sftpClient)
+
 	// We have to check *selectPaths before flag.Parse()
 	if *selectPaths {
 		for _, arg := range getopt.CommandLine.Args() {
@@ -189,7 +224,7 @@ func main() {
 				continue
 			}
 
-			_, err = os.Lstat(pathAbsolute)
+			_, err = theFS.(ReadlinkFS).Lstat(pathAbsolute)
 			if err != nil {
 				continue
 			}
@@ -631,15 +666,21 @@ func main() {
 					return
 				} else if key == tcell.KeyEnter {
 					if !fen.config.NoWrite {
+						if inputField.GetText() == "" {
+							pages.RemovePage("popup")
+							fen.bottomBar.TemporarilyShowTextInstead("Can't rename with an empty name")
+							return
+						}
+
 						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
-						_, err := os.Lstat(newPath)
+						_, err := theFS.(ReadlinkFS).Lstat(newPath)
 						if err == nil {
 							pages.RemovePage("popup")
 							fen.bottomBar.TemporarilyShowTextInstead("Can't rename to an existing file")
 							return
 						}
 
-						err = os.Rename(fileToRename, newPath)
+						err = theFS.(RenameFS).Rename(fileToRename, newPath)
 						if err != nil {
 							pages.RemovePage("popup")
 							fen.bottomBar.TemporarilyShowTextInstead("Can't rename, no access")
@@ -692,23 +733,23 @@ func main() {
 					return
 				} else if key == tcell.KeyEnter {
 					pathToUse := filepath.Join(fen.wd, inputField.GetText())
-					if filepath.Dir(pathToUse) != fen.wd || (runtime.GOOS != "windows" && pathToUse == string(os.PathSeparator)) || strings.ContainsRune(inputField.GetText(), os.PathSeparator) {
+					if filepath.Dir(pathToUse) != fen.wd || (theFSPathSeparator == '/' && pathToUse == string(theFSPathSeparator)) || strings.ContainsRune(inputField.GetText(), theFSPathSeparator) {
 						fen.bottomBar.TemporarilyShowTextInstead("Paths outside of the current folder are not yet supported")
 						pages.RemovePage("popup")
 						return
 					}
 
-					_, err := os.Stat(pathToUse) // Here to make sure we don't overwrite a file when making a new one
+					_, err := fs.Stat(theFS, pathToUse) // Here to make sure we don't overwrite a file when making a new one
 					if !fen.config.NoWrite && err != nil {
 						var createFileOrFolderErr error
 						if event.Rune() == 'n' {
-							var file *os.File
-							file, createFileOrFolderErr = os.Create(pathToUse)
+							var file AWritableFile
+							file, createFileOrFolderErr = theFS.(CreateFS).Create(pathToUse)
 							if createFileOrFolderErr == nil {
 								defer file.Close()
 							}
 						} else if event.Rune() == 'N' {
-							createFileOrFolderErr = os.Mkdir(pathToUse, 0775)
+							createFileOrFolderErr = theFS.(MkdirFS).Mkdir(pathToUse, 0775)
 						}
 
 						if createFileOrFolderErr != nil {
@@ -773,6 +814,7 @@ func main() {
 			return nil
 		} else if event.Rune() == 'z' || event.Key() == tcell.KeyBackspace {
 			fen.config.HiddenFiles = !fen.config.HiddenFiles
+			fen.InvalidateFolderFileCountCache()
 			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
 			fen.UpdatePanes(true)
 			fen.history.AddToHistory(fen.sel)
@@ -815,7 +857,7 @@ func main() {
 
 			fen.DisableSelectingWithV()
 
-			fen.UpdatePanes(false)
+			fen.UpdatePanes(theFSType == SFTP)
 			fen.bottomBar.TemporarilyShowTextInstead("Paste!")
 
 			return nil
@@ -869,7 +911,7 @@ func main() {
 
 			if len(fen.selected) <= 0 {
 				fileToDelete = fen.sel
-				fileToDeleteInfo, _ := os.Lstat(fileToDelete)
+				fileToDeleteInfo, _ := theFS.(ReadlinkFS).Lstat(fileToDelete)
 				// When the text wraps, color styling gets reset on line breaks. I have not found a good solution yet
 				styleStr := StyleToStyleTagString(FileColor(fileToDeleteInfo, fileToDelete))
 				modal.SetText("[red::d]Delete[-:-:-:-] " + styleStr + FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(filepath.Base(fileToDelete)), styleStr) + "[-:-:-:-] ?")
@@ -922,7 +964,7 @@ func main() {
 					fen.selected = make(map[string]bool)
 
 					fen.DisableSelectingWithV()
-					fen.UpdatePanes(false)
+					fen.UpdatePanes(theFSType == SFTP)
 				})
 
 			modal.SetBorder(true)
@@ -980,7 +1022,7 @@ func main() {
 					pathToUse = filepath.Dir(currentText)
 				}
 
-				dir, err := os.ReadDir(pathToUse)
+				dir, err := theFS.(fs.ReadDirFS).ReadDir(pathToUse)
 				if err != nil {
 					return []string{}
 				}
@@ -991,7 +1033,7 @@ func main() {
 						if !fen.config.HiddenFiles && strings.HasPrefix(e.Name(), ".") {
 							continue
 						}
-						ret = append(ret, filepath.Join(pathToUse, e.Name())+string(os.PathSeparator))
+						ret = append(ret, filepath.Join(pathToUse, e.Name())+string(theFSPathSeparator))
 					}
 				}
 				return ret
@@ -1037,7 +1079,7 @@ func main() {
 			}
 			return nil
 		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyRight { // Ctrl+Right
-			stat, err := os.Lstat(fen.sel)
+			stat, err := theFS.(ReadlinkFS).Lstat(fen.sel)
 			if err == nil && stat.Mode()&os.ModeSymlink != 0 {
 				err := fen.GoSymlink(fen.sel)
 				if err != nil {
@@ -1070,7 +1112,7 @@ func main() {
 				return nil
 			}
 
-			stat, statErr := os.Lstat(filepath.Join(filepath.Dir(fen.sel), ".git"))
+			stat, statErr := theFS.(ReadlinkFS).Lstat(filepath.Join(filepath.Dir(fen.sel), ".git"))
 			repositoryPath, err := fen.gitStatusHandler.TryFindParentGitRepository(filepath.Dir(fen.sel))
 			if err == nil && !(statErr == nil && stat.IsDir()) {
 				fen.GoPath(repositoryPath)
@@ -1128,6 +1170,10 @@ func main() {
 			pages.AddPage("popup", centered(flex, inputFieldHeight+2+len(programs)), true, true)
 			return nil
 		} else if event.Rune() == '!' {
+			if theFSType != Host {
+				fen.bottomBar.TemporarilyShowTextInstead("Can't run shell commands in SFTP servers")
+				return nil
+			}
 			shellName := GetShellArgs()[0]
 			inputField := tview.NewInputField().
 				SetLabel(" Run " + filepath.Base(shellName) + " command: ").
@@ -1200,6 +1246,7 @@ func main() {
 			return nil
 		} else if event.Rune() == 'b' {
 			err := fen.BulkRename(app)
+			defer fen.UpdatePanes(theFSType == SFTP)
 			if err != nil {
 				fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 				return nil
