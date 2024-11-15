@@ -19,7 +19,6 @@
 - Fix a crash (fen hanging) on something like `/proc/.../oom_score_adj`
 - Fix the bottom bar sometimes not showing info on files inside `/proc/.../map_files`
 - Replace github.com/otiai10/copy with my own recursive folder copying
-- Cache folder size (file count)
 - Warning message or enable hidden files when creating a new hidden file/folder
 - Allow creating new files/folders with absolute paths (use fen.GoPath())
 - A sort of "back arrow" key for going to the last folder we were in

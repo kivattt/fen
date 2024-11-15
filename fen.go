@@ -24,6 +24,7 @@ import (
 type Fen struct {
 	app              *tview.Application
 	wd               string // Current working directory
+	lastWD           string
 	sel              string
 	lastSel          string
 	lastInRepository string
@@ -48,6 +49,8 @@ type Fen struct {
 
 	runningGitStatus     bool
 	initializedGitStatus bool // This is for Fini() because the user might have disabled git_status in the options menu
+
+	folderFileCountCache map[string]int
 
 	topBar     *TopBar
 	bottomBar  *BottomBar
@@ -176,6 +179,7 @@ type PreviewOrOpenEntry struct {
 func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool, librariesScreenVisible *bool) error {
 	fen.app = app
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
+	fen.folderFileCountCache = make(map[string]int)
 
 	if fen.config.GitStatus {
 		fen.gitStatusHandler = GitStatusHandler{app: app, fen: fen}
@@ -255,6 +259,10 @@ func (fen *Fen) Fini() {
 		close(fen.gitStatusHandler.channel)
 		fen.gitStatusHandler.wg.Wait()
 	}
+}
+
+func (fen *Fen) InvalidateFolderFileCountCache() {
+	fen.folderFileCountCache = make(map[string]int)
 }
 
 func (fen *Fen) PushAndSetTerminalTitle() {
@@ -446,6 +454,14 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 	fen.middlePane.SetBorder(fen.config.UiBorders)
 	fen.rightPane.SetBorder(fen.config.UiBorders)
 
+	if fen.wd != fen.lastWD {
+		// Has to happen before the filespane ChangeDir() calls which will repopulate the cache
+		fen.InvalidateFolderFileCountCache()
+	}
+	defer func() {
+		fen.lastWD = fen.wd
+	}()
+
 	fen.leftPane.ChangeDir(filepath.Dir(fen.wd), forceReadDir)
 	fen.middlePane.ChangeDir(fen.wd, forceReadDir)
 
@@ -476,6 +492,20 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 
 	fen.UpdateSelectingWithV()
 
+	selStat, selStatErr := os.Lstat(fen.sel)
+	if selStatErr != nil {
+		return
+	}
+
+	// Overwrite the cached folder file count for the currently selected folder
+	// If fen.wd changed, we already invalidated the cache so this isn't needed
+	if fen.wd == fen.lastWD && selStat.IsDir() {
+		count, err := FolderFileCount(fen.sel, fen.config.HiddenFiles)
+		if err == nil {
+			fen.folderFileCountCache[fen.sel] = count
+		}
+	}
+
 	if !fen.config.GitStatus {
 		return
 	}
@@ -486,13 +516,8 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 
 	// If the current Git repository changed or fen.sel is a directory, ask for a git status
 	if fen.sel != fen.lastSel {
-		stat, err := os.Lstat(fen.sel)
-		if err != nil {
-			return
-		}
-
 		var inRepository string
-		if stat.IsDir() {
+		if selStat.IsDir() {
 			inRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.sel)
 		} else {
 			inRepository, err = fen.gitStatusHandler.TryFindParentGitRepository(fen.wd)
@@ -503,12 +528,12 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 			fen.lastInRepository = ""
 		}
 
-		if !stat.IsDir() && err != nil {
+		if !selStat.IsDir() && err != nil {
 			return
 		}
 
 		// Seems like the fsnotify events don't catch up on FreeBSD, need to always trigger a Git status
-		if stat.IsDir() || inRepository != fen.lastInRepository || runtime.GOOS == "freebsd" {
+		if selStat.IsDir() || inRepository != fen.lastInRepository || runtime.GOOS == "freebsd" {
 			fen.TriggerGitStatus() // TODO: Fix redundant os.Lstat() and TryFindParentGitRepository calls...
 		}
 

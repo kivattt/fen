@@ -22,7 +22,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.15"
+const version = "v1.7.16"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -631,6 +631,12 @@ func main() {
 					return
 				} else if key == tcell.KeyEnter {
 					if !fen.config.NoWrite {
+						if inputField.GetText() == "" {
+							pages.RemovePage("popup")
+							fen.bottomBar.TemporarilyShowTextInstead("Can't rename with an empty name")
+							return
+						}
+
 						newPath := filepath.Join(filepath.Dir(fileToRename), inputField.GetText())
 						_, err := os.Lstat(newPath)
 						if err == nil {
@@ -773,6 +779,7 @@ func main() {
 			return nil
 		} else if event.Rune() == 'z' || event.Key() == tcell.KeyBackspace {
 			fen.config.HiddenFiles = !fen.config.HiddenFiles
+			fen.InvalidateFolderFileCountCache()
 			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
 			fen.UpdatePanes(true)
 			fen.history.AddToHistory(fen.sel)
