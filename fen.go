@@ -461,6 +461,10 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 		fen.InvalidateFolderFileCountCache()
 	}
 
+	defer func() {
+		fen.lastWD = fen.wd
+	}()
+
 	fen.leftPane.ChangeDir(filepath.Dir(fen.wd), forceReadDir)
 	fen.middlePane.ChangeDir(fen.wd, forceReadDir)
 
@@ -504,10 +508,6 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 			fen.folderFileCountCache[fen.sel] = count
 		}
 	}
-
-	defer func() {
-		fen.lastWD = fen.wd
-	}()
 
 	if !fen.config.GitStatus {
 		return

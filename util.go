@@ -136,7 +136,7 @@ func EntrySizeText(folderFileCountCache map[string]int, stat os.FileInfo, path s
 
 func FolderFileCountCached(cache map[string]int, path string, hiddenFiles bool) (int, error) {
 	if cache == nil {
-		panic("In FolderFileCount(): cache (fen.folderFileCountCache) was nil")
+		panic("In FolderFileCountCached(): cache (fen.folderFileCountCache) was nil")
 	}
 
 	count, ok := cache[path]
