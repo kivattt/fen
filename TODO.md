@@ -27,6 +27,7 @@
 - topbar.go: Show left part of path also with invisible unicode symbols as codepoints highlighted, and also show symlinks in blue like ranger
 - Configurable filespane proportions
 - Warn when deleting hidden files while hidden files aren't visible
+- Scrollable file previews (fen handles absolute scroll position, hands it to lua as a var)
 
 - Abstract away this common pattern:
 ```go

@@ -6,11 +6,6 @@ import (
 	"os"
 )
 
-type NoWriteFS interface {
-	GetNoWrite() bool
-	SetNoWrite(newValue bool)
-}
-
 type AWritableFile interface {
 	fs.File
 	Close() error
@@ -66,12 +61,25 @@ const (
 	SFTP
 )
 
+type FileSystem interface {
+	GetFSType() FSType
+	GetPathSeparator() rune
+
+	GetHistory() *History
+
+	GetNoWrite() bool
+	SetNoWrite(newValue bool)
+}
+
 // This is a wrapper for the os package filesystem stuff
 type HostFileSystem struct {
-	NoWrite bool
-	NoWriteFS
+	NoWrite       bool
+	fSType        FSType
+	pathSeparator rune
+	history       History
 
 	// Implements these interfaces:
+	FileSystem
 	fs.FS
 	fs.StatFS
 	fs.ReadDirFS
@@ -85,9 +93,19 @@ type HostFileSystem struct {
 }
 
 func NewHostFileSystem() *HostFileSystem {
-	theFSType = Host
-	theFSPathSeparator = os.PathSeparator
-	return &HostFileSystem{}
+	return &HostFileSystem{fSType: Host, pathSeparator: os.PathSeparator}
+}
+
+func (h *HostFileSystem) GetFSType() FSType {
+	return h.fSType
+}
+
+func (h *HostFileSystem) GetPathSeparator() rune {
+	return h.pathSeparator
+}
+
+func (h *HostFileSystem) GetHistory() *History {
+	return &h.history
 }
 
 func (h *HostFileSystem) SetNoWrite(newValue bool) {

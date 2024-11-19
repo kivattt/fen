@@ -44,8 +44,8 @@ func (h *History) GetHistoryEntryForPath(path string, hiddenFiles bool) (string,
 				continue
 			}
 
-			if theFSPathSeparator != '/' { // Windows host filesystem
-				drivePath := filepath.VolumeName(path) + string(theFSPathSeparator)
+			if theFS.(FileSystem).GetPathSeparator() != '/' { // Windows host filesystem
+				drivePath := filepath.VolumeName(path) + string(theFS.(FileSystem).GetPathSeparator())
 				if path == drivePath {
 					e = e[len(drivePath):]
 				} else {
@@ -58,7 +58,7 @@ func (h *History) GetHistoryEntryForPath(path string, hiddenFiles bool) (string,
 					e = e[len(path)+1:]
 				}
 			}
-			nextSlashIdx := strings.Index(e, string(theFSPathSeparator))
+			nextSlashIdx := strings.Index(e, string(theFS.(FileSystem).GetPathSeparator()))
 			if nextSlashIdx == -1 {
 				return filepath.Join(path, e), nil
 			}

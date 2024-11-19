@@ -1,12 +1,14 @@
 - Added "Can't rename with an empty name" message
 - Folder file counts are now cached, improving performance
+- Fixed a bug where toggling `fen.hidden_files` in the options menu would not invalidate the folder file count cache
+- Added `fen.file_size_in_all_panes` option to show file sizes in all panes, not just the middle
 
 - transferring between HostFileSystem and SFTPFileSystem
 - check that file := theFS.Open(...) is actually closeable etc
-- on filesystem change, reset history (or keep specific one per fs)
 - show sftp server username in the top-left
 - add a menu to the left of root to login to sftp server (filezilla integration on user accept)
 
+- DONE (history per fs): on filesystem change, reset history (or keep specific one per fs)
 - DONE: disabled `!` for sftp
 - DONE: removed cmd.Dir = fen.wd for bulkrename
 - DONE: Disable file watching for SFTPFileSystem

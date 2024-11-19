@@ -14,7 +14,6 @@ import (
 	"slices"
 	"time"
 
-	//	"runtime/pprof"
 	"strconv"
 	"strings"
 
@@ -23,20 +22,17 @@ import (
 	"github.com/pkg/sftp"
 	"github.com/rivo/tview"
 	"golang.org/x/crypto/ssh"
+	//	"github.com/pkg/profile"
 )
 
-const version = "v1.7.16"
+const version = "v1.7.17"
 
+var fileSystems [2]fs.FS
 var theFS fs.FS
-var theFSType FSType
-var theFSPathSeparator rune = os.PathSeparator
+var sftpClient *sftp.Client
 
 func main() {
-	//	f, _ := os.Create("profile.prof")
-	//	pprof.StartCPUProfile(f)
-	//	defer pprof.StopCPUProfile()
-
-	theFS = NewHostFileSystem()
+	//defer profile.Start().Stop()
 
 	host := "1234"
 	port := 1234
@@ -54,11 +50,15 @@ func main() {
 		log.Fatal(err)
 	}
 	defer conn.Close()
-	sftpClient, err := sftp.NewClient(conn)
+	sftpClient, err = sftp.NewClient(conn)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer sftpClient.Close()
+
+	fileSystems[0] = NewHostFileSystem()
+	fileSystems[1] = NewSFTPFileSystem(sftpClient)
+	theFS = fileSystems[0]
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 	// For the dropdown in the options menu
@@ -162,7 +162,7 @@ func main() {
 		}
 	}
 	err = fen.ReadConfig(*configFilename)
-	theFS.(NoWriteFS).SetNoWrite(fen.config.NoWrite)
+	theFS.(FileSystem).SetNoWrite(fen.config.NoWrite)
 
 	if !fen.config.NoWrite {
 		theFS.(MkdirFS).Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
@@ -207,9 +207,6 @@ func main() {
 		}
 		os.Exit(1)
 	}
-
-	// Comment this to go back to the normal host filesystem
-	theFS = NewSFTPFileSystem(sftpClient)
 
 	// We have to check *selectPaths before flag.Parse()
 	if *selectPaths {
@@ -300,6 +297,8 @@ func main() {
 
 	pages := tview.NewPages().
 		AddPage("flex", flex, true, true)
+
+	fileSystemMenu := NewFileSystemMenu(pages, &fen)
 
 	centered := func(p tview.Primitive, height int) tview.Primitive {
 		return tview.NewFlex().
@@ -432,14 +431,14 @@ func main() {
 			}
 
 			if mouseX < x {
-				fen.GoLeft()
+				fen.GoLeft(app, pages, fileSystemMenu)
 			} else if mouseX > x+w {
 				fen.GoRight(app, "")
 			} else {
 				fen.GoIndex(mouseY - y + fen.middlePane.GetTopScreenEntryIndex())
 			}
 		case tcell.WheelLeft:
-			fen.GoLeft()
+			fen.GoLeft(app, pages, fileSystemMenu)
 		case tcell.WheelRight:
 			fen.GoRight(app, "")
 		case tcell.WheelUp:
@@ -473,7 +472,7 @@ func main() {
 		}
 
 		if event.Buttons() != tcell.WheelLeft {
-			fen.history.AddToHistory(fen.sel)
+			theFS.(FileSystem).GetHistory().AddToHistory(fen.sel)
 		}
 
 		fen.UpdatePanes(false)
@@ -544,7 +543,7 @@ func main() {
 		// Movement/navigation keys
 		wasMovementKey := true
 		if (event.Modifiers()&tcell.ModCtrl == 0 && event.Key() == tcell.KeyLeft) || event.Rune() == 'h' {
-			fen.GoLeft()
+			fen.GoLeft(app, pages, fileSystemMenu)
 		} else if (event.Modifiers()&tcell.ModCtrl == 0 && event.Key() == tcell.KeyRight) || event.Rune() == 'l' || event.Key() == tcell.KeyEnter {
 			fen.GoRight(app, "")
 		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
@@ -588,7 +587,7 @@ func main() {
 
 		if wasMovementKey {
 			if !((event.Modifiers()&tcell.ModCtrl == 0 && event.Key() == tcell.KeyLeft) || event.Rune() == 'h') {
-				fen.history.AddToHistory(fen.sel)
+				theFS.(FileSystem).GetHistory().AddToHistory(fen.sel)
 			}
 
 			fen.UpdatePanes(false)
@@ -618,7 +617,7 @@ func main() {
 					fen.bottomBar.TemporarilyShowTextInstead("Nothing found")
 				} else {
 					// Same code as the wasMovementKey check
-					fen.history.AddToHistory(fen.sel)
+					theFS.(FileSystem).GetHistory().AddToHistory(fen.sel)
 					fen.UpdatePanes(false)
 				}
 			})
@@ -689,13 +688,13 @@ func main() {
 
 						// These are also done by file system events, but let's be safe
 						fen.RemoveFromSelectedAndYankSelected(fileToRename)
-						fen.history.RemoveFromHistory(fileToRename)
+						theFS.(FileSystem).GetHistory().RemoveFromHistory(fileToRename)
 
 						// We can't use fen.GoPath() here because it would enter directories
 						fen.UpdatePanes(true)
 						fen.sel = newPath
 						fen.middlePane.SetSelectedEntryFromString(filepath.Base(fen.sel)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
-						fen.history.AddToHistory(newPath)
+						theFS.(FileSystem).GetHistory().AddToHistory(newPath)
 					} else {
 						fen.bottomBar.TemporarilyShowTextInstead("Can't rename in no-write mode")
 					}
@@ -733,7 +732,7 @@ func main() {
 					return
 				} else if key == tcell.KeyEnter {
 					pathToUse := filepath.Join(fen.wd, inputField.GetText())
-					if filepath.Dir(pathToUse) != fen.wd || (theFSPathSeparator == '/' && pathToUse == string(theFSPathSeparator)) || strings.ContainsRune(inputField.GetText(), theFSPathSeparator) {
+					if filepath.Dir(pathToUse) != fen.wd || (theFS.(FileSystem).GetPathSeparator() == '/' && pathToUse == string(theFS.(FileSystem).GetPathSeparator())) || strings.ContainsRune(inputField.GetText(), theFS.(FileSystem).GetPathSeparator()) {
 						fen.bottomBar.TemporarilyShowTextInstead("Paths outside of the current folder are not yet supported")
 						pages.RemovePage("popup")
 						return
@@ -756,7 +755,7 @@ func main() {
 							fen.bottomBar.TemporarilyShowTextInstead(createFileOrFolderErr.Error())
 						} else {
 							fen.sel = pathToUse
-							fen.history.AddToHistory(fen.sel)
+							theFS.(FileSystem).GetHistory().AddToHistory(fen.sel)
 						}
 						fen.UpdatePanes(true)
 					} else if fen.config.NoWrite {
@@ -817,7 +816,7 @@ func main() {
 			fen.InvalidateFolderFileCountCache()
 			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
 			fen.UpdatePanes(true)
-			fen.history.AddToHistory(fen.sel)
+			theFS.(FileSystem).GetHistory().AddToHistory(fen.sel)
 			return nil
 		} else if event.Rune() == 'p' {
 			if len(fen.yankSelected) <= 0 {
@@ -857,7 +856,7 @@ func main() {
 
 			fen.DisableSelectingWithV()
 
-			fen.UpdatePanes(theFSType == SFTP)
+			fen.UpdatePanes(theFS.(FileSystem).GetFSType() == SFTP)
 			fen.bottomBar.TemporarilyShowTextInstead("Paste!")
 
 			return nil
@@ -964,7 +963,7 @@ func main() {
 					fen.selected = make(map[string]bool)
 
 					fen.DisableSelectingWithV()
-					fen.UpdatePanes(theFSType == SFTP)
+					fen.UpdatePanes(theFS.(FileSystem).GetFSType() == SFTP)
 				})
 
 			modal.SetBorder(true)
@@ -1033,7 +1032,7 @@ func main() {
 						if !fen.config.HiddenFiles && strings.HasPrefix(e.Name(), ".") {
 							continue
 						}
-						ret = append(ret, filepath.Join(pathToUse, e.Name())+string(theFSPathSeparator))
+						ret = append(ret, filepath.Join(pathToUse, e.Name())+string(theFS.(FileSystem).GetPathSeparator()))
 					}
 				}
 				return ret
@@ -1068,6 +1067,7 @@ func main() {
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Key() == tcell.KeyF5 {
+			fen.InvalidateFolderFileCountCache()
 			fen.UpdatePanes(true)
 			app.Sync()
 			fen.TriggerGitStatus()
@@ -1170,7 +1170,7 @@ func main() {
 			pages.AddPage("popup", centered(flex, inputFieldHeight+2+len(programs)), true, true)
 			return nil
 		} else if event.Rune() == '!' {
-			if theFSType != Host {
+			if theFS.(FileSystem).GetFSType() != Host {
 				fen.bottomBar.TemporarilyShowTextInstead("Can't run shell commands in SFTP servers")
 				return nil
 			}
@@ -1246,7 +1246,7 @@ func main() {
 			return nil
 		} else if event.Rune() == 'b' {
 			err := fen.BulkRename(app)
-			defer fen.UpdatePanes(theFSType == SFTP)
+			defer fen.UpdatePanes(theFS.(FileSystem).GetFSType() == SFTP)
 			if err != nil {
 				fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 				return nil
@@ -1317,6 +1317,12 @@ func main() {
 							app.EnableMouse(checked)
 							fen.UpdatePanes(true)
 						}
+					} else if fieldName == "hidden_files" {
+						f = func(checked bool) {
+							*fieldPtr.(*bool) = checked
+							fen.InvalidateFolderFileCountCache()
+							fen.UpdatePanes(true)
+						}
 					} else if fieldName == "git_status" {
 						// Don't show the git_status option if it was disabled on startup, to prevent crashes
 						if !fen.initializedGitStatus {
@@ -1370,7 +1376,7 @@ func main() {
 			optionsForm.SetBorderPadding(0, 0, 1, 1)
 			optionsForm.SetFieldBackgroundColor(tcell.ColorBlack)
 			optionsForm.SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
-				if width < 75 {
+				if width < 80 {
 					return x + 1, y + 1, width - 2, height - 1
 				}
 				xOffset := width/2 - 20

@@ -84,16 +84,16 @@ func BytesToHumanReadableUnitString(bytes uint64, maxDecimals int) string {
 }
 
 func PathWithEndSeparator(path string) string {
-	if strings.HasSuffix(path, string(theFSPathSeparator)) {
+	if strings.HasSuffix(path, string(theFS.(FileSystem).GetPathSeparator())) {
 		return path
 	}
 
-	return path + string(theFSPathSeparator)
+	return path + string(theFS.(FileSystem).GetPathSeparator())
 }
 
 func PathWithoutEndSeparator(path string) string {
-	if strings.HasSuffix(path, string(theFSPathSeparator)) {
-		return path[:len(path)-1] // theFSPathSeparator is a rune, so always 1 character long
+	if strings.HasSuffix(path, string(theFS.(FileSystem).GetPathSeparator())) {
+		return path[:len(path)-1] // GetPathSeparator() is a rune, so always 1 character long
 	}
 
 	return path
@@ -671,7 +671,7 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 		return errors.New("Can't open files in no-write mode")
 	}
 
-	if theFSType != Host { // theFSType == SFTP
+	if theFS.(FileSystem).GetFSType() != Host { // GetFSType() == SFTP
 		return errors.New("Can't open files from SFTP servers")
 	}
 
@@ -769,8 +769,8 @@ func FilePathUniqueNameIfAlreadyExists(path string) string {
 		panic("FilePathUniqueNameIfAlreadyExists got an uncleaned file path")
 	}
 
-	if strings.HasSuffix(path, string(theFSPathSeparator)) {
-		panic("FilePathUniqueNameIfAlreadyExists got a file path ending in " + string(theFSPathSeparator))
+	if strings.HasSuffix(path, string(theFS.(FileSystem).GetPathSeparator())) {
+		panic("FilePathUniqueNameIfAlreadyExists got a file path ending in " + string(theFS.(FileSystem).GetPathSeparator()))
 	}
 
 	newPath := path

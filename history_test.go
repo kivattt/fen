@@ -3,6 +3,8 @@ package main
 import "testing"
 
 func TestGetHistoryEntryForPath(t *testing.T) {
+	theFS = NewHostFileSystem() // Since History uses theFS.(FileSystem).GetPathSeparator(), it has to be set first
+
 	var h History
 	h.AddToHistory("/home/user/folder1/folder2")
 

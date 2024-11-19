@@ -30,8 +30,7 @@ type FilesPane struct {
 	folder              string       // Can be a path to a file
 	entries             atomic.Value // []os.DirEntry
 	selectedEntryIndex  int
-	showEntrySizes      bool
-	isRightFilesPane    bool
+	panePos             PanePos
 	parentIsEmptyFolder bool
 	Invisible           bool
 	fileWatcher         *fsnotify.Watcher
@@ -43,14 +42,13 @@ type FilesPane struct {
 	lastRenamedPathTime time.Time
 }
 
-func NewFilesPane(fen *Fen, showEntrySizes, isRightFilesPane bool) *FilesPane {
+func NewFilesPane(fen *Fen, panePos PanePos) *FilesPane {
 	newWatcher, _ := fsnotify.NewWatcher()
 	return &FilesPane{
 		Box:                tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
 		fen:                fen,
 		selectedEntryIndex: 0,
-		showEntrySizes:     showEntrySizes,
-		isRightFilesPane:   isRightFilesPane,
+		panePos:            panePos,
 		fileWatcher:        newWatcher,
 	}
 }
@@ -157,8 +155,8 @@ func (fp *FilesPane) HandleFileEvent(event fsnotify.Event) error {
 		//  then renaming it back to the original path within a very short period of time.
 		if time.Since(fp.lastRenamedPathTime) < 200*time.Millisecond {
 			if event.Name == fp.lastRenamedPath {
-				fp.fen.history.RemoveFromHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
-				fp.fen.history.AddToHistory(event.Name)
+				theFS.(FileSystem).GetHistory().RemoveFromHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
+				theFS.(FileSystem).GetHistory().AddToHistory(event.Name)
 			}
 		}
 		return fp.AddEntry(event.Name)
@@ -210,8 +208,8 @@ func (fp *FilesPane) RemoveEntry(path string) error {
 	fp.entries.Store(append(fp.entries.Load().([]os.DirEntry)[:index], fp.entries.Load().([]os.DirEntry)[index+1:]...))
 	fp.fen.RemoveFromSelectedAndYankSelected(path) // FIXME: Panic when deleting 4000 files
 
-	fp.fen.history.RemoveFromHistory(path)
-	fp.fen.history.AddToHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
+	theFS.(FileSystem).GetHistory().RemoveFromHistory(path)
+	theFS.(FileSystem).GetHistory().AddToHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
 
 	return nil
 }
@@ -287,7 +285,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 		statIsDir = stat.IsDir()
 	}
 
-	if theFSType != Host {
+	if theFS.(FileSystem).GetFSType() != Host {
 		fp.fileWatcher.Remove(fp.folder)
 	}
 
@@ -320,7 +318,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 		fp.folder = path
 		newEntries, _ := theFS.(fs.ReadDirFS).ReadDir(fp.folder)
 		fp.entries.Store(newEntries)
-		if theFSType == Host {
+		if theFS.(FileSystem).GetFSType() == Host {
 			fp.fileWatcher.Add(fp.folder) // This has to be after the os.ReadDir() so we have something to update
 		}
 
@@ -461,7 +459,7 @@ func (fp *FilesPane) SetSelectedEntryFromString(entryName string) error {
 	}
 
 	fp.keepSelectionInBounds()
-	fp.fen.history.AddToHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
+	theFS.(FileSystem).GetHistory().AddToHistory(fp.GetSelectedPathFromIndex(fp.selectedEntryIndex))
 
 	return errors.New("No entry with name: " + entryName)
 }
@@ -567,18 +565,24 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		}
 	}
 
-	if fp.isRightFilesPane || fp.fen.config.UiBorders {
+	if fp.panePos == RightPane || fp.fen.config.UiBorders {
 		w++
 	}
 
-	if fp.isRightFilesPane && fp.parentIsEmptyFolder || (!fp.isRightFilesPane && len(fp.entries.Load().([]os.DirEntry)) <= 0) && fp.folder != filepath.Dir(fp.folder) {
+	if fp.panePos == LeftPane && len(fp.entries.Load().([]os.DirEntry)) == 0 && fp.folder == filepath.Dir(fp.folder) {
+		//fp.fen.fileSystemMenu.SetRect(x, y, w, h)
+		//fp.fen.fileSystemMenu.Draw(screen)
+		return
+	}
+
+	if fp.panePos == RightPane && fp.parentIsEmptyFolder || ((fp.panePos != RightPane) && len(fp.entries.Load().([]os.DirEntry)) <= 0) && fp.folder != filepath.Dir(fp.folder) {
 		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
 		return
 	}
 
 	// File previews
 	stat, statErr := fs.Stat(theFS, fp.fen.sel)
-	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
+	if fp.panePos == RightPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
 		w--
 
 		filenameResolved, err := filepath.EvalSymlinks(fp.fen.sel)
@@ -711,7 +715,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		//styleStr := StyleToStyleTagString(style)
 
 		entrySizePrintedSize := 0
-		if fp.showEntrySizes {
+		if fp.fen.config.FileSizeInAllPanes || fp.panePos == MiddlePane {
 			entrySizeText, err := EntrySizeText(fp.fen.folderFileCountCache, entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
 			if err != nil {
 				entrySizeText = "?"

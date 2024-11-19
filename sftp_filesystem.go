@@ -9,12 +9,15 @@ import (
 )
 
 type SFTPFileSystem struct {
-	NoWrite bool
-	NoWriteFS
+	NoWrite       bool
+	fSType        FSType
+	pathSeparator rune
+	history       History
 
 	client *sftp.Client
 
 	// Implements these interfaces:
+	FileSystem
 	fs.FS
 	fs.StatFS
 	fs.ReadDirFS
@@ -29,9 +32,19 @@ type SFTPFileSystem struct {
 }
 
 func NewSFTPFileSystem(sftpClient *sftp.Client) *SFTPFileSystem {
-	theFSType = SFTP
-	theFSPathSeparator = '/'
-	return &SFTPFileSystem{client: sftpClient}
+	return &SFTPFileSystem{client: sftpClient, fSType: SFTP, pathSeparator: '/'}
+}
+
+func (s *SFTPFileSystem) GetFSType() FSType {
+	return s.fSType
+}
+
+func (s *SFTPFileSystem) GetPathSeparator() rune {
+	return s.pathSeparator
+}
+
+func (s *SFTPFileSystem) GetHistory() *History {
+	return &s.history
 }
 
 func (s *SFTPFileSystem) SetNoWrite(newValue bool) {

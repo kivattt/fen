@@ -29,7 +29,6 @@ type Fen struct {
 	sel              string
 	lastSel          string
 	lastInRepository string
-	history          History
 
 	selected     map[string]bool
 	yankSelected map[string]bool
@@ -93,6 +92,7 @@ type Config struct {
 	Bookmarks               [10]string           `lua:"bookmarks"`
 	GitStatus               bool                 `lua:"git_status"`
 	PreviewSafetyBlocklist  bool                 `lua:"preview_safety_blocklist"`
+	FileSizeInAllPanes      bool                 `lua:"file_size_in_all_panes"`
 }
 
 func NewConfigDefaultValues() Config {
@@ -177,6 +177,14 @@ type PreviewOrOpenEntry struct {
 	DoNotMatch []string
 }
 
+type PanePos int
+
+const (
+	LeftPane PanePos = iota
+	MiddlePane
+	RightPane
+)
+
 func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool, librariesScreenVisible *bool) error {
 	fen.app = app
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
@@ -205,9 +213,9 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 
 	fen.topBar = NewTopBar(fen)
 
-	fen.leftPane = NewFilesPane(fen, false, false)
-	fen.middlePane = NewFilesPane(fen, true, false)
-	fen.rightPane = NewFilesPane(fen, false, true)
+	fen.leftPane = NewFilesPane(fen, LeftPane)
+	fen.middlePane = NewFilesPane(fen, MiddlePane)
+	fen.rightPane = NewFilesPane(fen, RightPane)
 
 	fen.leftPane.Init()
 	fen.middlePane.Init()
@@ -243,7 +251,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 		}
 	}
 
-	fen.history.AddToHistory(fen.sel)
+	theFS.(FileSystem).GetHistory().AddToHistory(fen.sel)
 	fen.UpdatePanes(false)
 
 	return err
@@ -262,7 +270,11 @@ func (fen *Fen) Fini() {
 	}
 }
 
-// This is to invalidate the folder file count cache when fen.config.HiddenFiles changes, or the current working directory is changed.
+// This is to invalidate the folder file count cache when:
+// - The current working directory changes
+// - fen.config.HiddenFiles changes
+// - The F5 key is pressed
+// - The filesystem (theFS) is changed
 func (fen *Fen) InvalidateFolderFileCountCache() {
 	fen.folderFileCountCache = make(map[string]int)
 }
@@ -485,7 +497,7 @@ func (fen *Fen) UpdatePanes(forceReadDir bool) {
 		fen.rightPane.parentIsEmptyFolder = false
 	}
 
-	h, err := fen.history.GetHistoryEntryForPath(fen.sel, fen.config.HiddenFiles)
+	h, err := theFS.(FileSystem).GetHistory().GetHistoryEntryForPath(fen.sel, fen.config.HiddenFiles)
 	if err != nil {
 		fen.rightPane.SetSelectedEntryFromIndex(0)
 	} else {
@@ -627,9 +639,11 @@ func (fen *Fen) EnableSelection(filePath string) {
 	fen.selected[filePath] = true
 }
 
-func (fen *Fen) GoLeft() {
+func (fen *Fen) GoLeft(app *tview.Application, pages *tview.Pages, fileSystemMenu *FileSystemMenu) {
 	// Not sure if this is necessary
 	if filepath.Dir(fen.wd) == filepath.Clean(fen.wd) {
+		pages.AddPage("popup", fileSystemMenu, true, true)
+		app.SetFocus(fileSystemMenu)
 		return
 	}
 
@@ -663,7 +677,7 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 		}*/
 
 	fen.wd = fen.sel
-	fen.sel, err = fen.history.GetHistoryEntryForPath(fen.wd, fen.config.HiddenFiles)
+	fen.sel, err = theFS.(FileSystem).GetHistory().GetHistoryEntryForPath(fen.wd, fen.config.HiddenFiles)
 
 	if err != nil {
 		fen.sel = filepath.Join(fen.wd, fen.rightPane.GetSelectedEntryFromIndex(0))
@@ -984,7 +998,7 @@ func (fen *Fen) GoPath(path string) (string, error) {
 
 	if stat.IsDir() {
 		fen.wd = pathToUse
-		h, err := fen.history.GetHistoryEntryForPath(pathToUse, fen.config.HiddenFiles)
+		h, err := theFS.(FileSystem).GetHistory().GetHistoryEntryForPath(pathToUse, fen.config.HiddenFiles)
 		if err != nil {
 			fen.UpdatePanes(false) // Need to do this first so the new selected path is added to history
 			fen.GoTop()
@@ -998,7 +1012,7 @@ func (fen *Fen) GoPath(path string) (string, error) {
 
 	// XXX: Always adds to history when not at the root path
 	if filepath.Dir(fen.sel) != filepath.Clean(fen.sel) {
-		fen.history.AddToHistory(fen.sel)
+		theFS.(FileSystem).GetHistory().AddToHistory(fen.sel)
 	}
 
 	if fen.selectingWithV {
@@ -1013,8 +1027,8 @@ func (fen *Fen) GoPath(path string) (string, error) {
 
 func (fen *Fen) GoRootPath() {
 	var path string
-	if theFSPathSeparator != '/' { // Windows
-		path = filepath.VolumeName(fen.sel) + string(theFSPathSeparator)
+	if theFS.(FileSystem).GetPathSeparator() != '/' { // Windows
+		path = filepath.VolumeName(fen.sel) + string(theFS.(FileSystem).GetPathSeparator())
 	} else {
 		path = "/"
 	}
@@ -1023,7 +1037,7 @@ func (fen *Fen) GoRootPath() {
 
 // Goes to the path furthest down in the history
 func (fen *Fen) GoRightUpToHistory() {
-	path, err := fen.history.GetHistoryFullPath(fen.sel, fen.config.HiddenFiles)
+	path, err := theFS.(FileSystem).GetHistory().GetHistoryFullPath(fen.sel, fen.config.HiddenFiles)
 	if err != nil {
 		return
 	}
@@ -1219,8 +1233,8 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, string(theFSPathSeparator)) {
-			return errors.New("Nothing renamed! Because a path contained a path separator \"" + string(theFSPathSeparator) + "\"")
+		if strings.Contains(line, string(theFS.(FileSystem).GetPathSeparator())) {
+			return errors.New("Nothing renamed! Because a path contained a path separator \"" + string(theFS.(FileSystem).GetPathSeparator()) + "\"")
 		}
 		postRenameList = append(postRenameList, line)
 	}
@@ -1348,7 +1362,7 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 			// We can't use fen.GoPath() here because it would enter directories
 			fen.sel = preRenameAbs
 			fen.middlePane.SetSelectedEntryFromString(filepath.Base(preRenameAbs)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
-			fen.history.AddToHistory(preRenameAbs)
+			theFS.(FileSystem).GetHistory().AddToHistory(preRenameAbs)
 			fen.UpdatePanes(true) // Need to force a read dir so the new entry is in the filespane for fen.GoPath
 
 			nFilesRenamedFail++
@@ -1362,7 +1376,7 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 		}
 
 		// This is also done by file system events, but let's be safe
-		fen.history.RemoveFromHistory(oldNameAbs)
+		theFS.(FileSystem).GetHistory().RemoveFromHistory(oldNameAbs)
 
 		// Select the new name of the first renamed path
 		if j == 0 {
@@ -1370,7 +1384,7 @@ func (fen *Fen) BulkRename(app *tview.Application) error {
 			fen.UpdatePanes(true) // Need to force a read dir so the new entry is in the filespane
 			fen.sel = newNameAbs
 			fen.middlePane.SetSelectedEntryFromString(filepath.Base(newNameAbs)) // fen.UpdatePanes() overwrites fen.sel, so we have to set the index
-			fen.history.AddToHistory(newNameAbs)
+			theFS.(FileSystem).GetHistory().AddToHistory(newNameAbs)
 		}
 		j++
 
