@@ -1,12 +1,13 @@
-- Added "Can't rename with an empty name" message
-- Folder file counts are now cached, improving performance
 - Fixed a bug where toggling `fen.hidden_files` in the options menu would not invalidate the folder file count cache
+- Fixed a bug where fen would crash after a while when left in an unmounted/deleted directory
 - Added `fen.file_size_in_all_panes` option to show file sizes in all panes, not just the middle
+- `Ctrl+Right` in Git repositories now correctly goes to the first changed non-folder closest to the root of the repository, instead of just selecting the shortest filepath
 
 - transferring between HostFileSystem and SFTPFileSystem
 - check that file := theFS.Open(...) is actually closeable etc
 - show sftp server username in the top-left
 - add a menu to the left of root to login to sftp server (filezilla integration on user accept)
+- dynamic fs selection list (for MTP, to detect camera plugged in or not)
 
 - DONE (history per fs): on filesystem change, reset history (or keep specific one per fs)
 - DONE: disabled `!` for sftp

@@ -21,7 +21,7 @@ import (
 	"github.com/kivattt/getopt"
 	"github.com/pkg/sftp"
 	"github.com/rivo/tview"
-	"golang.org/x/crypto/ssh"
+	//	"golang.org/x/crypto/ssh"
 	//	"github.com/pkg/profile"
 )
 
@@ -34,7 +34,7 @@ var sftpClient *sftp.Client
 func main() {
 	//defer profile.Start().Stop()
 
-	host := "1234"
+	/*host := "1234"
 	port := 1234
 	user := "1234"
 	password := "1234"
@@ -54,10 +54,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer sftpClient.Close()
+	defer sftpClient.Close()*/
 
 	fileSystems[0] = NewHostFileSystem()
-	fileSystems[1] = NewSFTPFileSystem(sftpClient)
+	//fileSystems[1] = NewSFTPFileSystem(sftpClient)
 	theFS = fileSystems[0]
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
