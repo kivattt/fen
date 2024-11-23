@@ -88,7 +88,7 @@ func main() {
 
 	err = getopt.CommandLine.Parse(os.Args[1:])
 	if err != nil {
-		os.Exit(0)
+		os.Exit(2)
 	}
 
 	if *v {
