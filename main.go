@@ -22,7 +22,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.16"
+const version = "v1.7.17"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -63,13 +63,14 @@ func main() {
 	uiBorders := flag.Bool("ui-borders", defaultConfigValues.UiBorders, "enable UI borders")
 	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "enable mouse events")
 	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
-	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "")
+	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "make hidden files visible")
 	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "always show folders at the top")
 	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit when opening file(s)")
 	printFolderOnExit := flag.Bool("print-folder-on-exit", false, "output the current working folder in fen on exit")
 	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "change terminal title to 'fen "+version+"' while open")
 	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "show the 'For help: ...' text")
 	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "show username@hostname in the top-left")
+	closeOnEscape := flag.Bool("close-on-escape", defaultConfigValues.CloseOnEscape, "make the escape key exit fen")
 
 	selectPaths := flag.Bool("select", false, "select PATHS")
 
@@ -235,6 +236,9 @@ func main() {
 	}
 	if flagPassed("show-hostname") {
 		fen.config.ShowHostname = *showHostname
+	}
+	if flagPassed("close-on-escape") {
+		fen.config.CloseOnEscape = *closeOnEscape
 	}
 
 	if flagPassed("sort-by") {
@@ -454,7 +458,7 @@ func main() {
 
 		fen.bottomBar.alternateText = ""
 
-		if event.Rune() == 'q' {
+		if event.Rune() == 'q' || (fen.config.CloseOnEscape && event.Key() == tcell.KeyEscape) {
 			fen.fileOperationsHandler.workCountMutex.Lock()
 			if fen.fileOperationsHandler.workCount <= 0 {
 				fen.fileOperationsHandler.workCountMutex.Unlock()

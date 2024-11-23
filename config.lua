@@ -16,6 +16,7 @@ fen.always_show_info_numbers = false -- Shows the blue, green and yellow numbers
 fen.scroll_speed = 2 -- When scrolling faster than 30ms per scroll, scroll this many entries
 fen.git_status = false -- EXPERIMENTAL: When true, unstaged/untracked files in local git repositories are shown in red
 fen.preview_safety_blocklist = true -- Prevents common sensitive file types from being previewed
+fen.close_on_escape = false -- Use the Escape key to close fen, useful for embedding in other applications
 
 -- Everything below this line is non-default examples
 
