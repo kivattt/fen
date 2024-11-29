@@ -67,6 +67,25 @@ func TestStyleToStyleTagString(t *testing.T) {
 	}
 }
 
+func TestRuneToPrintableCode(t *testing.T) {
+	expectedResults := map[rune]string{
+		'a': "\\u61",
+		'z': "\\u7a",
+		' ': "\\u20",
+		'🥺': "\\u1f97a",
+		'\a': "\\a",
+		'\v': "\\v",
+		'\t': "\\t",
+	}
+
+	for input, expected := range expectedResults {
+		got := RuneToPrintableCode(input)
+		if got != expected {
+			t.Fatal("Expected " + expected + ", but got " + got)
+		}
+	}
+}
+
 func TestFilenameInvisibleCharactersAsCodeHighlighted(t *testing.T) {
 	expectedResults := map[[2]string]string{
 		{"file.txt", ""}:            "file.txt",
