@@ -25,7 +25,7 @@ import (
 	//	"github.com/pkg/profile"
 )
 
-const version = "v1.7.18"
+const version = "v1.7.19"
 
 var fileSystems [2]fs.FS
 var theFS fs.FS
@@ -1275,6 +1275,7 @@ func main() {
 			}
 
 			optionsAtTheTop := []string{
+				"git_status",
 				"sort_by",
 				"sort_reverse",
 				"ui_borders",
