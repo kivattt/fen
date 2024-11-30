@@ -30,8 +30,7 @@ type FilesPane struct {
 	folder              string       // Can be a path to a file
 	entries             atomic.Value // []os.DirEntry
 	selectedEntryIndex  int
-	showEntrySizes      bool
-	isRightFilesPane    bool
+	panePos             PanePos
 	parentIsEmptyFolder bool
 	Invisible           bool
 	fileWatcher         *fsnotify.Watcher
@@ -43,14 +42,13 @@ type FilesPane struct {
 	lastRenamedPathTime time.Time
 }
 
-func NewFilesPane(fen *Fen, showEntrySizes, isRightFilesPane bool) *FilesPane {
+func NewFilesPane(fen *Fen, panePos PanePos) *FilesPane {
 	newWatcher, _ := fsnotify.NewWatcher()
 	return &FilesPane{
 		Box:                tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
 		fen:                fen,
 		selectedEntryIndex: 0,
-		showEntrySizes:     showEntrySizes,
-		isRightFilesPane:   isRightFilesPane,
+		panePos:            panePos,
 		fileWatcher:        newWatcher,
 	}
 }
@@ -561,18 +559,18 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		}
 	}
 
-	if fp.isRightFilesPane || fp.fen.config.UiBorders {
+	if fp.panePos == RightPane || fp.fen.config.UiBorders {
 		w++
 	}
 
-	if fp.isRightFilesPane && fp.parentIsEmptyFolder || (!fp.isRightFilesPane && len(fp.entries.Load().([]os.DirEntry)) <= 0) && fp.folder != filepath.Dir(fp.folder) {
+	if fp.panePos == RightPane && fp.parentIsEmptyFolder || ((fp.panePos != RightPane) && len(fp.entries.Load().([]os.DirEntry)) <= 0) && fp.folder != filepath.Dir(fp.folder) {
 		tview.Print(screen, "[:red]empty", x, y, w, tview.AlignLeft, tcell.ColorDefault)
 		return
 	}
 
 	// File previews
 	stat, statErr := os.Stat(fp.fen.sel)
-	if fp.isRightFilesPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
+	if fp.panePos == RightPane && len(fp.fen.config.Preview) > 0 && statErr == nil && stat.Mode().IsRegular() && fp.CanOpenFile(fp.fen.sel) && len(fp.entries.Load().([]os.DirEntry)) <= 0 {
 		w--
 
 		filenameResolved, err := filepath.EvalSymlinks(fp.fen.sel)
@@ -705,7 +703,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		//styleStr := StyleToStyleTagString(style)
 
 		entrySizePrintedSize := 0
-		if fp.showEntrySizes {
+		if fp.fen.config.FileSizeInAllPanes || fp.panePos == MiddlePane {
 			entrySizeText, err := EntrySizeText(fp.fen.folderFileCountCache, entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
 			if err != nil {
 				entrySizeText = "?"

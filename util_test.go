@@ -69,10 +69,10 @@ func TestStyleToStyleTagString(t *testing.T) {
 
 func TestRuneToPrintableCode(t *testing.T) {
 	expectedResults := map[rune]string{
-		'a': "\\u61",
-		'z': "\\u7a",
-		' ': "\\u20",
-		'🥺': "\\u1f97a",
+		'a':  "\\u61",
+		'z':  "\\u7a",
+		' ':  "\\u20",
+		'🥺':  "\\u1f97a",
 		'\a': "\\a",
 		'\v': "\\v",
 		'\t': "\\t",

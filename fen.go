@@ -93,6 +93,7 @@ type Config struct {
 	GitStatus               bool                 `lua:"git_status"`
 	PreviewSafetyBlocklist  bool                 `lua:"preview_safety_blocklist"`
 	CloseOnEscape           bool                 `lua:"close_on_escape"`
+	FileSizeInAllPanes      bool                 `lua:"file_size_in_all_panes"`
 }
 
 func NewConfigDefaultValues() Config {
@@ -177,6 +178,14 @@ type PreviewOrOpenEntry struct {
 	DoNotMatch []string
 }
 
+type PanePos int
+
+const (
+	LeftPane PanePos = iota
+	MiddlePane
+	RightPane
+)
+
 func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool, librariesScreenVisible *bool) error {
 	fen.app = app
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
@@ -205,9 +214,9 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 
 	fen.topBar = NewTopBar(fen)
 
-	fen.leftPane = NewFilesPane(fen, false, false)
-	fen.middlePane = NewFilesPane(fen, true, false)
-	fen.rightPane = NewFilesPane(fen, false, true)
+	fen.leftPane = NewFilesPane(fen, LeftPane)
+	fen.middlePane = NewFilesPane(fen, MiddlePane)
+	fen.rightPane = NewFilesPane(fen, RightPane)
 
 	fen.leftPane.Init()
 	fen.middlePane.Init()
