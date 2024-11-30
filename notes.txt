@@ -16,3 +16,8 @@
 - DONE (we just createtemp on host): os.CreateTemp might not work out on SFTPFileSystem (maybe disable bulk-rename on SFTPFileSystem)
 - DONE (disallow opening files on non-host): file previews and opening files need to download them first...
 - DONE: prevent path separator bugs by not using os.PathSeparator, instead it is determined by theFS current file system
+
+Filesystem ideas:
+- FTP
+- TFTP
+- Shell over UART/other serial (ls parsing)
