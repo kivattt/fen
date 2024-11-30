@@ -33,7 +33,7 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	x, y, w, _ := bottomBar.GetInnerRect()
 
-	freeBytes, err := theFS.(FreeDiskSpaceBytesFS).FreeDiskSpaceBytes(bottomBar.fen.sel) // FreeDiskSpaceBytes(bottomBar.fen.sel)
+	freeBytes, err := theFS.(FreeDiskSpaceBytesFS).FreeDiskSpaceBytes(bottomBar.fen.sel)
 	freeBytesStr := BytesToHumanReadableUnitString(freeBytes, 3)
 	if err != nil {
 		freeBytesStr = "?"
