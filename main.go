@@ -1337,6 +1337,7 @@ func main() {
 
 			optionsForm.SetItemPadding(0)
 			optionsForm.SetTitle("Options this session")
+			optionsForm.SetTitleColor(tcell.ColorDefault)
 			optionsForm.SetBorder(true)
 			optionsForm.SetBackgroundColor(tcell.ColorBlack)
 			optionsForm.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
