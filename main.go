@@ -1037,6 +1037,7 @@ func main() {
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Key() == tcell.KeyF5 {
+			fen.InvalidateFolderFileCountCache()
 			fen.UpdatePanes(true)
 			app.Sync()
 			fen.TriggerGitStatus()
@@ -1211,6 +1212,7 @@ func main() {
 			return nil
 		} else if event.Rune() == 'b' {
 			err := fen.BulkRename(app)
+			defer fen.UpdatePanes(false)
 			if err != nil {
 				fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 				return nil
@@ -1282,6 +1284,12 @@ func main() {
 							app.EnableMouse(checked)
 							fen.UpdatePanes(true)
 						}
+					} else if fieldName == "hidden_files" {
+						f = func(checked bool) {
+							*fieldPtr.(*bool) = checked
+							fen.InvalidateFolderFileCountCache()
+							fen.UpdatePanes(true)
+						}
 					} else if fieldName == "git_status" {
 						// Don't show the git_status option if it was disabled on startup, to prevent crashes
 						if !fen.initializedGitStatus {
@@ -1335,7 +1343,7 @@ func main() {
 			optionsForm.SetBorderPadding(0, 0, 1, 1)
 			optionsForm.SetFieldBackgroundColor(tcell.ColorBlack)
 			optionsForm.SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
-				if width < 75 {
+				if width < 80 {
 					return x + 1, y + 1, width - 2, height - 1
 				}
 				xOffset := width/2 - 20
