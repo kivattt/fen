@@ -18,6 +18,7 @@ fen.git_status = false -- EXPERIMENTAL: When true, unstaged/untracked files in l
 fen.preview_safety_blocklist = true -- Prevents common sensitive file types from being previewed
 fen.file_size_in_all_panes = true
 fen.close_on_escape = false -- Use the Escape key to close fen, useful for embedding in other applications
+fen.file_size_in_all_panes = false
 
 -- Everything below this line is non-default examples
 

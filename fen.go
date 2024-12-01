@@ -92,8 +92,8 @@ type Config struct {
 	Bookmarks               [10]string           `lua:"bookmarks"`
 	GitStatus               bool                 `lua:"git_status"`
 	PreviewSafetyBlocklist  bool                 `lua:"preview_safety_blocklist"`
-	FileSizeInAllPanes      bool                 `lua:"file_size_in_all_panes"`
 	CloseOnEscape           bool                 `lua:"close_on_escape"`
+	FileSizeInAllPanes      bool                 `lua:"file_size_in_all_panes"`
 }
 
 func NewConfigDefaultValues() Config {
