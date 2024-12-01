@@ -149,6 +149,13 @@ func AddEventToBatch(oldEvents []fsnotify.Event, newEvent fsnotify.Event) []fsno
 }
 
 func (fp *FilesPane) HandleFileEvent(event fsnotify.Event) error {
+	// Poorly documented fsnotify behaviour, it can send "no events" when watched directories are removed.
+	// This is documented to happen on Windows, but it also happens on Linux.
+	// See: https://github.com/fsnotify/fsnotify/issues/655
+	if event.Op == 0 {
+		return errors.New("No events")
+	}
+
 	if event.Has(fsnotify.Create) {
 		// A file temporarily renamed, then renamed back to its old path within 200 milliseconds is added back to the history.
 		// This is a hack to fix navigation because when vim saves a file it temporarily renames the file by appending a tilde (~),
