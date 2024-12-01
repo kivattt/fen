@@ -22,7 +22,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.18"
+const version = "v1.7.19"
 
 func main() {
 	//	f, _ := os.Create("profile.prof")
@@ -1037,6 +1037,7 @@ func main() {
 			app.SetFocus(inputField)
 			return nil
 		} else if event.Key() == tcell.KeyF5 {
+			fen.InvalidateFolderFileCountCache()
 			fen.UpdatePanes(true)
 			app.Sync()
 			fen.TriggerGitStatus()
@@ -1211,6 +1212,7 @@ func main() {
 			return nil
 		} else if event.Rune() == 'b' {
 			err := fen.BulkRename(app)
+			defer fen.UpdatePanes(false)
 			if err != nil {
 				fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 				return nil
@@ -1235,6 +1237,7 @@ func main() {
 			}
 
 			optionsAtTheTop := []string{
+				"git_status",
 				"sort_by",
 				"sort_reverse",
 				"ui_borders",
@@ -1279,6 +1282,12 @@ func main() {
 						f = func(checked bool) {
 							*fieldPtr.(*bool) = checked
 							app.EnableMouse(checked)
+							fen.UpdatePanes(true)
+						}
+					} else if fieldName == "hidden_files" {
+						f = func(checked bool) {
+							*fieldPtr.(*bool) = checked
+							fen.InvalidateFolderFileCountCache()
 							fen.UpdatePanes(true)
 						}
 					} else if fieldName == "git_status" {
@@ -1328,13 +1337,14 @@ func main() {
 
 			optionsForm.SetItemPadding(0)
 			optionsForm.SetTitle("Options this session")
+			optionsForm.SetTitleColor(tcell.ColorDefault)
 			optionsForm.SetBorder(true)
 			optionsForm.SetBackgroundColor(tcell.ColorBlack)
 			optionsForm.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 			optionsForm.SetBorderPadding(0, 0, 1, 1)
 			optionsForm.SetFieldBackgroundColor(tcell.ColorBlack)
 			optionsForm.SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
-				if width < 75 {
+				if width < 80 {
 					return x + 1, y + 1, width - 2, height - 1
 				}
 				xOffset := width/2 - 20

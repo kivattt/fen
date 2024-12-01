@@ -93,6 +93,7 @@ type Config struct {
 	GitStatus               bool                 `lua:"git_status"`
 	PreviewSafetyBlocklist  bool                 `lua:"preview_safety_blocklist"`
 	CloseOnEscape           bool                 `lua:"close_on_escape"`
+	FileSizeInAllPanes      bool                 `lua:"file_size_in_all_panes"`
 }
 
 func NewConfigDefaultValues() Config {
@@ -177,6 +178,14 @@ type PreviewOrOpenEntry struct {
 	DoNotMatch []string
 }
 
+type PanePos int
+
+const (
+	LeftPane PanePos = iota
+	MiddlePane
+	RightPane
+)
+
 func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *bool, librariesScreenVisible *bool) error {
 	fen.app = app
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
@@ -205,9 +214,9 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 
 	fen.topBar = NewTopBar(fen)
 
-	fen.leftPane = NewFilesPane(fen, false, false)
-	fen.middlePane = NewFilesPane(fen, true, false)
-	fen.rightPane = NewFilesPane(fen, false, true)
+	fen.leftPane = NewFilesPane(fen, LeftPane)
+	fen.middlePane = NewFilesPane(fen, MiddlePane)
+	fen.rightPane = NewFilesPane(fen, RightPane)
 
 	fen.leftPane.Init()
 	fen.middlePane.Init()
@@ -1041,8 +1050,9 @@ func (fen *Fen) GoRightUpToHistory() {
 	fen.GoPath(path)
 }
 
-// Goes to a random unstaged/untracked file from the currently selected folder
-// It will select the shortest filepath, if there are filepaths of equal length they will be chosen at random
+// This goes to the changed file (any non-folder) closest to the root path of repoPath.
+// If there are multiple candidates, it will select the one with the shortest filepath.
+// If there are some filepaths of equal length, it will choose one randomly.
 // TODO: Implement sorting function in gogitstatus so this is deterministic
 func (fen *Fen) GoRightUpToFirstUnstagedOrUntracked(repoPath, currentPath string) error {
 	fen.gitStatusHandler.trackedLocalGitReposMutex.Lock()
@@ -1054,6 +1064,7 @@ func (fen *Fen) GoRightUpToFirstUnstagedOrUntracked(repoPath, currentPath string
 	}
 
 	changedFileClosestToRoot := ""
+	shortestPathSeparatorCount := 0
 	for changedFilePath := range gogitstatus.ExcludingDirectories(repo.changedFiles) {
 		bruhRel, bruhErr := filepath.Rel(repoPath, currentPath)
 		if bruhErr != nil {
@@ -1069,8 +1080,10 @@ func (fen *Fen) GoRightUpToFirstUnstagedOrUntracked(repoPath, currentPath string
 			continue
 		}
 
-		if changedFileClosestToRoot == "" || len(rel) < len(changedFileClosestToRoot) {
+		pathSeparatorCount := strings.Count(rel, string(os.PathSeparator))
+		if changedFileClosestToRoot == "" || pathSeparatorCount < shortestPathSeparatorCount || (pathSeparatorCount == shortestPathSeparatorCount && len(rel) < len(changedFileClosestToRoot)) {
 			changedFileClosestToRoot = rel
+			shortestPathSeparatorCount = pathSeparatorCount
 		}
 	}
 
