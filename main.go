@@ -531,15 +531,27 @@ func main() {
 			fen.GoDown()
 		} else if event.Key() == tcell.KeyHome || event.Rune() == 'g' {
 			if fen.config.FoldersFirst && fen.config.SplitHomeEnd {
-				fen.GoTopFileOrTop()
+				if !fen.GoTopFileOrTop() {
+					app.DontDrawOnThisEventKey()
+					return nil
+				}
 			} else {
-				fen.GoTop()
+				if !fen.GoTop() {
+					app.DontDrawOnThisEventKey()
+					return nil
+				}
 			}
 		} else if event.Key() == tcell.KeyEnd || event.Rune() == 'G' {
 			if fen.config.FoldersFirst && fen.config.SplitHomeEnd {
-				fen.GoBottomFolderOrBottom()
+				if !fen.GoBottomFolderOrBottom() {
+					app.DontDrawOnThisEventKey()
+					return nil
+				}
 			} else {
-				fen.GoBottom()
+				if !fen.GoBottom() {
+					app.DontDrawOnThisEventKey()
+					return nil
+				}
 			}
 		} else if event.Rune() == 'M' {
 			fen.GoMiddle()
