@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -24,7 +25,8 @@ import (
 
 const version = "v1.7.19"
 
-func parseFlags() Flags {
+// assigns Flags and parses getopt stuff
+func defineFlags() StdFlags {
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
 	// silently ignoring an io error :(
@@ -35,8 +37,8 @@ func parseFlags() Flags {
 	defaultConfigValues := NewConfigDefaultValues()
 
 	// When adding new flags, make sure to duplicate the name when we check flagPassed lower in this file
-	v := flag.Bool("version", false, "output version information and exit")
-	h := flag.Bool("help", false, "display this help and exit")
+	version_arg := flag.Bool("version", false, "output version information and exit")
+	help_arg := flag.Bool("help", false, "display this help and exit")
 	uiBorders := flag.Bool("ui-borders", defaultConfigValues.UiBorders, "enable UI borders")
 	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "enable mouse events")
 	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
@@ -55,32 +57,57 @@ func parseFlags() Flags {
 	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
 	sortReverse := flag.Bool("sort-reverse", defaultConfigValues.SortReverse, "reverse sort")
 
-	return Flags{
-		v:                         v,
-		h:                         h,
-		uiBorders:                 uiBorders,
-		mouse:                     mouse,
-		noWrite:                   noWrite,
-		hiddenFiles:               hiddenFiles,
-		foldersFirst:              foldersFirst,
-		printPathOnOpen:           printPathOnOpen,
-		printFolderOnExit:         printFolderOnExit,
-		allowTerminalTitle:        allowTerminalTitle,
-		showHelpText:              showHelpText,
-		showHostname:              showHostname,
-		closeOnEscape:             closeOnEscape,
-		selectPaths:               selectPaths,
-		configFilename:            configFilename,
-		sortBy:                    sortBy,
-		sortReverse:               sortReverse,
+	// getopt
+	getopt.CommandLine.SetOutput(os.Stdout)
+	getopt.CommandLine.Init("fen", flag.ExitOnError)
+	getopt.Aliases(
+		"v", "version",
+		"h", "help",
+		//		"s", "select", // This doesn't work for some reason
+	)
+
+	err = getopt.CommandLine.Parse(os.Args[1:])
+	if err != nil {
+		os.Exit(2)
+	}
+
+	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	goArgs := getopt.CommandLine.Args()
+
+	return StdFlags{
+		version:            version_arg,
+		help:               help_arg,
+		uiBorders:          uiBorders,
+		mouse:              mouse,
+		noWrite:            noWrite,
+		hiddenFiles:        hiddenFiles,
+		foldersFirst:       foldersFirst,
+		printPathOnOpen:    printPathOnOpen,
+		printFolderOnExit:  printFolderOnExit,
+		allowTerminalTitle: allowTerminalTitle,
+		showHelpText:       showHelpText,
+		showHostname:       showHostname,
+		closeOnEscape:      closeOnEscape,
+		selectPaths:        selectPaths,
+		configFilename:     configFilename,
+		sortBy:             sortBy,
+		sortReverse:        sortReverse,
+		getOptPath:         path,
+		getoptArgs:         goArgs,
+
 		defaultConfigFilenamePath: defaultConfigFilenamePath,
 		userConfigDir:             userConfigDir,
 	}
 }
 
-type Flags struct {
-	v                  *bool
-	h                  *bool
+type StdFlags struct {
+	// Flags library flags
+	version            *bool
+	help               *bool
 	uiBorders          *bool
 	mouse              *bool
 	noWrite            *bool
@@ -97,16 +124,20 @@ type Flags struct {
 	sortBy             *string
 	sortReverse        *bool
 
+	// getopt flags
+	getoptArgs []string
+	getOptPath string
+
 	// not actually flags but related metadata
 	defaultConfigFilenamePath string
 	userConfigDir             string
 }
 
-func main() {
-	//	f, _ := os.Create("profile.prof")
-	//	pprof.StartCPUProfile(f)
-	//	defer pprof.StopCPUProfile()
+func yes(str string) bool {
+	return strings.ToLower(strings.TrimSpace(str)) == "y"
+}
 
+func chooseTviewBorders() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 	// For the dropdown in the options menu
 	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
@@ -126,31 +157,40 @@ func main() {
 		tview.Borders.BottomLeft = '╰'
 		tview.Borders.BottomRight = '╯'
 	}
+}
 
-	//
-
-	flags := parseFlags()
-
-	var err error
-	getopt.CommandLine.SetOutput(os.Stdout)
-	getopt.CommandLine.Init("fen", flag.ExitOnError)
-	getopt.Aliases(
-		"v", "version",
-		"h", "help",
-		//		"s", "select", // This doesn't work for some reason
-	)
-
-	err = getopt.CommandLine.Parse(os.Args[1:])
+// get present working directory, handling platform specific edge cases
+func PlatformPWD() (string, error) {
+	path, err := os.Getwd()
 	if err != nil {
-		os.Exit(2)
+		if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
+			return "", errors.New("unable to determine current working directory")
+		}
+
+		path = os.Getenv("PWD")
+		if path == "" {
+			return "", errors.New("PWD environment variable empty")
+		}
 	}
 
-	if *flags.v {
+	return path, nil
+}
+
+func main() {
+	//	f, _ := os.Create("profile.prof")
+	//	pprof.StartCPUProfile(f)
+	//	defer pprof.StopCPUProfile()
+
+	chooseTviewBorders()
+
+	flags := defineFlags()
+
+	if *flags.version {
 		fmt.Println("fen " + version)
 		os.Exit(0)
 	}
 
-	if *flags.h {
+	if *flags.help {
 		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTIONS] [FILES]")
 		fmt.Println("Terminal file manager")
 		fmt.Println()
@@ -158,22 +198,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
+	var err error
+	path := flags.getOptPath
 
 	if path == "" || err != nil {
-		path, err = os.Getwd()
-
-		// os.Getwd() will error if the working directory doesn't exist
+		path, err = PlatformPWD()
 		if err != nil {
-			// https://cs.opensource.google/go/go/+/refs/tags/go1.22.1:src/os/getwd.go;l=23
-			if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
-				log.Fatalf("Unable to determine current working directory")
-			}
-
-			path = os.Getenv("PWD")
-			if path == "" {
-				log.Fatalf("PWD environment variable empty")
-			}
+			log.Fatal(err)
 		}
 	}
 
@@ -205,7 +236,7 @@ func main() {
 				log.Fatal(err)
 			}
 
-			if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
+			if yes(confirmation) {
 				oldConfigPath := filepath.Join(filepath.Dir(*flags.configFilename), "fenrc.json")
 				newConfigPath := filepath.Join(filepath.Dir(*flags.configFilename), "config.lua")
 				fmt.Print("Generate new config file: " + newConfigPath + " ? [y/N] ")
@@ -215,7 +246,7 @@ func main() {
 					log.Fatal(err)
 				}
 
-				if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
+				if yes(confirmation) {
 					err = GenerateLuaConfigFromOldJSONConfig(oldConfigPath, newConfigPath, &fen)
 					if err != nil {
 						log.Fatal(err)
