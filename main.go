@@ -24,33 +24,10 @@ import (
 
 const version = "v1.7.19"
 
-func main() {
-	//	f, _ := os.Create("profile.prof")
-	//	pprof.StartCPUProfile(f)
-	//	defer pprof.StopCPUProfile()
-
-	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
-	// For the dropdown in the options menu
-	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
-
-	tview.Styles.BorderColor = tcell.ColorDefault
-	tview.Borders.Horizontal = '─'
-	tview.Borders.Vertical = '│'
-
-	if runtime.GOOS == "freebsd" {
-		tview.Borders.TopLeft = '┌'
-		tview.Borders.TopRight = '┐'
-		tview.Borders.BottomLeft = '└'
-		tview.Borders.BottomRight = '┘'
-	} else {
-		tview.Borders.TopLeft = '╭'
-		tview.Borders.TopRight = '╮'
-		tview.Borders.BottomLeft = '╰'
-		tview.Borders.BottomRight = '╯'
-	}
-
+func parseFlags() Flags {
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
+	// silently ignoring an io error :(
 	if err == nil {
 		defaultConfigFilenamePath = filepath.Join(userConfigDir, "fen", "config.lua")
 	}
@@ -78,6 +55,83 @@ func main() {
 	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
 	sortReverse := flag.Bool("sort-reverse", defaultConfigValues.SortReverse, "reverse sort")
 
+	return Flags{
+		v:                         v,
+		h:                         h,
+		uiBorders:                 uiBorders,
+		mouse:                     mouse,
+		noWrite:                   noWrite,
+		hiddenFiles:               hiddenFiles,
+		foldersFirst:              foldersFirst,
+		printPathOnOpen:           printPathOnOpen,
+		printFolderOnExit:         printFolderOnExit,
+		allowTerminalTitle:        allowTerminalTitle,
+		showHelpText:              showHelpText,
+		showHostname:              showHostname,
+		closeOnEscape:             closeOnEscape,
+		selectPaths:               selectPaths,
+		configFilename:            configFilename,
+		sortBy:                    sortBy,
+		sortReverse:               sortReverse,
+		defaultConfigFilenamePath: defaultConfigFilenamePath,
+		userConfigDir:             userConfigDir,
+	}
+}
+
+type Flags struct {
+	v                  *bool
+	h                  *bool
+	uiBorders          *bool
+	mouse              *bool
+	noWrite            *bool
+	hiddenFiles        *bool
+	foldersFirst       *bool
+	printPathOnOpen    *bool
+	printFolderOnExit  *bool
+	allowTerminalTitle *bool
+	showHelpText       *bool
+	showHostname       *bool
+	closeOnEscape      *bool
+	selectPaths        *bool
+	configFilename     *string
+	sortBy             *string
+	sortReverse        *bool
+
+	// not actually flags but related metadata
+	defaultConfigFilenamePath string
+	userConfigDir             string
+}
+
+func main() {
+	//	f, _ := os.Create("profile.prof")
+	//	pprof.StartCPUProfile(f)
+	//	defer pprof.StopCPUProfile()
+
+	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+	// For the dropdown in the options menu
+	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
+
+	tview.Styles.BorderColor = tcell.ColorDefault
+	tview.Borders.Horizontal = '─'
+	tview.Borders.Vertical = '│'
+
+	if runtime.GOOS == "freebsd" {
+		tview.Borders.TopLeft = '┌'
+		tview.Borders.TopRight = '┐'
+		tview.Borders.BottomLeft = '└'
+		tview.Borders.BottomRight = '┘'
+	} else {
+		tview.Borders.TopLeft = '╭'
+		tview.Borders.TopRight = '╮'
+		tview.Borders.BottomLeft = '╰'
+		tview.Borders.BottomRight = '╯'
+	}
+
+	//
+
+	flags := parseFlags()
+
+	var err error
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)
 	getopt.Aliases(
@@ -91,12 +145,12 @@ func main() {
 		os.Exit(2)
 	}
 
-	if *v {
+	if *flags.v {
 		fmt.Println("fen " + version)
 		os.Exit(0)
 	}
 
-	if *h {
+	if *flags.h {
 		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTIONS] [FILES]")
 		fmt.Println("Terminal file manager")
 		fmt.Println()
@@ -125,16 +179,16 @@ func main() {
 
 	var fen Fen
 	// Presumably a different value passed by command-line argument
-	if *configFilename != defaultConfigFilenamePath {
-		_, err := os.Stat(*configFilename)
+	if *flags.configFilename != flags.defaultConfigFilenamePath {
+		_, err := os.Stat(*flags.configFilename)
 		if err != nil {
-			log.Fatal("Could not find file: " + *configFilename)
+			log.Fatal("Could not find file: " + *flags.configFilename)
 		}
 	}
-	err = fen.ReadConfig(*configFilename)
+	err = fen.ReadConfig(*flags.configFilename)
 
 	if !fen.config.NoWrite {
-		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
+		os.Mkdir(filepath.Join(flags.userConfigDir, "fen"), 0o775)
 	}
 
 	if err != nil {
@@ -142,7 +196,7 @@ func main() {
 
 		// Hacky, but gets the job done
 		if !strings.HasSuffix(err.Error(), "config files can only be Lua.\n") {
-			fmt.Println("Invalid config '" + *configFilename + "', exiting")
+			fmt.Println("Invalid config '" + *flags.configFilename + "', exiting")
 		} else if !fen.config.NoWrite {
 			fmt.Print("Generate config.lua from fenrc.json file? (This will not erase anything) [y/N] ")
 			reader := bufio.NewReader(os.Stdin)
@@ -152,8 +206,8 @@ func main() {
 			}
 
 			if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
-				oldConfigPath := filepath.Join(filepath.Dir(*configFilename), "fenrc.json")
-				newConfigPath := filepath.Join(filepath.Dir(*configFilename), "config.lua")
+				oldConfigPath := filepath.Join(filepath.Dir(*flags.configFilename), "fenrc.json")
+				newConfigPath := filepath.Join(filepath.Dir(*flags.configFilename), "config.lua")
 				fmt.Print("Generate new config file: " + newConfigPath + " ? [y/N] ")
 				reader := bufio.NewReader(os.Stdin)
 				confirmation, err := reader.ReadString('\n')
@@ -178,7 +232,7 @@ func main() {
 	}
 
 	// We have to check *selectPaths before flag.Parse()
-	if *selectPaths {
+	if *flags.selectPaths {
 		for _, arg := range getopt.CommandLine.Args() {
 			pathAbsolute, err := filepath.Abs(arg)
 			if err != nil {
@@ -211,41 +265,41 @@ func main() {
 
 	// Maybe clean this up at some point
 	if flagPassed("ui-borders") {
-		fen.config.UiBorders = *uiBorders
+		fen.config.UiBorders = *flags.uiBorders
 	}
 	if flagPassed("mouse") {
-		fen.config.Mouse = *mouse
+		fen.config.Mouse = *flags.mouse
 	}
 	if flagPassed("no-write") {
-		fen.config.NoWrite = *noWrite
+		fen.config.NoWrite = *flags.noWrite
 	}
 	if flagPassed("hidden-files") {
-		fen.config.HiddenFiles = *hiddenFiles
+		fen.config.HiddenFiles = *flags.hiddenFiles
 	}
 	if flagPassed("folders-first") {
-		fen.config.FoldersFirst = *foldersFirst
+		fen.config.FoldersFirst = *flags.foldersFirst
 	}
 	if flagPassed("print-path-on-open") {
-		fen.config.PrintPathOnOpen = *printPathOnOpen
+		fen.config.PrintPathOnOpen = *flags.printPathOnOpen
 	}
 	if flagPassed("terminal-title") {
-		fen.config.TerminalTitle = *allowTerminalTitle
+		fen.config.TerminalTitle = *flags.allowTerminalTitle
 	}
 	if flagPassed("show-help-text") {
-		fen.config.ShowHelpText = *showHelpText
+		fen.config.ShowHelpText = *flags.showHelpText
 	}
 	if flagPassed("show-hostname") {
-		fen.config.ShowHostname = *showHostname
+		fen.config.ShowHostname = *flags.showHostname
 	}
 	if flagPassed("close-on-escape") {
-		fen.config.CloseOnEscape = *closeOnEscape
+		fen.config.CloseOnEscape = *flags.closeOnEscape
 	}
 
 	if flagPassed("sort-by") {
-		fen.config.SortBy = *sortBy
+		fen.config.SortBy = *flags.sortBy
 	}
 	if flagPassed("sort-reverse") {
-		fen.config.SortReverse = *sortReverse
+		fen.config.SortReverse = *flags.sortReverse
 	}
 
 	app := tview.NewApplication()
@@ -1371,7 +1425,7 @@ func main() {
 		fen.PopTerminalTitle()
 	}
 
-	if *printFolderOnExit {
+	if *flags.printFolderOnExit {
 		fmt.Println(filepath.Dir(fen.sel))
 	}
 }
