@@ -25,114 +25,6 @@ import (
 
 const version = "v1.7.19"
 
-// assigns Flags and parses getopt stuff
-func defineFlags() StdFlags {
-	userConfigDir, err := os.UserConfigDir()
-	defaultConfigFilenamePath := ""
-	// silently ignoring an io error :(
-	if err == nil {
-		defaultConfigFilenamePath = filepath.Join(userConfigDir, "fen", "config.lua")
-	}
-
-	defaultConfigValues := NewConfigDefaultValues()
-
-	// When adding new flags, make sure to duplicate the name when we check flagPassed lower in this file
-	version_arg := flag.Bool("version", false, "output version information and exit")
-	help_arg := flag.Bool("help", false, "display this help and exit")
-	uiBorders := flag.Bool("ui-borders", defaultConfigValues.UiBorders, "enable UI borders")
-	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "enable mouse events")
-	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
-	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "make hidden files visible")
-	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "always show folders at the top")
-	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit when opening file(s)")
-	printFolderOnExit := flag.Bool("print-folder-on-exit", false, "output the current working folder in fen on exit")
-	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "change terminal title to 'fen "+version+"' while open")
-	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "show the 'For help: ...' text")
-	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "show username@hostname in the top-left")
-	closeOnEscape := flag.Bool("close-on-escape", defaultConfigValues.CloseOnEscape, "make the escape key exit fen")
-
-	selectPaths := flag.Bool("select", false, "select PATHS")
-
-	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
-	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
-	sortReverse := flag.Bool("sort-reverse", defaultConfigValues.SortReverse, "reverse sort")
-
-	// getopt
-	getopt.CommandLine.SetOutput(os.Stdout)
-	getopt.CommandLine.Init("fen", flag.ExitOnError)
-	getopt.Aliases(
-		"v", "version",
-		"h", "help",
-		//		"s", "select", // This doesn't work for some reason
-	)
-
-	err = getopt.CommandLine.Parse(os.Args[1:])
-	if err != nil {
-		os.Exit(2)
-	}
-
-	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	goArgs := getopt.CommandLine.Args()
-
-	return StdFlags{
-		version:            version_arg,
-		help:               help_arg,
-		uiBorders:          uiBorders,
-		mouse:              mouse,
-		noWrite:            noWrite,
-		hiddenFiles:        hiddenFiles,
-		foldersFirst:       foldersFirst,
-		printPathOnOpen:    printPathOnOpen,
-		printFolderOnExit:  printFolderOnExit,
-		allowTerminalTitle: allowTerminalTitle,
-		showHelpText:       showHelpText,
-		showHostname:       showHostname,
-		closeOnEscape:      closeOnEscape,
-		selectPaths:        selectPaths,
-		configFilename:     configFilename,
-		sortBy:             sortBy,
-		sortReverse:        sortReverse,
-		getOptPath:         path,
-		getoptArgs:         goArgs,
-
-		defaultConfigFilenamePath: defaultConfigFilenamePath,
-		userConfigDir:             userConfigDir,
-	}
-}
-
-type StdFlags struct {
-	// Flags library flags
-	version            *bool
-	help               *bool
-	uiBorders          *bool
-	mouse              *bool
-	noWrite            *bool
-	hiddenFiles        *bool
-	foldersFirst       *bool
-	printPathOnOpen    *bool
-	printFolderOnExit  *bool
-	allowTerminalTitle *bool
-	showHelpText       *bool
-	showHostname       *bool
-	closeOnEscape      *bool
-	selectPaths        *bool
-	configFilename     *string
-	sortBy             *string
-	sortReverse        *bool
-
-	// getopt flags
-	getoptArgs []string
-	getOptPath string
-
-	// not actually flags but related metadata
-	defaultConfigFilenamePath string
-	userConfigDir             string
-}
-
 func yes(str string) bool {
 	return strings.ToLower(strings.TrimSpace(str)) == "y"
 }
@@ -160,7 +52,7 @@ func chooseTviewBorders() {
 }
 
 // get present working directory, handling platform specific edge cases
-func PlatformPWD() (string, error) {
+func platformPWD() (string, error) {
 	path, err := os.Getwd()
 	if err != nil {
 		if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
@@ -181,16 +73,59 @@ func main() {
 	//	pprof.StartCPUProfile(f)
 	//	defer pprof.StopCPUProfile()
 
+	var err error
+
 	chooseTviewBorders()
 
-	flags := defineFlags()
+	userConfigDir, err := os.UserConfigDir()
+	defaultConfigFilenamePath := ""
+	// silently ignoring an io error :(
+	if err == nil {
+		defaultConfigFilenamePath = filepath.Join(userConfigDir, "fen", "config.lua")
+	}
 
-	if *flags.version {
+	defaultConfigValues := NewConfigDefaultValues()
+
+	// When adding new flags, make sure to duplicate the name when we check flagPassed lower in this file
+	v := flag.Bool("version", false, "output version information and exit")
+	h := flag.Bool("help", false, "display this help and exit")
+	uiBorders := flag.Bool("ui-borders", defaultConfigValues.UiBorders, "enable UI borders")
+	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "enable mouse events")
+	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
+	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "make hidden files visible")
+	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "always show folders at the top")
+	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit when opening file(s)")
+	printFolderOnExit := flag.Bool("print-folder-on-exit", false, "output the current working folder in fen on exit")
+	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "change terminal title to 'fen "+version+"' while open")
+	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "show the 'For help: ...' text")
+	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "show username@hostname in the top-left")
+	closeOnEscape := flag.Bool("close-on-escape", defaultConfigValues.CloseOnEscape, "make the escape key exit fen")
+
+	selectPaths := flag.Bool("select", false, "select PATHS")
+
+	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
+	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
+	sortReverse := flag.Bool("sort-reverse", defaultConfigValues.SortReverse, "reverse sort")
+
+	getopt.CommandLine.SetOutput(os.Stdout)
+	getopt.CommandLine.Init("fen", flag.ExitOnError)
+	getopt.Aliases(
+		"v", "version",
+		"h", "help",
+		//		"s", "select", // This doesn't work for some reason
+	)
+
+	err = getopt.CommandLine.Parse(os.Args[1:])
+	if err != nil {
+		os.Exit(2)
+	}
+
+	if *v {
 		fmt.Println("fen " + version)
 		os.Exit(0)
 	}
 
-	if *flags.help {
+	if *h {
 		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTIONS] [FILES]")
 		fmt.Println("Terminal file manager")
 		fmt.Println()
@@ -198,11 +133,23 @@ func main() {
 		os.Exit(0)
 	}
 
-	var err error
-	path := flags.getOptPath
+	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
+
+	if *v {
+		fmt.Println("fen " + version)
+		os.Exit(0)
+	}
+
+	if *h {
+		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTIONS] [FILES]")
+		fmt.Println("Terminal file manager")
+		fmt.Println()
+		getopt.PrintDefaults()
+		os.Exit(0)
+	}
 
 	if path == "" || err != nil {
-		path, err = PlatformPWD()
+		path, err = platformPWD()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -210,16 +157,16 @@ func main() {
 
 	var fen Fen
 	// Presumably a different value passed by command-line argument
-	if *flags.configFilename != flags.defaultConfigFilenamePath {
-		_, err := os.Stat(*flags.configFilename)
+	if *configFilename != defaultConfigFilenamePath {
+		_, err := os.Stat(*configFilename)
 		if err != nil {
-			log.Fatal("Could not find file: " + *flags.configFilename)
+			log.Fatal("Could not find file: " + *configFilename)
 		}
 	}
-	err = fen.ReadConfig(*flags.configFilename)
+	err = fen.ReadConfig(*configFilename)
 
 	if !fen.config.NoWrite {
-		os.Mkdir(filepath.Join(flags.userConfigDir, "fen"), 0o775)
+		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
 	}
 
 	if err != nil {
@@ -227,7 +174,7 @@ func main() {
 
 		// Hacky, but gets the job done
 		if !strings.HasSuffix(err.Error(), "config files can only be Lua.\n") {
-			fmt.Println("Invalid config '" + *flags.configFilename + "', exiting")
+			fmt.Println("Invalid config '" + *configFilename + "', exiting")
 		} else if !fen.config.NoWrite {
 			fmt.Print("Generate config.lua from fenrc.json file? (This will not erase anything) [y/N] ")
 			reader := bufio.NewReader(os.Stdin)
@@ -237,8 +184,8 @@ func main() {
 			}
 
 			if yes(confirmation) {
-				oldConfigPath := filepath.Join(filepath.Dir(*flags.configFilename), "fenrc.json")
-				newConfigPath := filepath.Join(filepath.Dir(*flags.configFilename), "config.lua")
+				oldConfigPath := filepath.Join(filepath.Dir(*configFilename), "fenrc.json")
+				newConfigPath := filepath.Join(filepath.Dir(*configFilename), "config.lua")
 				fmt.Print("Generate new config file: " + newConfigPath + " ? [y/N] ")
 				reader := bufio.NewReader(os.Stdin)
 				confirmation, err := reader.ReadString('\n')
@@ -263,7 +210,7 @@ func main() {
 	}
 
 	// We have to check *selectPaths before flag.Parse()
-	if *flags.selectPaths {
+	if *selectPaths {
 		for _, arg := range getopt.CommandLine.Args() {
 			pathAbsolute, err := filepath.Abs(arg)
 			if err != nil {
@@ -296,41 +243,41 @@ func main() {
 
 	// Maybe clean this up at some point
 	if flagPassed("ui-borders") {
-		fen.config.UiBorders = *flags.uiBorders
+		fen.config.UiBorders = *uiBorders
 	}
 	if flagPassed("mouse") {
-		fen.config.Mouse = *flags.mouse
+		fen.config.Mouse = *mouse
 	}
 	if flagPassed("no-write") {
-		fen.config.NoWrite = *flags.noWrite
+		fen.config.NoWrite = *noWrite
 	}
 	if flagPassed("hidden-files") {
-		fen.config.HiddenFiles = *flags.hiddenFiles
+		fen.config.HiddenFiles = *hiddenFiles
 	}
 	if flagPassed("folders-first") {
-		fen.config.FoldersFirst = *flags.foldersFirst
+		fen.config.FoldersFirst = *foldersFirst
 	}
 	if flagPassed("print-path-on-open") {
-		fen.config.PrintPathOnOpen = *flags.printPathOnOpen
+		fen.config.PrintPathOnOpen = *printPathOnOpen
 	}
 	if flagPassed("terminal-title") {
-		fen.config.TerminalTitle = *flags.allowTerminalTitle
+		fen.config.TerminalTitle = *allowTerminalTitle
 	}
 	if flagPassed("show-help-text") {
-		fen.config.ShowHelpText = *flags.showHelpText
+		fen.config.ShowHelpText = *showHelpText
 	}
 	if flagPassed("show-hostname") {
-		fen.config.ShowHostname = *flags.showHostname
+		fen.config.ShowHostname = *showHostname
 	}
 	if flagPassed("close-on-escape") {
-		fen.config.CloseOnEscape = *flags.closeOnEscape
+		fen.config.CloseOnEscape = *closeOnEscape
 	}
 
 	if flagPassed("sort-by") {
-		fen.config.SortBy = *flags.sortBy
+		fen.config.SortBy = *sortBy
 	}
 	if flagPassed("sort-reverse") {
-		fen.config.SortReverse = *flags.sortReverse
+		fen.config.SortReverse = *sortReverse
 	}
 
 	app := tview.NewApplication()
@@ -1456,7 +1403,7 @@ func main() {
 		fen.PopTerminalTitle()
 	}
 
-	if *flags.printFolderOnExit {
+	if *printFolderOnExit {
 		fmt.Println(filepath.Dir(fen.sel))
 	}
 }
