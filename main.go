@@ -25,11 +25,11 @@ import (
 
 const version = "v1.7.19"
 
-func yes(str string) bool {
+func IsYes(str string) bool {
 	return strings.ToLower(strings.TrimSpace(str)) == "y"
 }
 
-func chooseTviewBorders() {
+func setTviewStyles() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 	// For the dropdown in the options menu
 	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
@@ -52,7 +52,7 @@ func chooseTviewBorders() {
 }
 
 // get present working directory, handling platform specific edge cases
-func platformPWD() (string, error) {
+func CurrentWorkingDirectory() (string, error) {
 	path, err := os.Getwd()
 	if err != nil {
 		if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
@@ -75,7 +75,7 @@ func main() {
 
 	var err error
 
-	chooseTviewBorders()
+	setTviewStyles()
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
@@ -149,7 +149,7 @@ func main() {
 	}
 
 	if path == "" || err != nil {
-		path, err = platformPWD()
+		path, err = CurrentWorkingDirectory()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -183,7 +183,7 @@ func main() {
 				log.Fatal(err)
 			}
 
-			if yes(confirmation) {
+			if IsYes(confirmation) {
 				oldConfigPath := filepath.Join(filepath.Dir(*configFilename), "fenrc.json")
 				newConfigPath := filepath.Join(filepath.Dir(*configFilename), "config.lua")
 				fmt.Print("Generate new config file: " + newConfigPath + " ? [y/N] ")
@@ -193,7 +193,7 @@ func main() {
 					log.Fatal(err)
 				}
 
-				if yes(confirmation) {
+				if IsYes(confirmation) {
 					err = GenerateLuaConfigFromOldJSONConfig(oldConfigPath, newConfigPath, &fen)
 					if err != nil {
 						log.Fatal(err)
