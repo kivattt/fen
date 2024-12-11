@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -24,11 +25,11 @@ import (
 
 const version = "v1.7.19"
 
-func main() {
-	//	f, _ := os.Create("profile.prof")
-	//	pprof.StartCPUProfile(f)
-	//	defer pprof.StopCPUProfile()
+func IsYes(str string) bool {
+	return strings.ToLower(strings.TrimSpace(str)) == "y"
+}
 
+func setTviewStyles() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 	// For the dropdown in the options menu
 	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
@@ -48,9 +49,37 @@ func main() {
 		tview.Borders.BottomLeft = '╰'
 		tview.Borders.BottomRight = '╯'
 	}
+}
+
+// get present working directory, handling platform specific edge cases
+func CurrentWorkingDirectory() (string, error) {
+	path, err := os.Getwd()
+	if err != nil {
+		if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
+			return "", errors.New("unable to determine current working directory")
+		}
+
+		path = os.Getenv("PWD")
+		if path == "" {
+			return "", errors.New("PWD environment variable empty")
+		}
+	}
+
+	return path, nil
+}
+
+func main() {
+	//	f, _ := os.Create("profile.prof")
+	//	pprof.StartCPUProfile(f)
+	//	defer pprof.StopCPUProfile()
+
+	var err error
+
+	setTviewStyles()
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
+	// silently ignoring an io error :(
 	if err == nil {
 		defaultConfigFilenamePath = filepath.Join(userConfigDir, "fen", "config.lua")
 	}
@@ -106,20 +135,23 @@ func main() {
 
 	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
 
+	if *v {
+		fmt.Println("fen " + version)
+		os.Exit(0)
+	}
+
+	if *h {
+		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTIONS] [FILES]")
+		fmt.Println("Terminal file manager")
+		fmt.Println()
+		getopt.PrintDefaults()
+		os.Exit(0)
+	}
+
 	if path == "" || err != nil {
-		path, err = os.Getwd()
-
-		// os.Getwd() will error if the working directory doesn't exist
+		path, err = CurrentWorkingDirectory()
 		if err != nil {
-			// https://cs.opensource.google/go/go/+/refs/tags/go1.22.1:src/os/getwd.go;l=23
-			if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
-				log.Fatalf("Unable to determine current working directory")
-			}
-
-			path = os.Getenv("PWD")
-			if path == "" {
-				log.Fatalf("PWD environment variable empty")
-			}
+			log.Fatal(err)
 		}
 	}
 
@@ -151,7 +183,7 @@ func main() {
 				log.Fatal(err)
 			}
 
-			if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
+			if IsYes(confirmation) {
 				oldConfigPath := filepath.Join(filepath.Dir(*configFilename), "fenrc.json")
 				newConfigPath := filepath.Join(filepath.Dir(*configFilename), "config.lua")
 				fmt.Print("Generate new config file: " + newConfigPath + " ? [y/N] ")
@@ -161,7 +193,7 @@ func main() {
 					log.Fatal(err)
 				}
 
-				if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
+				if IsYes(confirmation) {
 					err = GenerateLuaConfigFromOldJSONConfig(oldConfigPath, newConfigPath, &fen)
 					if err != nil {
 						log.Fatal(err)
