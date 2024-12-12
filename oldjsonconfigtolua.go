@@ -43,7 +43,6 @@ func PromptForGenerateLuaConfig(configFilename string, fen *Fen) {
 		return
 	}
 
-	// Hacky, but gets the job done
 	fmt.Print("Generate config.lua from fenrc.json file? (This will not erase anything) [y/N] ")
 	reader := bufio.NewReader(os.Stdin)
 	confirmation, err := reader.ReadString('\n')

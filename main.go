@@ -134,6 +134,7 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 
+		// Hacky, but gets the job done
 		if !strings.HasSuffix(err.Error(), "config files can only be Lua.\n") {
 			fmt.Println("Invalid config '" + *configFilename + "', exiting")
 		} else if !fen.config.NoWrite {
