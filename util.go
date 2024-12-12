@@ -1101,3 +1101,23 @@ func RandomStringPathSafe(numCharacters int) string {
 	}
 	return string(b)
 }
+
+func IsYes(str string) bool {
+	return strings.ToLower(strings.TrimSpace(str)) == "y"
+}
+
+func CurrentWorkingDirectory() (string, error) {
+	path, err := os.Getwd()
+	if err != nil {
+		if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
+			return "", errors.New("unable to determine current working directory")
+		}
+
+		path = os.Getenv("PWD")
+		if path == "" {
+			return "", errors.New("PWD environment variable empty")
+		}
+	}
+
+	return path, nil
+}

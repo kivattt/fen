@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,6 +36,43 @@ type previewWithEntry struct {
 	Programs   []string `json:"programs"`
 	Match      []string `json:"match"`
 	DoNotMatch []string `json:"do-not-match"`
+}
+
+func PromptForGenerateLuaConfig(configFilename string, fen *Fen) {
+	if fen.config.NoWrite {
+		return
+	}
+
+	// Hacky, but gets the job done
+	fmt.Print("Generate config.lua from fenrc.json file? (This will not erase anything) [y/N] ")
+	reader := bufio.NewReader(os.Stdin)
+	confirmation, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if IsYes(confirmation) {
+		oldConfigPath := filepath.Join(filepath.Dir(configFilename), "fenrc.json")
+		newConfigPath := filepath.Join(filepath.Dir(configFilename), "config.lua")
+		fmt.Print("Generate new config file: " + newConfigPath + " ? [y/N] ")
+		reader := bufio.NewReader(os.Stdin)
+		confirmation, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if IsYes(confirmation) {
+			err = GenerateLuaConfigFromOldJSONConfig(oldConfigPath, newConfigPath, fen)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println("Done! Your new config file: " + newConfigPath)
+		} else {
+			fmt.Println("Nothing done")
+		}
+	} else {
+		fmt.Println("Nothing done")
+	}
 }
 
 func GenerateLuaConfigFromOldJSONConfig(oldJSONConfigPath, newLuaConfigPath string, fen *Fen) error {

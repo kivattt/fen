@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -25,11 +23,7 @@ import (
 
 const version = "v1.7.19"
 
-func IsYes(str string) bool {
-	return strings.ToLower(strings.TrimSpace(str)) == "y"
-}
-
-func setTviewStyles() {
+func SetTviewStyles() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 	// For the dropdown in the options menu
 	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
@@ -51,35 +45,17 @@ func setTviewStyles() {
 	}
 }
 
-// get present working directory, handling platform specific edge cases
-func CurrentWorkingDirectory() (string, error) {
-	path, err := os.Getwd()
-	if err != nil {
-		if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
-			return "", errors.New("unable to determine current working directory")
-		}
-
-		path = os.Getenv("PWD")
-		if path == "" {
-			return "", errors.New("PWD environment variable empty")
-		}
-	}
-
-	return path, nil
-}
-
 func main() {
 	//	f, _ := os.Create("profile.prof")
 	//	pprof.StartCPUProfile(f)
 	//	defer pprof.StopCPUProfile()
 
-	var err error
-
-	setTviewStyles()
+	SetTviewStyles()
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
-	// silently ignoring an io error :(
+	// If there was an error, defaultConfigFilenamePath will be an empty string ""
+	//  and fen.ReadConfig() will return nil, just using the default config
 	if err == nil {
 		defaultConfigFilenamePath = filepath.Join(userConfigDir, "fen", "config.lua")
 	}
@@ -134,20 +110,6 @@ func main() {
 	}
 
 	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
-
-	if *v {
-		fmt.Println("fen " + version)
-		os.Exit(0)
-	}
-
-	if *h {
-		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTIONS] [FILES]")
-		fmt.Println("Terminal file manager")
-		fmt.Println()
-		getopt.PrintDefaults()
-		os.Exit(0)
-	}
-
 	if path == "" || err != nil {
 		path, err = CurrentWorkingDirectory()
 		if err != nil {
@@ -163,49 +125,21 @@ func main() {
 			log.Fatal("Could not find file: " + *configFilename)
 		}
 	}
-	err = fen.ReadConfig(*configFilename)
 
 	if !fen.config.NoWrite {
 		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
 	}
 
+	err = fen.ReadConfig(*configFilename)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 
-		// Hacky, but gets the job done
 		if !strings.HasSuffix(err.Error(), "config files can only be Lua.\n") {
 			fmt.Println("Invalid config '" + *configFilename + "', exiting")
 		} else if !fen.config.NoWrite {
-			fmt.Print("Generate config.lua from fenrc.json file? (This will not erase anything) [y/N] ")
-			reader := bufio.NewReader(os.Stdin)
-			confirmation, err := reader.ReadString('\n')
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			if IsYes(confirmation) {
-				oldConfigPath := filepath.Join(filepath.Dir(*configFilename), "fenrc.json")
-				newConfigPath := filepath.Join(filepath.Dir(*configFilename), "config.lua")
-				fmt.Print("Generate new config file: " + newConfigPath + " ? [y/N] ")
-				reader := bufio.NewReader(os.Stdin)
-				confirmation, err := reader.ReadString('\n')
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				if IsYes(confirmation) {
-					err = GenerateLuaConfigFromOldJSONConfig(oldConfigPath, newConfigPath, &fen)
-					if err != nil {
-						log.Fatal(err)
-					}
-					fmt.Println("Done! Your new config file: " + newConfigPath)
-				} else {
-					fmt.Println("Nothing done")
-				}
-			} else {
-				fmt.Println("Nothing done")
-			}
+			PromptForGenerateLuaConfig(*configFilename, &fen)
 		}
+
 		os.Exit(1)
 	}
 
