@@ -245,7 +245,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	if len(wdFiles) > 0 {
 		// HACKY: middlePane has to have entries so that GoTop() will work
 		fen.middlePane.ChangeDir(fen.wd, true)
-		fen.GoTop()
+		fen.GoTop(true)
 
 		if shouldSelectSpecifiedFile {
 			fen.sel = path
@@ -679,7 +679,7 @@ func (fen *Fen) GoRight(app *tview.Application, openWith string) {
 	fen.DisableSelectingWithV()
 }
 
-// Returns false if nothing happened (at the top, would've moved to the same position)
+// Returns false if nothing happened (already at the top, would've moved to the same position)
 func (fen *Fen) GoUp(numEntries ...int) bool {
 	if fen.middlePane.selectedEntryIndex <= 0 {
 		return false
@@ -705,7 +705,7 @@ func (fen *Fen) GoUp(numEntries ...int) bool {
 	return true
 }
 
-// Returns false if nothing happened (at the bottom, would've moved to the same position)
+// Returns false if nothing happened (already at the bottom, would've moved to the same position)
 func (fen *Fen) GoDown(numEntries ...int) bool {
 	if fen.middlePane.selectedEntryIndex >= len(fen.middlePane.entries.Load().([]os.DirEntry))-1 {
 		return false
@@ -731,12 +731,20 @@ func (fen *Fen) GoDown(numEntries ...int) bool {
 	return true
 }
 
-func (fen *Fen) GoTop() {
+// Returns false if nothing happened (already at the top, would've moved to the same position)
+// If called as GoTop(true), it will always update fen.sel and return true (used in fen.Init() and fen.GoPath())
+func (fen *Fen) GoTop(force ...bool) bool {
+	if !(len(force) > 0 && force[0]) && fen.middlePane.selectedEntryIndex <= 0 {
+		return false
+	}
+
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(0))
 
 	if fen.selectingWithV {
 		fen.selectingWithVEndIndex = 0
 	}
+
+	return true
 }
 
 func (fen *Fen) GoMiddle() {
@@ -747,24 +755,32 @@ func (fen *Fen) GoMiddle() {
 	}
 }
 
-func (fen *Fen) GoBottom() {
+// Returns false if nothing happened (already at the bottom, would've moved to the same position)
+func (fen *Fen) GoBottom() bool {
+	if fen.middlePane.selectedEntryIndex >= len(fen.middlePane.entries.Load().([]os.DirEntry))-1 {
+		return false
+	}
+
 	fen.sel = filepath.Join(fen.wd, fen.middlePane.GetSelectedEntryFromIndex(len(fen.middlePane.entries.Load().([]os.DirEntry))-1))
 
 	if fen.selectingWithV {
 		fen.selectingWithVEndIndex = len(fen.middlePane.entries.Load().([]os.DirEntry)) - 1
 	}
+
+	return true
 }
 
 // Only meant to be used when fen.config.FoldersFirst is true, if not it will panic
 // If a folder not at the bottom is selected, go to the bottom folder, otherwise go to the bottom
-func (fen *Fen) GoBottomFolderOrBottom() {
+// Returns false if nothing happened (already at the bottom, where calling fen.GoBottom() would've moved to the same position)
+func (fen *Fen) GoBottomFolderOrBottom() bool {
 	if !fen.config.FoldersFirst {
 		panic("GoBottomFolderOrBottom() was called with FoldersFirst disabled")
 	}
 
 	stat, err := os.Lstat(fen.sel)
 	if err != nil {
-		return
+		return true
 	}
 
 	findBottomFolder := func() (int, error) {
@@ -787,26 +803,32 @@ func (fen *Fen) GoBottomFolderOrBottom() {
 	if stat.IsDir() {
 		bottomFolder, err := findBottomFolder()
 		if err != nil {
-			fen.GoBottom()
-			return
+			return fen.GoBottom()
 		}
 
 		fen.GoIndex(bottomFolder)
 	} else {
-		fen.GoBottom()
+		return fen.GoBottom()
 	}
+
+	return true
 }
 
 // Only meant to be used when fen.config.FoldersFirst is true, if not it will panic
 // If a file not at the top is selected, go to the top file, otherwise go to the top
-func (fen *Fen) GoTopFileOrTop() {
+// Returns false if nothing happened (already at the top, where calling fen.GoTop() would've moved to the same position)
+func (fen *Fen) GoTopFileOrTop() bool {
 	if !fen.config.FoldersFirst {
 		panic("GoTopFileOrTop() was called with FoldersFirst disabled")
 	}
 
+	if fen.middlePane.selectedEntryIndex <= 0 {
+		return false
+	}
+
 	stat, err := os.Lstat(fen.sel)
 	if err != nil {
-		return
+		return true
 	}
 
 	findTopFile := func() (int, error) {
@@ -829,14 +851,15 @@ func (fen *Fen) GoTopFileOrTop() {
 	if !stat.IsDir() {
 		topFile, err := findTopFile()
 		if err != nil {
-			fen.GoTop()
-			return
+			return fen.GoTop()
 		}
 
 		fen.GoIndex(topFile)
 	} else {
-		fen.GoTop()
+		return fen.GoTop()
 	}
+
+	return true
 }
 
 func (fen *Fen) GoTopScreen() {
@@ -994,7 +1017,7 @@ func (fen *Fen) GoPath(path string) (string, error) {
 		h, err := fen.history.GetHistoryEntryForPath(pathToUse, fen.config.HiddenFiles)
 		if err != nil {
 			fen.UpdatePanes(false) // Need to do this first so the new selected path is added to history
-			fen.GoTop()
+			fen.GoTop(true)
 		} else {
 			fen.sel = h
 		}

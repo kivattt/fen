@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -22,13 +21,9 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.19"
+const version = "v1.7.20"
 
-func main() {
-	//	f, _ := os.Create("profile.prof")
-	//	pprof.StartCPUProfile(f)
-	//	defer pprof.StopCPUProfile()
-
+func SetTviewStyles() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 	// For the dropdown in the options menu
 	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
@@ -48,9 +43,19 @@ func main() {
 		tview.Borders.BottomLeft = '╰'
 		tview.Borders.BottomRight = '╯'
 	}
+}
+
+func main() {
+	//	f, _ := os.Create("profile.prof")
+	//	pprof.StartCPUProfile(f)
+	//	defer pprof.StopCPUProfile()
+
+	SetTviewStyles()
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
+	// If there was an error, defaultConfigFilenamePath will be an empty string ""
+	//  and fen.ReadConfig() will return nil, just using the default config
 	if err == nil {
 		defaultConfigFilenamePath = filepath.Join(userConfigDir, "fen", "config.lua")
 	}
@@ -105,21 +110,10 @@ func main() {
 	}
 
 	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
-
 	if path == "" || err != nil {
-		path, err = os.Getwd()
-
-		// os.Getwd() will error if the working directory doesn't exist
+		path, err = CurrentWorkingDirectory()
 		if err != nil {
-			// https://cs.opensource.google/go/go/+/refs/tags/go1.22.1:src/os/getwd.go;l=23
-			if runtime.GOOS == "windows" || runtime.GOOS == "plan9" {
-				log.Fatalf("Unable to determine current working directory")
-			}
-
-			path = os.Getenv("PWD")
-			if path == "" {
-				log.Fatalf("PWD environment variable empty")
-			}
+			log.Fatal(err)
 		}
 	}
 
@@ -131,12 +125,12 @@ func main() {
 			log.Fatal("Could not find file: " + *configFilename)
 		}
 	}
-	err = fen.ReadConfig(*configFilename)
 
 	if !fen.config.NoWrite {
 		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
 	}
 
+	err = fen.ReadConfig(*configFilename)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 
@@ -144,36 +138,9 @@ func main() {
 		if !strings.HasSuffix(err.Error(), "config files can only be Lua.\n") {
 			fmt.Println("Invalid config '" + *configFilename + "', exiting")
 		} else if !fen.config.NoWrite {
-			fmt.Print("Generate config.lua from fenrc.json file? (This will not erase anything) [y/N] ")
-			reader := bufio.NewReader(os.Stdin)
-			confirmation, err := reader.ReadString('\n')
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
-				oldConfigPath := filepath.Join(filepath.Dir(*configFilename), "fenrc.json")
-				newConfigPath := filepath.Join(filepath.Dir(*configFilename), "config.lua")
-				fmt.Print("Generate new config file: " + newConfigPath + " ? [y/N] ")
-				reader := bufio.NewReader(os.Stdin)
-				confirmation, err := reader.ReadString('\n')
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				if strings.ToLower(strings.TrimSpace(confirmation)) == "y" {
-					err = GenerateLuaConfigFromOldJSONConfig(oldConfigPath, newConfigPath, &fen)
-					if err != nil {
-						log.Fatal(err)
-					}
-					fmt.Println("Done! Your new config file: " + newConfigPath)
-				} else {
-					fmt.Println("Nothing done")
-				}
-			} else {
-				fmt.Println("Nothing done")
-			}
+			PromptForGenerateLuaConfig(*configFilename, &fen)
 		}
+
 		os.Exit(1)
 	}
 
@@ -531,15 +498,27 @@ func main() {
 			fen.GoDown()
 		} else if event.Key() == tcell.KeyHome || event.Rune() == 'g' {
 			if fen.config.FoldersFirst && fen.config.SplitHomeEnd {
-				fen.GoTopFileOrTop()
+				if !fen.GoTopFileOrTop() {
+					app.DontDrawOnThisEventKey()
+					return nil
+				}
 			} else {
-				fen.GoTop()
+				if !fen.GoTop() {
+					app.DontDrawOnThisEventKey()
+					return nil
+				}
 			}
 		} else if event.Key() == tcell.KeyEnd || event.Rune() == 'G' {
 			if fen.config.FoldersFirst && fen.config.SplitHomeEnd {
-				fen.GoBottomFolderOrBottom()
+				if !fen.GoBottomFolderOrBottom() {
+					app.DontDrawOnThisEventKey()
+					return nil
+				}
 			} else {
-				fen.GoBottom()
+				if !fen.GoBottom() {
+					app.DontDrawOnThisEventKey()
+					return nil
+				}
 			}
 		} else if event.Rune() == 'M' {
 			fen.GoMiddle()

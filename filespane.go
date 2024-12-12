@@ -732,13 +732,15 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		//tview.Print(screen, spaceForSelected+styleStr+" "+FilenameInvisibleCharactersAsCodeHighlighted(tview.Escape(entry.Name()), styleStr)+strings.Repeat(" ", w), x, y+i, w-1-entrySizePrintedSize, tview.AlignLeft, tcell.ColorDefault)
 		xToUse := x
+		widthOffset := 0
 		if spaceForSelected != "" {
 			screen.SetContent(xToUse, y+i, ' ', nil, tcell.StyleDefault)
 			xToUse++
+			widthOffset = -1
 		}
 		screen.SetContent(xToUse, y+i, ' ', nil, style)
 		xToUse++
-		leftSizePrinted := PrintFilenameInvisibleCharactersAsCodeHighlighted(screen, xToUse, y+i, w-1-entrySizePrintedSize, entry.Name(), style)
+		leftSizePrinted := PrintFilenameInvisibleCharactersAsCodeHighlighted(screen, xToUse, y+i, w-1-entrySizePrintedSize+widthOffset, entry.Name(), style)
 
 		for j := 0; j < w-1-leftSizePrinted-entrySizePrintedSize-(xToUse-x); j++ {
 			screen.SetContent(xToUse+leftSizePrinted+j, y+i, ' ', nil, style)
