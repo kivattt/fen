@@ -47,8 +47,7 @@ type Fen struct {
 	helpScreenVisible      *bool
 	librariesScreenVisible *bool
 
-	runningGitStatus     bool
-	initializedGitStatus bool // This is for Fini() because the user might have disabled git_status in the options menu
+	runningGitStatus bool
 
 	folderFileCountCache map[string]int
 
@@ -191,11 +190,8 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
 	fen.folderFileCountCache = make(map[string]int)
 
-	if fen.config.GitStatus {
-		fen.gitStatusHandler = GitStatusHandler{app: app, fen: fen}
-		fen.gitStatusHandler.Init()
-		fen.initializedGitStatus = true
-	}
+	fen.gitStatusHandler = GitStatusHandler{app: app, fen: fen}
+	fen.gitStatusHandler.Init()
 
 	fen.helpScreenVisible = helpScreenVisible
 	fen.librariesScreenVisible = librariesScreenVisible
@@ -263,12 +259,10 @@ func (fen *Fen) Fini() {
 	fen.middlePane.fileWatcher.Close()
 	fen.rightPane.fileWatcher.Close()
 
-	if fen.initializedGitStatus {
-		fen.gitStatusHandler.gitIndexFileWatcher.Close()
+	fen.gitStatusHandler.gitIndexFileWatcher.Close()
 
-		close(fen.gitStatusHandler.channel)
-		fen.gitStatusHandler.wg.Wait()
-	}
+	close(fen.gitStatusHandler.channel)
+	fen.gitStatusHandler.wg.Wait()
 }
 
 func (fen *Fen) InvalidateFolderFileCountCache() {

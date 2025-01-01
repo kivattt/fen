@@ -1269,11 +1269,6 @@ func main() {
 							fen.InvalidateFolderFileCountCache()
 							fen.UpdatePanes(true)
 						}
-					} else if fieldName == "git_status" {
-						// Don't show the git_status option if it was disabled on startup, to prevent crashes
-						if !fen.initializedGitStatus {
-							continue
-						}
 					} else if fieldName == "show_hostname" && runtime.GOOS == "windows" {
 						// Don't show the show_hostname option on Windows, it does nothing on Windows
 						continue
