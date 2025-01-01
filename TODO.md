@@ -28,6 +28,7 @@
 - Configurable filespane proportions
 - Warn when deleting hidden files while hidden files aren't visible
 - Scrollable file previews (fen handles absolute scroll position, hands it to lua as a var)
+- Option to view file sizes in bytes
 
 - Abstract away this common pattern:
 ```go
