@@ -11,6 +11,10 @@ github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f h1:myfMHJX0b7esBOYu
 github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f/go.mod h1:XbVdQu8SHHjoqISPmGcFvHQ8xFuutDrbc4pdw1US62s=
 github.com/kivattt/gogitstatus v0.0.0-20241109231310-7362d587a6fd h1:Qtktj6taCCrnpX9jJ3h5jRZOdgZhMlhumEGFn/BW9GI=
 github.com/kivattt/gogitstatus v0.0.0-20241109231310-7362d587a6fd/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
+github.com/kivattt/gogitstatus v0.0.0-20250107170751-2e8e245f0653 h1:peK3KpT+DLA1EKK77j9UEi4qUywJntcEjWl4YCBUJ98=
+github.com/kivattt/gogitstatus v0.0.0-20250107170751-2e8e245f0653/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
+github.com/kivattt/gogitstatus v0.0.0-20250107181636-5b21e72ca304 h1:Hafev6CfWVI9A8oq+d1DXODj0kXtsBsit8O8MuMp4Aw=
+github.com/kivattt/gogitstatus v0.0.0-20250107181636-5b21e72ca304/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1 h1:+kTjmvCYTLoEb7evW3UoJM3lMaV+TQKaVzAou2xMoqw=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1/go.mod h1:2tg6gQmD3C2WJK0NBUrWnjIV6nSjv+j5w/+monQdfVI=
 github.com/kivattt/tview v1.0.5 h1:85XQYPf4uKhoWysA2bAZFP6wqTxVCz7xxqBoWqyOO1Q=
