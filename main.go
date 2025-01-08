@@ -17,6 +17,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/kivattt/getopt"
+	"github.com/pkg/profile"
 	"github.com/rivo/tview"
 )
 
@@ -68,6 +69,8 @@ func main() {
 	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "make hidden files visible")
 	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "always show folders at the top")
 	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit when opening file(s)")
+	profileCpu := flag.Bool("profile-cpu", false, "generate a CPU profile .pprof file")
+	profileMem := flag.Bool("profile-mem", false, "generate a Memory profile .pprof file")
 	printFolderOnExit := flag.Bool("print-folder-on-exit", false, "output the current working folder in fen on exit")
 	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "change terminal title to 'fen "+version+"' while open")
 	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "show the 'For help: ...' text")
@@ -104,6 +107,18 @@ func main() {
 		fmt.Println()
 		getopt.PrintDefaults()
 		os.Exit(0)
+	}
+
+	if *profileCpu && *profileMem {
+		fmt.Println("Both --profile-cpu and --profile-mem were specified")
+		fmt.Println("You can only use one at a time.")
+		os.Exit(1)
+	}
+
+	if *profileCpu {
+		defer profile.Start().Stop()
+	} else if *profileMem {
+		defer profile.Start(profile.MemProfile).Stop()
 	}
 
 	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
