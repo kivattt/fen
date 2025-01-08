@@ -104,6 +104,19 @@ func (gsh *GitStatusHandler) PathIsUnstagedOrUntracked(path, repositoryPath stri
 	return pathUnstagedOrUntracked
 }
 
+// Returns true if the repository at path contains any unstaged/untracked files
+func (gsh *GitStatusHandler) RepositoryPathContainsUnstagedOrUntracked(path string) bool {
+	gsh.trackedLocalGitReposMutex.Lock()
+	defer gsh.trackedLocalGitReposMutex.Unlock()
+
+	repo, repoOk := gsh.trackedLocalGitRepos[path]
+	if !repoOk {
+		return false
+	}
+
+	return len(repo.changedFiles) > 0
+}
+
 func (gsh *GitStatusHandler) Init() {
 	if gsh.app == nil {
 		panic("In GitStatusHandler Init(), app was nil")

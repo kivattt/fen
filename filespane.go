@@ -680,15 +680,16 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		entryFullPath := filepath.Join(fp.folder, entry.Name())
 		entryInfo, _ := entry.Info() // This seems to immediately stat on Linux
 		style := FileColor(entryInfo, entryFullPath)
+		isRepositoryWhichContainsUnstagedOrUntrackedFiles := false
 
 		spaceForSelected := ""
 		if i+scrollOffset == fp.selectedEntryIndex {
 			style = style.Reverse(true)
 		}
 
-		_, contains := fp.fen.selected[entryFullPath]
+		_, selected := fp.fen.selected[entryFullPath]
 
-		if contains {
+		if selected {
 			spaceForSelected = " "
 			style = style.Foreground(tcell.ColorYellow)
 			style = style.Bold(false) // FileColor() makes folders and executables bold
@@ -699,6 +700,12 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 					// Same color used in the git status command
 					style = style.Foreground(tcell.ColorMaroon).Bold(false) // Unstaged/untracked file in a git directory, distinct from filetype colors
 				}
+			}
+		}
+
+		if fp.fen.config.GitStatus && repoErr != nil {
+			if fp.fen.gitStatusHandler.RepositoryPathContainsUnstagedOrUntracked(entryFullPath) {
+				isRepositoryWhichContainsUnstagedOrUntrackedFiles = true
 			}
 		}
 
@@ -746,8 +753,16 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			screen.SetContent(xToUse+leftSizePrinted+j, y+i, ' ', nil, style)
 		}
 
+		if isRepositoryWhichContainsUnstagedOrUntrackedFiles {
+			screen.SetContent(x, y+i, ' ', nil, tcell.StyleDefault.Background(tcell.ColorMaroon))
+		}
+
 		if entryInYankSelected {
-			tview.Print(screen, "[::b]*", x, y+i, w, tview.AlignLeft, tcell.ColorWhite)
+			if isRepositoryWhichContainsUnstagedOrUntrackedFiles {
+				tview.Print(screen, "[:maroon:b]*", x, y+i, w, tview.AlignLeft, tcell.ColorWhite)
+			} else {
+				tview.Print(screen, "[::b]*", x, y+i, w, tview.AlignLeft, tcell.ColorWhite)
+			}
 		}
 	}
 }

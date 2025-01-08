@@ -12,7 +12,6 @@ import (
 	"slices"
 	"time"
 
-	//	"runtime/pprof"
 	"strconv"
 	"strings"
 
@@ -46,9 +45,7 @@ func SetTviewStyles() {
 }
 
 func main() {
-	//	f, _ := os.Create("profile.prof")
-	//	pprof.StartCPUProfile(f)
-	//	defer pprof.StopCPUProfile()
+	//defer profile.Start().Stop()
 
 	SetTviewStyles()
 
