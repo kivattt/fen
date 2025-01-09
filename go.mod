@@ -10,7 +10,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
-	github.com/kivattt/gogitstatus v0.0.0-20250108072937-f8528fd3abdd
+	github.com/kivattt/gogitstatus v0.0.0-20250108154353-83d8075e2b11
 	github.com/otiai10/copy v1.14.0
 	github.com/pkg/profile v1.7.0
 	github.com/rivo/tview v0.0.0-20241030223020-e34b54cd4c27

@@ -45,6 +45,19 @@ func trimLastDecimals(numberString string, maxDecimals int) string {
 	return numberString[:min(len(numberString), dotIndex+maxDecimals+1)]
 }
 
+func BytesToFileSizeFormat(bytes uint64, maxDecimals int, format string) string {
+	if format == HUMAN_READABLE {
+		return BytesToHumanReadableUnitString(bytes, maxDecimals)
+	} else if format == BYTES {
+		return strconv.FormatUint(bytes, 10) + " B"
+	} else {
+		fmt.Fprintln(os.Stderr, "Invalid file_size_format value \""+format+"\"")
+		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidFileSizeFormatValues[:], ", "))
+		os.Exit(1)
+		return "" // The compiler doesn't recognize os.Exit(1) as the end of this function
+	}
+}
+
 // If maxDecimals is less than 0, e.g -1, we show the exact size down to the byte
 // https://en.wikipedia.org/wiki/Byte#Multiple-byte_units
 func BytesToHumanReadableUnitString(bytes uint64, maxDecimals int) string {
@@ -101,7 +114,7 @@ func PathWithoutEndSeparator(path string) string {
 // TODO: Maybe make these file functions take a fs.FileInfo from a previously done os.Stat()
 
 // stat should be from an os.Lstat(). If stat is nil, it returns an error.
-func EntrySizeText(folderFileCountCache map[string]int, stat os.FileInfo, path string, hiddenFiles bool) (string, error) {
+func EntrySizeText(folderFileCountCache map[string]int, stat os.FileInfo, path string, hiddenFiles bool, format string) (string, error) {
 	if stat == nil {
 		return "", errors.New("stat was nil")
 	}
@@ -119,7 +132,8 @@ func EntrySizeText(folderFileCountCache map[string]int, stat os.FileInfo, path s
 	}
 
 	if !stat.IsDir() {
-		ret.WriteString(BytesToHumanReadableUnitString(uint64(stat.Size()), 2))
+		ret.WriteString(BytesToFileSizeFormat(uint64(stat.Size()), 2, format))
+		//ret.WriteString(BytesToHumanReadableUnitString(uint64(stat.Size()), 2))
 	} else {
 		count, err := FolderFileCountCached(folderFileCountCache, path, hiddenFiles)
 		if err != nil {

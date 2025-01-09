@@ -18,6 +18,7 @@ fen.git_status = false -- When true, unstaged/untracked files in local git repos
 fen.preview_safety_blocklist = true -- Prevents common sensitive file types from being previewed
 fen.close_on_escape = false -- Use the Escape key to close fen, useful for embedding in other applications
 fen.file_size_in_all_panes = false
+fen.file_size_format = "human-readable" -- "fen -h" for valid values
 
 -- Everything below this line is non-default examples
 

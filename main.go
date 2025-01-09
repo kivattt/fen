@@ -82,6 +82,7 @@ func main() {
 	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
 	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
 	sortReverse := flag.Bool("sort-reverse", defaultConfigValues.SortReverse, "reverse sort")
+	fileSizeFormat := flag.String("file-size-format", defaultConfigValues.FileSizeFormat, "file size format ("+strings.Join(ValidFileSizeFormatValues[:], ", ")+")")
 
 	getopt.CommandLine.SetOutput(os.Stdout)
 	getopt.CommandLine.Init("fen", flag.ExitOnError)
@@ -225,6 +226,9 @@ func main() {
 	}
 	if flagPassed("sort-reverse") {
 		fen.config.SortReverse = *sortReverse
+	}
+	if flagPassed("file-size-format") {
+		fen.config.FileSizeFormat = *fileSizeFormat
 	}
 
 	app := tview.NewApplication()
@@ -1288,15 +1292,20 @@ func main() {
 
 					optionsForm.AddCheckbox(fieldName, fieldValue, f)
 				case reflect.String:
-					if fieldName != "sort_by" {
-						panic("Options menu expected the only config string to be sort_by")
-					}
-
 					fieldValue := value.String()
-					optionsForm.AddDropDown(fieldName, ValidSortByValues[:], slices.Index(ValidSortByValues[:], fieldValue), func(option string, optionIndex int) {
-						*fieldPtr.(*string) = option
-						fen.UpdatePanes(true)
-					})
+					if fieldName == "sort_by" {
+						optionsForm.AddDropDown(fieldName, ValidSortByValues[:], slices.Index(ValidSortByValues[:], fieldValue), func(option string, optionIndex int) {
+							*fieldPtr.(*string) = option
+							fen.UpdatePanes(true)
+						})
+					} else if fieldName == "file_size_format" {
+						optionsForm.AddDropDown(fieldName, ValidFileSizeFormatValues[:], slices.Index(ValidFileSizeFormatValues[:], fieldValue), func(option string, optionIndex int) {
+							*fieldPtr.(*string) = option
+							fen.UpdatePanes(true)
+						})
+					} else {
+						panic("Options menu expected the only config strings to be \"sort_by\" or \"file_size_format\"")
+					}
 				default:
 					continue
 				}

@@ -718,7 +718,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		entrySizePrintedSize := 0
 		if fp.fen.config.FileSizeInAllPanes || fp.panePos == MiddlePane {
-			entrySizeText, err := EntrySizeText(fp.fen.folderFileCountCache, entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
+			entrySizeText, err := EntrySizeText(fp.fen.folderFileCountCache, entryInfo, entryFullPath, fp.fen.config.HiddenFiles, fp.fen.config.FileSizeFormat)
 			if err != nil {
 				entrySizeText = "?"
 			}
