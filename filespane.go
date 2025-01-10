@@ -628,8 +628,10 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 					fp.Box.DrawForSubclass(screen, fp)
 
 					if isApiError && err.Type == lua.ApiErrorFile {
-						tview.Print(screen, "[red]File preview script not found:[-:-:-:-] "+previewWith.Script, x, y, w, tview.AlignLeft, tcell.ColorDefault)
-						tview.Print(screen, "The fen.config_path was: \""+PathWithEndSeparator(filepath.Dir(fp.fen.configFilePath))+"\"", x, y+2, w, tview.AlignLeft, tcell.ColorDefault)
+						tview.Print(screen, "File preview script not found:", x, y, w, tview.AlignLeft, tcell.ColorRed)
+						tview.Print(screen, previewWith.Script, x, y+1, w, tview.AlignLeft, tcell.ColorDefault)
+						tview.Print(screen, "The fen.config_path was:", x, y+3, w, tview.AlignLeft, tcell.ColorDefault)
+						tview.Print(screen, "\""+PathWithEndSeparator(filepath.Dir(fp.fen.configFilePath))+"\"", x, y+4, w, tview.AlignLeft, tcell.ColorDefault)
 					} else {
 						tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
 						lines := tview.WordWrap(err.Error(), w)
