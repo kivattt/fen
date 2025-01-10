@@ -130,7 +130,6 @@ func EntrySizeText(folderFileCountCache map[string]int, stat os.FileInfo, path s
 
 	if !stat.IsDir() {
 		ret.WriteString(BytesToFileSizeFormat(uint64(stat.Size()), 2, format))
-		//ret.WriteString(BytesToHumanReadableUnitString(uint64(stat.Size()), 2))
 	} else {
 		count, err := FolderFileCountCached(folderFileCountCache, path, hiddenFiles)
 		if err != nil {
