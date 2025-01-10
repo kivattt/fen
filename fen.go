@@ -88,6 +88,26 @@ const (
 
 var ValidFileSizeFormatValues = [...]string{HUMAN_READABLE, BYTES}
 
+func isInvalidFileSizeFormatValue(format string) bool {
+	for _, e := range ValidFileSizeFormatValues {
+		if format == e {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isInvalidSortByValue(sortBy string) bool {
+	for _, e := range ValidSortByValues {
+		if sortBy == e {
+			return false
+		}
+	}
+
+	return true
+}
+
 type Config struct {
 	UiBorders               bool                 `lua:"ui_borders"`
 	Mouse                   bool                 `lua:"mouse"`

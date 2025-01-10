@@ -4,7 +4,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -421,9 +420,7 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		})
 	case SORT_NONE: // Does nothing, this has the side effect of making file events always show up at the bottom, until the entire folder is re-read
 	default:
-		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")
-		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
-		os.Exit(1)
+		panic("Invalid sort_by value \"" + fp.fen.config.SortBy + "\"")
 	}
 
 	if fp.fen.config.SortBy != SORT_NONE && fp.fen.config.SortReverse {

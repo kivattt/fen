@@ -51,10 +51,7 @@ func BytesToFileSizeFormat(bytes uint64, maxDecimals int, format string) string 
 	} else if format == BYTES {
 		return strconv.FormatUint(bytes, 10) + " B"
 	} else {
-		fmt.Fprintln(os.Stderr, "Invalid file_size_format value \""+format+"\"")
-		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidFileSizeFormatValues[:], ", "))
-		os.Exit(1)
-		return "" // The compiler doesn't recognize os.Exit(1) as the end of this function
+		panic("Invalid file_size_format value \"" + format + "\"")
 	}
 }
 

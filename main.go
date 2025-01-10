@@ -222,7 +222,6 @@ func main() {
 	if flagPassed("close-on-escape") {
 		fen.config.CloseOnEscape = *closeOnEscape
 	}
-
 	if flagPassed("sort-by") {
 		fen.config.SortBy = *sortBy
 	}
@@ -231,6 +230,18 @@ func main() {
 	}
 	if flagPassed("file-size-format") {
 		fen.config.FileSizeFormat = *fileSizeFormat
+	}
+
+	if isInvalidFileSizeFormatValue(fen.config.FileSizeFormat) {
+		fmt.Fprintln(os.Stderr, "Invalid file_size_format value \""+fen.config.FileSizeFormat+"\"")
+		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidFileSizeFormatValues[:], ", "))
+		os.Exit(1)
+	}
+
+	if isInvalidSortByValue(fen.config.SortBy) {
+		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fen.config.SortBy+"\"")
+		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
+		os.Exit(1)
 	}
 
 	app := tview.NewApplication()
