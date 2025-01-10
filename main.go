@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"runtime/pprof"
 	"slices"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/kivattt/getopt"
-	"github.com/pkg/profile"
 	"github.com/rivo/tview"
 )
 
@@ -46,8 +46,6 @@ func SetTviewStyles() {
 }
 
 func main() {
-	//defer profile.Start().Stop()
-
 	SetTviewStyles()
 
 	userConfigDir, err := os.UserConfigDir()
@@ -70,7 +68,6 @@ func main() {
 	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "always show folders at the top")
 	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit when opening file(s)")
 	profileCpu := flag.Bool("profile-cpu", false, "generate a CPU profile .pprof file")
-	profileMem := flag.Bool("profile-mem", false, "generate a Memory profile .pprof file")
 	printFolderOnExit := flag.Bool("print-folder-on-exit", false, "output the current working folder in fen on exit")
 	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "change terminal title to 'fen "+version+"' while open")
 	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "show the 'For help: ...' text")
@@ -89,7 +86,6 @@ func main() {
 	getopt.Aliases(
 		"v", "version",
 		"h", "help",
-		//		"s", "select", // This doesn't work for some reason
 	)
 
 	err = getopt.CommandLine.Parse(os.Args[1:])
@@ -110,16 +106,22 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *profileCpu && *profileMem {
-		fmt.Println("Both --profile-cpu and --profile-mem were specified")
-		fmt.Println("You can only use one at a time.")
-		os.Exit(1)
-	}
-
 	if *profileCpu {
-		defer profile.Start().Stop()
-	} else if *profileMem {
-		defer profile.Start(profile.MemProfile).Stop()
+		outputFile, err := os.CreateTemp("", "fenprofile*.pprof")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := pprof.StartCPUProfile(outputFile); err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("cpu profiling enabled, " + outputFile.Name())
+		defer func() {
+			pprof.StopCPUProfile()
+			outputFile.Close()
+			log.Println("cpu profiling disabled, " + outputFile.Name())
+		}()
 	}
 
 	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
