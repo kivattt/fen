@@ -623,13 +623,19 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				}
 
 				L.SetGlobal("fen", luar.New(L, fenLuaGlobal))
-				err := L.DoFile(previewWith.Script)
+				err, isApiError := L.DoFile(previewWith.Script).(*lua.ApiError)
 				if err != nil {
 					fp.Box.DrawForSubclass(screen, fp)
-					tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
-					lines := tview.WordWrap(err.Error(), w)
-					for i, line := range lines {
-						tview.Print(fenLuaGlobal.screen, line, x, y+1+i, w, tview.AlignLeft, tcell.ColorDefault)
+
+					if isApiError && err.Type == lua.ApiErrorFile {
+						tview.Print(screen, "[red]File preview script not found:[-:-:-:-] "+previewWith.Script, x, y, w, tview.AlignLeft, tcell.ColorDefault)
+						tview.Print(screen, "The fen.config_path was: \""+PathWithEndSeparator(filepath.Dir(fp.fen.configFilePath))+"\"", x, y+2, w, tview.AlignLeft, tcell.ColorDefault)
+					} else {
+						tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
+						lines := tview.WordWrap(err.Error(), w)
+						for i, line := range lines {
+							tview.Print(fenLuaGlobal.screen, line, x, y+1+i, w, tview.AlignLeft, tcell.ColorDefault)
+						}
 					}
 				}
 				return

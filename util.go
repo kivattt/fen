@@ -699,7 +699,7 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 				defer L.Close()
 
 				fenOpenWithLuaGlobal := &FenOpenWithLuaGlobal{
-					ConfigPath: PathWithEndSeparator(filepath.Dir(fen.configPath)),
+					ConfigPath: PathWithEndSeparator(filepath.Dir(fen.configFilePath)),
 					Version:    version,
 					RuntimeOS:  runtime.GOOS,
 				}
