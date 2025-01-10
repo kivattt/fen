@@ -1317,7 +1317,7 @@ func main() {
 							fen.UpdatePanes(true)
 						})
 					} else {
-						panic("Options menu expected the only config strings to be \"sort_by\" or \"file_size_format\"")
+						panic("Unknown string option \"" + fieldName + "\"")
 					}
 				default:
 					continue
