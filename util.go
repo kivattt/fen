@@ -509,24 +509,22 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 
 	var ret tcell.Style
 
-	if stat != nil {
-		if stat.IsDir() {
-			return ret.Foreground(tcell.ColorBlue).Bold(true)
-		} else if stat.Mode().IsRegular() {
-			if stat.Mode()&0111 != 0 || (runtime.GOOS == "windows" && hasSuffixFromList(path, windowsExecutableTypes)) { // Executable file
-				return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
-			}
-		} else if stat.Mode()&os.ModeSymlink != 0 {
-			targetStat, err := os.Stat(path)
-			if err == nil && targetStat.IsDir() {
-				return ret.Foreground(tcell.ColorTeal).Bold(true)
-			}
-
-			return ret.Foreground(tcell.ColorTeal)
-		} else {
-			// Should not happen?
-			return ret.Foreground(tcell.ColorDarkGray)
+	if stat.IsDir() {
+		return ret.Foreground(tcell.ColorBlue).Bold(true)
+	} else if stat.Mode().IsRegular() {
+		if stat.Mode()&0111 != 0 || (runtime.GOOS == "windows" && hasSuffixFromList(path, windowsExecutableTypes)) { // Executable file
+			return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
 		}
+	} else if stat.Mode()&os.ModeSymlink != 0 {
+		targetStat, err := os.Stat(path)
+		if err == nil && targetStat.IsDir() {
+			return ret.Foreground(tcell.ColorTeal).Bold(true)
+		}
+
+		return ret.Foreground(tcell.ColorTeal)
+	} else {
+		// Should not happen?
+		return ret.Foreground(tcell.ColorDarkGray)
 	}
 
 	if hasSuffixFromList(path, imageTypes) {
