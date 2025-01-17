@@ -23,6 +23,30 @@ import (
 
 const version = "v1.7.21"
 
+func registerHelpInputHandler(helpScreen *HelpScreen, fen *Fen, pages *tview.Pages, librariesScreen *LibrariesScreen) {
+	helpScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
+			helpScreen.ScrollDown()
+		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
+			helpScreen.ScrollUp()
+		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			helpScreen.visible = false
+			helpScreen.scrollIndex = 0
+			pages.RemovePage("popup")
+			fen.ShowFilepanes()
+			return nil
+		} else if event.Key() == tcell.KeyF2 {
+			helpScreen.visible = false
+			helpScreen.scrollIndex = 0
+			pages.RemovePage("popup")
+			librariesScreen.visible = true
+			pages.AddPage("popup", librariesScreen, true, true)
+			return nil
+		}
+		return event
+	})
+}
+
 func SetTviewStyles() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 	// For the dropdown in the options menu
@@ -278,27 +302,7 @@ func main() {
 			AddItem(nil, 0, 1, false)
 	}
 
-	helpScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
-			helpScreen.ScrollDown()
-		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
-			helpScreen.ScrollUp()
-		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
-			helpScreen.visible = false
-			helpScreen.scrollIndex = 0
-			pages.RemovePage("popup")
-			fen.ShowFilepanes()
-			return nil
-		} else if event.Key() == tcell.KeyF2 {
-			helpScreen.visible = false
-			helpScreen.scrollIndex = 0
-			pages.RemovePage("popup")
-			librariesScreen.visible = true
-			pages.AddPage("popup", librariesScreen, true, true)
-			return nil
-		}
-		return event
-	})
+	registerHelpInputHandler(helpScreen, &fen, pages, librariesScreen)
 
 	librariesScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyF2 || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
