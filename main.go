@@ -23,407 +23,7 @@ import (
 
 const version = "v1.7.21"
 
-func registerAppMouseHandler(app *tview.Application, pages *tview.Pages, fen *Fen) {
-	lastWheelUpTime := time.Now()
-	lastWheelDownTime := time.Now()
-
-	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
-		if pages.HasPage("popup") {
-			// Since `return nil, action` redraws the screen for some reason,
-			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
-			if action == tview.MouseMove {
-				return event, action
-			}
-
-			return nil, action
-		}
-
-		// Required to prevent a nil dereference crash
-		if event == nil {
-			return nil, action
-		}
-
-		if action != tview.MouseMove {
-			fen.bottomBar.alternateText = ""
-		}
-
-		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
-		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && (event.Buttons() == tcell.Button1 || event.Buttons() == tcell.Button2) {
-			_, mouseY := event.Position()
-			if mouseY == 0 {
-				err := SetClipboardLinuxXClip(fen.sel)
-				if err != nil {
-					fen.topBar.additionalText = "[red::]Copy failed (install xclip)"
-					fen.bottomBar.TemporarilyShowTextInstead(err.Error())
-					return nil, action
-				}
-				fen.topBar.additionalText = "[#00ff00:]Copied to clipboard!"
-				fen.topBar.showAdditionalText = true
-				return event, action
-			}
-		} else if action == tview.MouseMove {
-			if runtime.GOOS == "windows" {
-				return event, action
-			}
-
-			_, mouseY := event.Position()
-			if mouseY == 0 {
-				if fen.showHomePathAsTilde {
-					fen.showHomePathAsTilde = false
-					if runtime.GOOS == "linux" || runtime.GOOS == "freebsd" {
-						if fen.config.NoWrite {
-							fen.topBar.additionalText = "[red]Copying unavailable (no-write)"
-						} else {
-							fen.topBar.additionalText = "Click to copy"
-						}
-						fen.topBar.showAdditionalText = true
-					}
-					return nil, action
-				}
-			} else {
-				if !fen.showHomePathAsTilde {
-					fen.showHomePathAsTilde = true
-					fen.topBar.showAdditionalText = false
-					return nil, action
-				}
-			}
-			return event, action
-		}
-
-		if action == tview.MouseMove {
-			return event, action
-		}
-
-		// Movement/navigation keys
-		switch event.Buttons() {
-		case tcell.Button1, tcell.Button2:
-			// Small inconsistency with --ui-borders when clicking the left border of the middlepane, not important
-			x, y, w, h := fen.middlePane.GetInnerRect()
-			mouseX, mouseY := event.Position()
-
-			if mouseY < y || mouseY > h { // We don't check > y+h so clicking the bottom row of the screen is ignored
-				break
-			}
-
-			if mouseX < x {
-				fen.GoLeft()
-			} else if mouseX > x+w {
-				fen.GoRight(app, "")
-			} else {
-				fen.GoIndex(mouseY - y + fen.middlePane.GetTopScreenEntryIndex())
-			}
-		case tcell.WheelLeft:
-			fen.GoLeft()
-		case tcell.WheelRight:
-			fen.GoRight(app, "")
-		case tcell.WheelUp:
-			moved := false
-			if time.Since(lastWheelUpTime) > time.Duration(30*time.Millisecond) {
-				moved = fen.GoUp()
-			} else {
-				moved = fen.GoUp(fen.config.ScrollSpeed)
-			}
-
-			lastWheelUpTime = time.Now()
-			if !moved {
-				app.DontDrawOnThisEventMouse()
-				return nil, action
-			}
-		case tcell.WheelDown:
-			moved := false
-			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
-				moved = fen.GoDown()
-			} else {
-				moved = fen.GoDown(fen.config.ScrollSpeed)
-			}
-
-			lastWheelDownTime = time.Now()
-			if !moved {
-				app.DontDrawOnThisEventMouse()
-				return nil, action
-			}
-		default:
-			return nil, action
-		}
-
-		if event.Buttons() != tcell.WheelLeft {
-			fen.history.AddToHistory(fen.sel)
-		}
-
-		fen.UpdatePanes(false)
-		return nil, action
-	})
-
-}
-
-func registerHelpInputHandler(helpScreen *HelpScreen, fen *Fen, pages *tview.Pages, librariesScreen *LibrariesScreen) {
-	helpScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
-			helpScreen.ScrollDown()
-		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
-			helpScreen.ScrollUp()
-		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
-			helpScreen.visible = false
-			helpScreen.scrollIndex = 0
-			pages.RemovePage("popup")
-			fen.ShowFilepanes()
-			return nil
-		} else if event.Key() == tcell.KeyF2 {
-			helpScreen.visible = false
-			helpScreen.scrollIndex = 0
-			pages.RemovePage("popup")
-			librariesScreen.visible = true
-			pages.AddPage("popup", librariesScreen, true, true)
-			return nil
-		}
-		return event
-	})
-}
-
-func SetTviewStyles() {
-	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
-	// For the dropdown in the options menu
-	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
-
-	tview.Styles.BorderColor = tcell.ColorDefault
-	tview.Borders.Horizontal = '─'
-	tview.Borders.Vertical = '│'
-
-	if runtime.GOOS == "freebsd" {
-		tview.Borders.TopLeft = '┌'
-		tview.Borders.TopRight = '┐'
-		tview.Borders.BottomLeft = '└'
-		tview.Borders.BottomRight = '┘'
-	} else {
-		tview.Borders.TopLeft = '╭'
-		tview.Borders.TopRight = '╮'
-		tview.Borders.BottomLeft = '╰'
-		tview.Borders.BottomRight = '╯'
-	}
-}
-
-func main() {
-	SetTviewStyles()
-
-	userConfigDir, err := os.UserConfigDir()
-	defaultConfigFilenamePath := ""
-	// If there was an error, defaultConfigFilenamePath will be an empty string ""
-	//  and fen.ReadConfig() will return nil, just using the default config
-	if err == nil {
-		defaultConfigFilenamePath = filepath.Join(userConfigDir, "fen", "config.lua")
-	}
-
-	defaultConfigValues := NewConfigDefaultValues()
-
-	// When adding new flags, make sure to duplicate the name when we check flagPassed lower in this file
-	v := flag.Bool("version", false, "output version information and exit")
-	h := flag.Bool("help", false, "display this help and exit")
-	uiBorders := flag.Bool("ui-borders", defaultConfigValues.UiBorders, "enable UI borders")
-	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "enable mouse events")
-	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
-	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "make hidden files visible")
-	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "always show folders at the top")
-	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit when opening file(s)")
-	profileCpu := flag.Bool("profile-cpu", false, "generate a CPU profile .pprof file")
-	printFolderOnExit := flag.Bool("print-folder-on-exit", false, "output the current working folder in fen on exit")
-	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "change terminal title to 'fen "+version+"' while open")
-	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "show the 'For help: ...' text")
-	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "show username@hostname in the top-left")
-	closeOnEscape := flag.Bool("close-on-escape", defaultConfigValues.CloseOnEscape, "make the escape key exit fen")
-
-	selectPaths := flag.Bool("select", false, "select PATHS")
-
-	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
-	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
-	sortReverse := flag.Bool("sort-reverse", defaultConfigValues.SortReverse, "reverse sort")
-	fileSizeFormat := flag.String("file-size-format", defaultConfigValues.FileSizeFormat, "file size format ("+strings.Join(ValidFileSizeFormatValues[:], ", ")+")")
-
-	getopt.CommandLine.SetOutput(os.Stdout)
-	getopt.CommandLine.Init("fen", flag.ExitOnError)
-	getopt.Aliases(
-		"v", "version",
-		"h", "help",
-	)
-
-	err = getopt.CommandLine.Parse(os.Args[1:])
-	if err != nil {
-		os.Exit(2)
-	}
-
-	if *v {
-		fmt.Println("fen " + version)
-		os.Exit(0)
-	}
-
-	if *h {
-		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTIONS] [FILES]")
-		fmt.Println("Terminal file manager")
-		fmt.Println()
-		getopt.PrintDefaults()
-		os.Exit(0)
-	}
-
-	if *profileCpu {
-		outputFile, err := os.CreateTemp("", "fenprofile*.pprof")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if err := pprof.StartCPUProfile(outputFile); err != nil {
-			log.Fatal(err)
-		}
-
-		log.Println("cpu profiling enabled, " + outputFile.Name())
-		defer func() {
-			pprof.StopCPUProfile()
-			outputFile.Close()
-			log.Println("cpu profiling disabled, " + outputFile.Name())
-		}()
-	}
-
-	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
-	if path == "" || err != nil {
-		path, err = CurrentWorkingDirectory()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	var fen Fen
-	// Presumably a different value passed by command-line argument
-	if *configFilename != defaultConfigFilenamePath {
-		_, err := os.Stat(*configFilename)
-		if err != nil {
-			log.Fatal("Could not find file: " + *configFilename)
-		}
-	}
-
-	if !fen.config.NoWrite {
-		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
-	}
-
-	err = fen.ReadConfig(*configFilename)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-
-		// Hacky, but gets the job done
-		if !strings.HasSuffix(err.Error(), "config files can only be Lua.\n") {
-			fmt.Println("Invalid config '" + *configFilename + "', exiting")
-			fmt.Fprintln(os.Stderr, err)
-
-		} else if !fen.config.NoWrite {
-			PromptForGenerateLuaConfig(*configFilename, &fen)
-		}
-
-		os.Exit(1)
-	}
-
-	// We have to check *selectPaths before flag.Parse()
-	if *selectPaths {
-		for _, arg := range getopt.CommandLine.Args() {
-			pathAbsolute, err := filepath.Abs(arg)
-			if err != nil {
-				continue
-			}
-
-			// Don't allow selecting the root folder, since it is normally impossible to do and relatively invisible to the user
-			if pathAbsolute == filepath.Dir(pathAbsolute) {
-				continue
-			}
-
-			_, err = os.Lstat(pathAbsolute)
-			if err != nil {
-				continue
-			}
-			fen.EnableSelection(pathAbsolute)
-		}
-	}
-
-	flag.Parse()
-	flagPassed := func(name string) bool {
-		found := false
-		flag.Visit(func(f *flag.Flag) {
-			if f.Name == name {
-				found = true
-			}
-		})
-		return found
-	}
-
-	// Maybe clean this up at some point
-	if flagPassed("ui-borders") {
-		fen.config.UiBorders = *uiBorders
-	}
-	if flagPassed("mouse") {
-		fen.config.Mouse = *mouse
-	}
-	if flagPassed("no-write") {
-		fen.config.NoWrite = *noWrite
-	}
-	if flagPassed("hidden-files") {
-		fen.config.HiddenFiles = *hiddenFiles
-	}
-	if flagPassed("folders-first") {
-		fen.config.FoldersFirst = *foldersFirst
-	}
-	if flagPassed("print-path-on-open") {
-		fen.config.PrintPathOnOpen = *printPathOnOpen
-	}
-	if flagPassed("terminal-title") {
-		fen.config.TerminalTitle = *allowTerminalTitle
-	}
-	if flagPassed("show-help-text") {
-		fen.config.ShowHelpText = *showHelpText
-	}
-	if flagPassed("show-hostname") {
-		fen.config.ShowHostname = *showHostname
-	}
-	if flagPassed("close-on-escape") {
-		fen.config.CloseOnEscape = *closeOnEscape
-	}
-	if flagPassed("sort-by") {
-		fen.config.SortBy = *sortBy
-	}
-	if flagPassed("sort-reverse") {
-		fen.config.SortReverse = *sortReverse
-	}
-	if flagPassed("file-size-format") {
-		fen.config.FileSizeFormat = *fileSizeFormat
-	}
-
-	if isInvalidFileSizeFormatValue(fen.config.FileSizeFormat) {
-		fmt.Fprintln(os.Stderr, "Invalid file_size_format value \""+fen.config.FileSizeFormat+"\"")
-		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidFileSizeFormatValues[:], ", "))
-		os.Exit(1)
-	}
-
-	if isInvalidSortByValue(fen.config.SortBy) {
-		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fen.config.SortBy+"\"")
-		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
-		os.Exit(1)
-	}
-
-	app := tview.NewApplication()
-
-	helpScreen := NewHelpScreen(&fen)
-	librariesScreen := NewLibrariesScreen()
-
-	err = fen.Init(path, app, &helpScreen.visible, &librariesScreen.visible)
-	defer fen.Fini()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	flex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(fen.topBar, 1, 0, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
-			AddItem(fen.leftPane, 0, 1, false).
-			AddItem(fen.middlePane, 0, 3, false).
-			AddItem(fen.rightPane, 0, 3, false), 0, 1, false).
-		AddItem(fen.bottomBar, 1, 0, false)
-
-	pages := tview.NewPages().
-		AddPage("flex", flex, true, true)
+func registerAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, helpScreen *HelpScreen, librariesScreen *LibrariesScreen) {
 
 	centered := func(p tview.Primitive, height int) tview.Primitive {
 		return tview.NewFlex().
@@ -435,35 +35,9 @@ func main() {
 			AddItem(nil, 0, 1, false)
 	}
 
-	registerHelpInputHandler(helpScreen, &fen, pages, librariesScreen)
-
-	librariesScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyF2 || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
-			librariesScreen.visible = false
-			pages.RemovePage("popup")
-			fen.ShowFilepanes()
-			return nil
-		}
-
-		if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
-			librariesScreen.visible = false
-			pages.RemovePage("popup")
-			helpScreen.visible = true
-			pages.AddPage("popup", helpScreen, true, true)
-			return nil
-		}
-		return event
-	})
-
-	/*
-
-
-	 */
-
-	registerAppMouseHandler(app, pages, &fen)
+	var err error
 
 	enterWillSelectAutoCompleteInGotoPath := false
-
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if pages.HasPage("popup") {
 			return event
@@ -1128,7 +702,7 @@ func main() {
 			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
 
-			programs, descriptions := ProgramsAndDescriptionsForFile(&fen)
+			programs, descriptions := ProgramsAndDescriptionsForFile(fen)
 			programsList := NewOpenWithList(&programs, &descriptions)
 
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
@@ -1384,6 +958,433 @@ func main() {
 		app.DontDrawOnThisEventKey()
 		return event
 	})
+}
+
+func registerAppMouseHandler(app *tview.Application, pages *tview.Pages, fen *Fen) {
+	lastWheelUpTime := time.Now()
+	lastWheelDownTime := time.Now()
+
+	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
+		if pages.HasPage("popup") {
+			// Since `return nil, action` redraws the screen for some reason,
+			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
+			if action == tview.MouseMove {
+				return event, action
+			}
+
+			return nil, action
+		}
+
+		// Required to prevent a nil dereference crash
+		if event == nil {
+			return nil, action
+		}
+
+		if action != tview.MouseMove {
+			fen.bottomBar.alternateText = ""
+		}
+
+		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
+		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && (event.Buttons() == tcell.Button1 || event.Buttons() == tcell.Button2) {
+			_, mouseY := event.Position()
+			if mouseY == 0 {
+				err := SetClipboardLinuxXClip(fen.sel)
+				if err != nil {
+					fen.topBar.additionalText = "[red::]Copy failed (install xclip)"
+					fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+					return nil, action
+				}
+				fen.topBar.additionalText = "[#00ff00:]Copied to clipboard!"
+				fen.topBar.showAdditionalText = true
+				return event, action
+			}
+		} else if action == tview.MouseMove {
+			if runtime.GOOS == "windows" {
+				return event, action
+			}
+
+			_, mouseY := event.Position()
+			if mouseY == 0 {
+				if fen.showHomePathAsTilde {
+					fen.showHomePathAsTilde = false
+					if runtime.GOOS == "linux" || runtime.GOOS == "freebsd" {
+						if fen.config.NoWrite {
+							fen.topBar.additionalText = "[red]Copying unavailable (no-write)"
+						} else {
+							fen.topBar.additionalText = "Click to copy"
+						}
+						fen.topBar.showAdditionalText = true
+					}
+					return nil, action
+				}
+			} else {
+				if !fen.showHomePathAsTilde {
+					fen.showHomePathAsTilde = true
+					fen.topBar.showAdditionalText = false
+					return nil, action
+				}
+			}
+			return event, action
+		}
+
+		if action == tview.MouseMove {
+			return event, action
+		}
+
+		// Movement/navigation keys
+		switch event.Buttons() {
+		case tcell.Button1, tcell.Button2:
+			// Small inconsistency with --ui-borders when clicking the left border of the middlepane, not important
+			x, y, w, h := fen.middlePane.GetInnerRect()
+			mouseX, mouseY := event.Position()
+
+			if mouseY < y || mouseY > h { // We don't check > y+h so clicking the bottom row of the screen is ignored
+				break
+			}
+
+			if mouseX < x {
+				fen.GoLeft()
+			} else if mouseX > x+w {
+				fen.GoRight(app, "")
+			} else {
+				fen.GoIndex(mouseY - y + fen.middlePane.GetTopScreenEntryIndex())
+			}
+		case tcell.WheelLeft:
+			fen.GoLeft()
+		case tcell.WheelRight:
+			fen.GoRight(app, "")
+		case tcell.WheelUp:
+			moved := false
+			if time.Since(lastWheelUpTime) > time.Duration(30*time.Millisecond) {
+				moved = fen.GoUp()
+			} else {
+				moved = fen.GoUp(fen.config.ScrollSpeed)
+			}
+
+			lastWheelUpTime = time.Now()
+			if !moved {
+				app.DontDrawOnThisEventMouse()
+				return nil, action
+			}
+		case tcell.WheelDown:
+			moved := false
+			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
+				moved = fen.GoDown()
+			} else {
+				moved = fen.GoDown(fen.config.ScrollSpeed)
+			}
+
+			lastWheelDownTime = time.Now()
+			if !moved {
+				app.DontDrawOnThisEventMouse()
+				return nil, action
+			}
+		default:
+			return nil, action
+		}
+
+		if event.Buttons() != tcell.WheelLeft {
+			fen.history.AddToHistory(fen.sel)
+		}
+
+		fen.UpdatePanes(false)
+		return nil, action
+	})
+
+}
+
+func registerHelpInputHandler(helpScreen *HelpScreen, fen *Fen, pages *tview.Pages, librariesScreen *LibrariesScreen) {
+	helpScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
+			helpScreen.ScrollDown()
+		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
+			helpScreen.ScrollUp()
+		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			helpScreen.visible = false
+			helpScreen.scrollIndex = 0
+			pages.RemovePage("popup")
+			fen.ShowFilepanes()
+			return nil
+		} else if event.Key() == tcell.KeyF2 {
+			helpScreen.visible = false
+			helpScreen.scrollIndex = 0
+			pages.RemovePage("popup")
+			librariesScreen.visible = true
+			pages.AddPage("popup", librariesScreen, true, true)
+			return nil
+		}
+		return event
+	})
+}
+
+func SetTviewStyles() {
+	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+	// For the dropdown in the options menu
+	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
+
+	tview.Styles.BorderColor = tcell.ColorDefault
+	tview.Borders.Horizontal = '─'
+	tview.Borders.Vertical = '│'
+
+	if runtime.GOOS == "freebsd" {
+		tview.Borders.TopLeft = '┌'
+		tview.Borders.TopRight = '┐'
+		tview.Borders.BottomLeft = '└'
+		tview.Borders.BottomRight = '┘'
+	} else {
+		tview.Borders.TopLeft = '╭'
+		tview.Borders.TopRight = '╮'
+		tview.Borders.BottomLeft = '╰'
+		tview.Borders.BottomRight = '╯'
+	}
+}
+
+func main() {
+	SetTviewStyles()
+
+	userConfigDir, err := os.UserConfigDir()
+	defaultConfigFilenamePath := ""
+	// If there was an error, defaultConfigFilenamePath will be an empty string ""
+	//  and fen.ReadConfig() will return nil, just using the default config
+	if err == nil {
+		defaultConfigFilenamePath = filepath.Join(userConfigDir, "fen", "config.lua")
+	}
+
+	defaultConfigValues := NewConfigDefaultValues()
+
+	// When adding new flags, make sure to duplicate the name when we check flagPassed lower in this file
+	v := flag.Bool("version", false, "output version information and exit")
+	h := flag.Bool("help", false, "display this help and exit")
+	uiBorders := flag.Bool("ui-borders", defaultConfigValues.UiBorders, "enable UI borders")
+	mouse := flag.Bool("mouse", defaultConfigValues.Mouse, "enable mouse events")
+	noWrite := flag.Bool("no-write", defaultConfigValues.NoWrite, "safe mode, no file write operations will be performed")
+	hiddenFiles := flag.Bool("hidden-files", defaultConfigValues.HiddenFiles, "make hidden files visible")
+	foldersFirst := flag.Bool("folders-first", defaultConfigValues.FoldersFirst, "always show folders at the top")
+	printPathOnOpen := flag.Bool("print-path-on-open", defaultConfigValues.PrintPathOnOpen, "output file path(s) and exit when opening file(s)")
+	profileCpu := flag.Bool("profile-cpu", false, "generate a CPU profile .pprof file")
+	printFolderOnExit := flag.Bool("print-folder-on-exit", false, "output the current working folder in fen on exit")
+	allowTerminalTitle := flag.Bool("terminal-title", defaultConfigValues.TerminalTitle, "change terminal title to 'fen "+version+"' while open")
+	showHelpText := flag.Bool("show-help-text", defaultConfigValues.ShowHelpText, "show the 'For help: ...' text")
+	showHostname := flag.Bool("show-hostname", defaultConfigValues.ShowHostname, "show username@hostname in the top-left")
+	closeOnEscape := flag.Bool("close-on-escape", defaultConfigValues.CloseOnEscape, "make the escape key exit fen")
+
+	selectPaths := flag.Bool("select", false, "select PATHS")
+
+	configFilename := flag.String("config", defaultConfigFilenamePath, "use configuration file")
+	sortBy := flag.String("sort-by", defaultConfigValues.SortBy, "sort files ("+strings.Join(ValidSortByValues[:], ", ")+")")
+	sortReverse := flag.Bool("sort-reverse", defaultConfigValues.SortReverse, "reverse sort")
+	fileSizeFormat := flag.String("file-size-format", defaultConfigValues.FileSizeFormat, "file size format ("+strings.Join(ValidFileSizeFormatValues[:], ", ")+")")
+
+	getopt.CommandLine.SetOutput(os.Stdout)
+	getopt.CommandLine.Init("fen", flag.ExitOnError)
+	getopt.Aliases(
+		"v", "version",
+		"h", "help",
+	)
+
+	err = getopt.CommandLine.Parse(os.Args[1:])
+	if err != nil {
+		os.Exit(2)
+	}
+
+	if *v {
+		fmt.Println("fen " + version)
+		os.Exit(0)
+	}
+
+	if *h {
+		fmt.Println("Usage: " + filepath.Base(os.Args[0]) + " [OPTIONS] [FILES]")
+		fmt.Println("Terminal file manager")
+		fmt.Println()
+		getopt.PrintDefaults()
+		os.Exit(0)
+	}
+
+	if *profileCpu {
+		outputFile, err := os.CreateTemp("", "fenprofile*.pprof")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := pprof.StartCPUProfile(outputFile); err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("cpu profiling enabled, " + outputFile.Name())
+		defer func() {
+			pprof.StopCPUProfile()
+			outputFile.Close()
+			log.Println("cpu profiling disabled, " + outputFile.Name())
+		}()
+	}
+
+	path, err := filepath.Abs(getopt.CommandLine.Arg(0))
+	if path == "" || err != nil {
+		path, err = CurrentWorkingDirectory()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	var fen Fen
+	// Presumably a different value passed by command-line argument
+	if *configFilename != defaultConfigFilenamePath {
+		_, err := os.Stat(*configFilename)
+		if err != nil {
+			log.Fatal("Could not find file: " + *configFilename)
+		}
+	}
+
+	if !fen.config.NoWrite {
+		os.Mkdir(filepath.Join(userConfigDir, "fen"), 0o775)
+	}
+
+	err = fen.ReadConfig(*configFilename)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+
+		// Hacky, but gets the job done
+		if !strings.HasSuffix(err.Error(), "config files can only be Lua.\n") {
+			fmt.Println("Invalid config '" + *configFilename + "', exiting")
+			fmt.Fprintln(os.Stderr, err)
+
+		} else if !fen.config.NoWrite {
+			PromptForGenerateLuaConfig(*configFilename, &fen)
+		}
+
+		os.Exit(1)
+	}
+
+	// We have to check *selectPaths before flag.Parse()
+	if *selectPaths {
+		for _, arg := range getopt.CommandLine.Args() {
+			pathAbsolute, err := filepath.Abs(arg)
+			if err != nil {
+				continue
+			}
+
+			// Don't allow selecting the root folder, since it is normally impossible to do and relatively invisible to the user
+			if pathAbsolute == filepath.Dir(pathAbsolute) {
+				continue
+			}
+
+			_, err = os.Lstat(pathAbsolute)
+			if err != nil {
+				continue
+			}
+			fen.EnableSelection(pathAbsolute)
+		}
+	}
+
+	flag.Parse()
+	flagPassed := func(name string) bool {
+		found := false
+		flag.Visit(func(f *flag.Flag) {
+			if f.Name == name {
+				found = true
+			}
+		})
+		return found
+	}
+
+	// Maybe clean this up at some point
+	if flagPassed("ui-borders") {
+		fen.config.UiBorders = *uiBorders
+	}
+	if flagPassed("mouse") {
+		fen.config.Mouse = *mouse
+	}
+	if flagPassed("no-write") {
+		fen.config.NoWrite = *noWrite
+	}
+	if flagPassed("hidden-files") {
+		fen.config.HiddenFiles = *hiddenFiles
+	}
+	if flagPassed("folders-first") {
+		fen.config.FoldersFirst = *foldersFirst
+	}
+	if flagPassed("print-path-on-open") {
+		fen.config.PrintPathOnOpen = *printPathOnOpen
+	}
+	if flagPassed("terminal-title") {
+		fen.config.TerminalTitle = *allowTerminalTitle
+	}
+	if flagPassed("show-help-text") {
+		fen.config.ShowHelpText = *showHelpText
+	}
+	if flagPassed("show-hostname") {
+		fen.config.ShowHostname = *showHostname
+	}
+	if flagPassed("close-on-escape") {
+		fen.config.CloseOnEscape = *closeOnEscape
+	}
+	if flagPassed("sort-by") {
+		fen.config.SortBy = *sortBy
+	}
+	if flagPassed("sort-reverse") {
+		fen.config.SortReverse = *sortReverse
+	}
+	if flagPassed("file-size-format") {
+		fen.config.FileSizeFormat = *fileSizeFormat
+	}
+
+	if isInvalidFileSizeFormatValue(fen.config.FileSizeFormat) {
+		fmt.Fprintln(os.Stderr, "Invalid file_size_format value \""+fen.config.FileSizeFormat+"\"")
+		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidFileSizeFormatValues[:], ", "))
+		os.Exit(1)
+	}
+
+	if isInvalidSortByValue(fen.config.SortBy) {
+		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fen.config.SortBy+"\"")
+		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
+		os.Exit(1)
+	}
+
+	app := tview.NewApplication()
+
+	helpScreen := NewHelpScreen(&fen)
+	librariesScreen := NewLibrariesScreen()
+
+	err = fen.Init(path, app, &helpScreen.visible, &librariesScreen.visible)
+	defer fen.Fini()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	flex := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(fen.topBar, 1, 0, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexColumn).
+			AddItem(fen.leftPane, 0, 1, false).
+			AddItem(fen.middlePane, 0, 3, false).
+			AddItem(fen.rightPane, 0, 3, false), 0, 1, false).
+		AddItem(fen.bottomBar, 1, 0, false)
+
+	pages := tview.NewPages().
+		AddPage("flex", flex, true, true)
+
+	registerHelpInputHandler(helpScreen, &fen, pages, librariesScreen)
+
+	librariesScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyF2 || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			librariesScreen.visible = false
+			pages.RemovePage("popup")
+			fen.ShowFilepanes()
+			return nil
+		}
+
+		if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
+			librariesScreen.visible = false
+			pages.RemovePage("popup")
+			helpScreen.visible = true
+			pages.AddPage("popup", helpScreen, true, true)
+			return nil
+		}
+		return event
+	})
+
+	registerAppMouseHandler(app, pages, &fen)
+
+	registerAppInputHandler(app, pages, &fen, helpScreen, librariesScreen)
 
 	if fen.config.TerminalTitle {
 		fen.PushAndSetTerminalTitle()
