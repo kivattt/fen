@@ -23,6 +23,139 @@ import (
 
 const version = "v1.7.21"
 
+func registerAppMouseHandler(app *tview.Application, pages *tview.Pages, fen *Fen) {
+	lastWheelUpTime := time.Now()
+	lastWheelDownTime := time.Now()
+
+	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
+		if pages.HasPage("popup") {
+			// Since `return nil, action` redraws the screen for some reason,
+			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
+			if action == tview.MouseMove {
+				return event, action
+			}
+
+			return nil, action
+		}
+
+		// Required to prevent a nil dereference crash
+		if event == nil {
+			return nil, action
+		}
+
+		if action != tview.MouseMove {
+			fen.bottomBar.alternateText = ""
+		}
+
+		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
+		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && (event.Buttons() == tcell.Button1 || event.Buttons() == tcell.Button2) {
+			_, mouseY := event.Position()
+			if mouseY == 0 {
+				err := SetClipboardLinuxXClip(fen.sel)
+				if err != nil {
+					fen.topBar.additionalText = "[red::]Copy failed (install xclip)"
+					fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+					return nil, action
+				}
+				fen.topBar.additionalText = "[#00ff00:]Copied to clipboard!"
+				fen.topBar.showAdditionalText = true
+				return event, action
+			}
+		} else if action == tview.MouseMove {
+			if runtime.GOOS == "windows" {
+				return event, action
+			}
+
+			_, mouseY := event.Position()
+			if mouseY == 0 {
+				if fen.showHomePathAsTilde {
+					fen.showHomePathAsTilde = false
+					if runtime.GOOS == "linux" || runtime.GOOS == "freebsd" {
+						if fen.config.NoWrite {
+							fen.topBar.additionalText = "[red]Copying unavailable (no-write)"
+						} else {
+							fen.topBar.additionalText = "Click to copy"
+						}
+						fen.topBar.showAdditionalText = true
+					}
+					return nil, action
+				}
+			} else {
+				if !fen.showHomePathAsTilde {
+					fen.showHomePathAsTilde = true
+					fen.topBar.showAdditionalText = false
+					return nil, action
+				}
+			}
+			return event, action
+		}
+
+		if action == tview.MouseMove {
+			return event, action
+		}
+
+		// Movement/navigation keys
+		switch event.Buttons() {
+		case tcell.Button1, tcell.Button2:
+			// Small inconsistency with --ui-borders when clicking the left border of the middlepane, not important
+			x, y, w, h := fen.middlePane.GetInnerRect()
+			mouseX, mouseY := event.Position()
+
+			if mouseY < y || mouseY > h { // We don't check > y+h so clicking the bottom row of the screen is ignored
+				break
+			}
+
+			if mouseX < x {
+				fen.GoLeft()
+			} else if mouseX > x+w {
+				fen.GoRight(app, "")
+			} else {
+				fen.GoIndex(mouseY - y + fen.middlePane.GetTopScreenEntryIndex())
+			}
+		case tcell.WheelLeft:
+			fen.GoLeft()
+		case tcell.WheelRight:
+			fen.GoRight(app, "")
+		case tcell.WheelUp:
+			moved := false
+			if time.Since(lastWheelUpTime) > time.Duration(30*time.Millisecond) {
+				moved = fen.GoUp()
+			} else {
+				moved = fen.GoUp(fen.config.ScrollSpeed)
+			}
+
+			lastWheelUpTime = time.Now()
+			if !moved {
+				app.DontDrawOnThisEventMouse()
+				return nil, action
+			}
+		case tcell.WheelDown:
+			moved := false
+			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
+				moved = fen.GoDown()
+			} else {
+				moved = fen.GoDown(fen.config.ScrollSpeed)
+			}
+
+			lastWheelDownTime = time.Now()
+			if !moved {
+				app.DontDrawOnThisEventMouse()
+				return nil, action
+			}
+		default:
+			return nil, action
+		}
+
+		if event.Buttons() != tcell.WheelLeft {
+			fen.history.AddToHistory(fen.sel)
+		}
+
+		fen.UpdatePanes(false)
+		return nil, action
+	})
+
+}
+
 func registerHelpInputHandler(helpScreen *HelpScreen, fen *Fen, pages *tview.Pages, librariesScreen *LibrariesScreen) {
 	helpScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
@@ -322,134 +455,12 @@ func main() {
 		return event
 	})
 
-	lastWheelUpTime := time.Now()
-	lastWheelDownTime := time.Now()
-	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
-		if pages.HasPage("popup") {
-			// Since `return nil, action` redraws the screen for some reason,
-			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
-			if action == tview.MouseMove {
-				return event, action
-			}
+	/*
 
-			return nil, action
-		}
 
-		// Required to prevent a nil dereference crash
-		if event == nil {
-			return nil, action
-		}
+	 */
 
-		if action != tview.MouseMove {
-			fen.bottomBar.alternateText = ""
-		}
-
-		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
-		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && (event.Buttons() == tcell.Button1 || event.Buttons() == tcell.Button2) {
-			_, mouseY := event.Position()
-			if mouseY == 0 {
-				err := SetClipboardLinuxXClip(fen.sel)
-				if err != nil {
-					fen.topBar.additionalText = "[red::]Copy failed (install xclip)"
-					fen.bottomBar.TemporarilyShowTextInstead(err.Error())
-					return nil, action
-				}
-				fen.topBar.additionalText = "[#00ff00:]Copied to clipboard!"
-				fen.topBar.showAdditionalText = true
-				return event, action
-			}
-		} else if action == tview.MouseMove {
-			if runtime.GOOS == "windows" {
-				return event, action
-			}
-
-			_, mouseY := event.Position()
-			if mouseY == 0 {
-				if fen.showHomePathAsTilde {
-					fen.showHomePathAsTilde = false
-					if runtime.GOOS == "linux" || runtime.GOOS == "freebsd" {
-						if fen.config.NoWrite {
-							fen.topBar.additionalText = "[red]Copying unavailable (no-write)"
-						} else {
-							fen.topBar.additionalText = "Click to copy"
-						}
-						fen.topBar.showAdditionalText = true
-					}
-					return nil, action
-				}
-			} else {
-				if !fen.showHomePathAsTilde {
-					fen.showHomePathAsTilde = true
-					fen.topBar.showAdditionalText = false
-					return nil, action
-				}
-			}
-			return event, action
-		}
-
-		if action == tview.MouseMove {
-			return event, action
-		}
-
-		// Movement/navigation keys
-		switch event.Buttons() {
-		case tcell.Button1, tcell.Button2:
-			// Small inconsistency with --ui-borders when clicking the left border of the middlepane, not important
-			x, y, w, h := fen.middlePane.GetInnerRect()
-			mouseX, mouseY := event.Position()
-
-			if mouseY < y || mouseY > h { // We don't check > y+h so clicking the bottom row of the screen is ignored
-				break
-			}
-
-			if mouseX < x {
-				fen.GoLeft()
-			} else if mouseX > x+w {
-				fen.GoRight(app, "")
-			} else {
-				fen.GoIndex(mouseY - y + fen.middlePane.GetTopScreenEntryIndex())
-			}
-		case tcell.WheelLeft:
-			fen.GoLeft()
-		case tcell.WheelRight:
-			fen.GoRight(app, "")
-		case tcell.WheelUp:
-			moved := false
-			if time.Since(lastWheelUpTime) > time.Duration(30*time.Millisecond) {
-				moved = fen.GoUp()
-			} else {
-				moved = fen.GoUp(fen.config.ScrollSpeed)
-			}
-
-			lastWheelUpTime = time.Now()
-			if !moved {
-				app.DontDrawOnThisEventMouse()
-				return nil, action
-			}
-		case tcell.WheelDown:
-			moved := false
-			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
-				moved = fen.GoDown()
-			} else {
-				moved = fen.GoDown(fen.config.ScrollSpeed)
-			}
-
-			lastWheelDownTime = time.Now()
-			if !moved {
-				app.DontDrawOnThisEventMouse()
-				return nil, action
-			}
-		default:
-			return nil, action
-		}
-
-		if event.Buttons() != tcell.WheelLeft {
-			fen.history.AddToHistory(fen.sel)
-		}
-
-		fen.UpdatePanes(false)
-		return nil, action
-	})
+	registerAppMouseHandler(app, pages, &fen)
 
 	enterWillSelectAutoCompleteInGotoPath := false
 
