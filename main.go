@@ -1139,6 +1139,26 @@ func SetTviewStyles() {
 	}
 }
 
+func registerLibrariesInputHandler(librariesScreen *LibrariesScreen, helpScreen *HelpScreen, pages *tview.Pages, fen *Fen) {
+	librariesScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyF2 || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			librariesScreen.visible = false
+			pages.RemovePage("popup")
+			fen.ShowFilepanes()
+			return nil
+		}
+
+		if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
+			librariesScreen.visible = false
+			pages.RemovePage("popup")
+			helpScreen.visible = true
+			pages.AddPage("popup", helpScreen, true, true)
+			return nil
+		}
+		return event
+	})
+}
+
 func main() {
 	SetTviewStyles()
 
@@ -1364,23 +1384,7 @@ func main() {
 
 	registerHelpInputHandler(helpScreen, &fen, pages, librariesScreen)
 
-	librariesScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyF2 || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
-			librariesScreen.visible = false
-			pages.RemovePage("popup")
-			fen.ShowFilepanes()
-			return nil
-		}
-
-		if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
-			librariesScreen.visible = false
-			pages.RemovePage("popup")
-			helpScreen.visible = true
-			pages.AddPage("popup", helpScreen, true, true)
-			return nil
-		}
-		return event
-	})
+	registerLibrariesInputHandler(librariesScreen, helpScreen, pages, &fen)
 
 	registerAppMouseHandler(app, pages, &fen)
 
