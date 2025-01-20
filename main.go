@@ -23,28 +23,6 @@ import (
 
 const version = "v1.7.21"
 
-func SetTviewStyles() {
-	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
-	// For the dropdown in the options menu
-	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
-
-	tview.Styles.BorderColor = tcell.ColorDefault
-	tview.Borders.Horizontal = '─'
-	tview.Borders.Vertical = '│'
-
-	if runtime.GOOS == "freebsd" {
-		tview.Borders.TopLeft = '┌'
-		tview.Borders.TopRight = '┐'
-		tview.Borders.BottomLeft = '└'
-		tview.Borders.BottomRight = '┘'
-	} else {
-		tview.Borders.TopLeft = '╭'
-		tview.Borders.TopRight = '╮'
-		tview.Borders.BottomLeft = '╰'
-		tview.Borders.BottomRight = '╯'
-	}
-}
-
 func main() {
 	SetTviewStyles()
 
@@ -152,6 +130,8 @@ func main() {
 		// Hacky, but gets the job done
 		if !strings.HasSuffix(err.Error(), "config files can only be Lua.\n") {
 			fmt.Println("Invalid config '" + *configFilename + "', exiting")
+			fmt.Fprintln(os.Stderr, err)
+
 		} else if !fen.config.NoWrite {
 			PromptForGenerateLuaConfig(*configFilename, &fen)
 		}
@@ -266,6 +246,32 @@ func main() {
 	pages := tview.NewPages().
 		AddPage("flex", flex, true, true)
 
+	registerHelpInputHandler(helpScreen, &fen, pages, librariesScreen)
+
+	registerLibrariesInputHandler(librariesScreen, helpScreen, pages, &fen)
+
+	registerAppMouseHandler(app, pages, &fen)
+
+	registerAppInputHandler(app, pages, &fen, helpScreen, librariesScreen)
+
+	if fen.config.TerminalTitle {
+		fen.PushAndSetTerminalTitle()
+	}
+	if err := app.SetRoot(pages, true).EnableMouse(fen.config.Mouse).EnablePaste(true).Run(); err != nil {
+		log.Fatal(err)
+	}
+
+	if fen.config.TerminalTitle {
+		fen.PopTerminalTitle()
+	}
+
+	if *printFolderOnExit {
+		fmt.Println(filepath.Dir(fen.sel))
+	}
+}
+
+func registerAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, helpScreen *HelpScreen, librariesScreen *LibrariesScreen) {
+
 	centered := func(p tview.Primitive, height int) tview.Primitive {
 		return tview.NewFlex().
 			AddItem(nil, 0, 1, false).
@@ -276,177 +282,9 @@ func main() {
 			AddItem(nil, 0, 1, false)
 	}
 
-	helpScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
-			helpScreen.ScrollDown()
-		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
-			helpScreen.ScrollUp()
-		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
-			helpScreen.visible = false
-			helpScreen.scrollIndex = 0
-			pages.RemovePage("popup")
-			fen.ShowFilepanes()
-			return nil
-		} else if event.Key() == tcell.KeyF2 {
-			helpScreen.visible = false
-			helpScreen.scrollIndex = 0
-			pages.RemovePage("popup")
-			librariesScreen.visible = true
-			pages.AddPage("popup", librariesScreen, true, true)
-			return nil
-		}
-		return event
-	})
-
-	librariesScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyF2 || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
-			librariesScreen.visible = false
-			pages.RemovePage("popup")
-			fen.ShowFilepanes()
-			return nil
-		}
-
-		if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
-			librariesScreen.visible = false
-			pages.RemovePage("popup")
-			helpScreen.visible = true
-			pages.AddPage("popup", helpScreen, true, true)
-			return nil
-		}
-		return event
-	})
-
-	lastWheelUpTime := time.Now()
-	lastWheelDownTime := time.Now()
-	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
-		if pages.HasPage("popup") {
-			// Since `return nil, action` redraws the screen for some reason,
-			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
-			if action == tview.MouseMove {
-				return event, action
-			}
-
-			return nil, action
-		}
-
-		// Required to prevent a nil dereference crash
-		if event == nil {
-			return nil, action
-		}
-
-		if action != tview.MouseMove {
-			fen.bottomBar.alternateText = ""
-		}
-
-		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
-		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && (event.Buttons() == tcell.Button1 || event.Buttons() == tcell.Button2) {
-			_, mouseY := event.Position()
-			if mouseY == 0 {
-				err := SetClipboardLinuxXClip(fen.sel)
-				if err != nil {
-					fen.topBar.additionalText = "[red::]Copy failed (install xclip)"
-					fen.bottomBar.TemporarilyShowTextInstead(err.Error())
-					return nil, action
-				}
-				fen.topBar.additionalText = "[#00ff00:]Copied to clipboard!"
-				fen.topBar.showAdditionalText = true
-				return event, action
-			}
-		} else if action == tview.MouseMove {
-			if runtime.GOOS == "windows" {
-				return event, action
-			}
-
-			_, mouseY := event.Position()
-			if mouseY == 0 {
-				if fen.showHomePathAsTilde {
-					fen.showHomePathAsTilde = false
-					if runtime.GOOS == "linux" || runtime.GOOS == "freebsd" {
-						if fen.config.NoWrite {
-							fen.topBar.additionalText = "[red]Copying unavailable (no-write)"
-						} else {
-							fen.topBar.additionalText = "Click to copy"
-						}
-						fen.topBar.showAdditionalText = true
-					}
-					return nil, action
-				}
-			} else {
-				if !fen.showHomePathAsTilde {
-					fen.showHomePathAsTilde = true
-					fen.topBar.showAdditionalText = false
-					return nil, action
-				}
-			}
-			return event, action
-		}
-
-		if action == tview.MouseMove {
-			return event, action
-		}
-
-		// Movement/navigation keys
-		switch event.Buttons() {
-		case tcell.Button1, tcell.Button2:
-			// Small inconsistency with --ui-borders when clicking the left border of the middlepane, not important
-			x, y, w, h := fen.middlePane.GetInnerRect()
-			mouseX, mouseY := event.Position()
-
-			if mouseY < y || mouseY > h { // We don't check > y+h so clicking the bottom row of the screen is ignored
-				break
-			}
-
-			if mouseX < x {
-				fen.GoLeft()
-			} else if mouseX > x+w {
-				fen.GoRight(app, "")
-			} else {
-				fen.GoIndex(mouseY - y + fen.middlePane.GetTopScreenEntryIndex())
-			}
-		case tcell.WheelLeft:
-			fen.GoLeft()
-		case tcell.WheelRight:
-			fen.GoRight(app, "")
-		case tcell.WheelUp:
-			moved := false
-			if time.Since(lastWheelUpTime) > time.Duration(30*time.Millisecond) {
-				moved = fen.GoUp()
-			} else {
-				moved = fen.GoUp(fen.config.ScrollSpeed)
-			}
-
-			lastWheelUpTime = time.Now()
-			if !moved {
-				app.DontDrawOnThisEventMouse()
-				return nil, action
-			}
-		case tcell.WheelDown:
-			moved := false
-			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
-				moved = fen.GoDown()
-			} else {
-				moved = fen.GoDown(fen.config.ScrollSpeed)
-			}
-
-			lastWheelDownTime = time.Now()
-			if !moved {
-				app.DontDrawOnThisEventMouse()
-				return nil, action
-			}
-		default:
-			return nil, action
-		}
-
-		if event.Buttons() != tcell.WheelLeft {
-			fen.history.AddToHistory(fen.sel)
-		}
-
-		fen.UpdatePanes(false)
-		return nil, action
-	})
+	var err error
 
 	enterWillSelectAutoCompleteInGotoPath := false
-
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if pages.HasPage("popup") {
 			return event
@@ -1111,7 +949,7 @@ func main() {
 			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
 
-			programs, descriptions := ProgramsAndDescriptionsForFile(&fen)
+			programs, descriptions := ProgramsAndDescriptionsForFile(fen)
 			programsList := NewOpenWithList(&programs, &descriptions)
 
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
@@ -1367,19 +1205,203 @@ func main() {
 		app.DontDrawOnThisEventKey()
 		return event
 	})
+}
 
-	if fen.config.TerminalTitle {
-		fen.PushAndSetTerminalTitle()
-	}
-	if err := app.SetRoot(pages, true).EnableMouse(fen.config.Mouse).EnablePaste(true).Run(); err != nil {
-		log.Fatal(err)
-	}
+func registerAppMouseHandler(app *tview.Application, pages *tview.Pages, fen *Fen) {
+	lastWheelUpTime := time.Now()
+	lastWheelDownTime := time.Now()
 
-	if fen.config.TerminalTitle {
-		fen.PopTerminalTitle()
-	}
+	app.SetMouseCapture(func(event *tcell.EventMouse, action tview.MouseAction) (*tcell.EventMouse, tview.MouseAction) {
+		if pages.HasPage("popup") {
+			// Since `return nil, action` redraws the screen for some reason,
+			// we have to manually pass through mouse movement events so the screen won't flicker when you move your mouse
+			if action == tview.MouseMove {
+				return event, action
+			}
 
-	if *printFolderOnExit {
-		fmt.Println(filepath.Dir(fen.sel))
+			return nil, action
+		}
+
+		// Required to prevent a nil dereference crash
+		if event == nil {
+			return nil, action
+		}
+
+		if action != tview.MouseMove {
+			fen.bottomBar.alternateText = ""
+		}
+
+		// Setting the clipboard is disallowed in no-write mode because it runs a shell command
+		if !fen.config.NoWrite && (runtime.GOOS == "linux" || runtime.GOOS == "freebsd") && (event.Buttons() == tcell.Button1 || event.Buttons() == tcell.Button2) {
+			_, mouseY := event.Position()
+			if mouseY == 0 {
+				err := SetClipboardLinuxXClip(fen.sel)
+				if err != nil {
+					fen.topBar.additionalText = "[red::]Copy failed (install xclip)"
+					fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+					return nil, action
+				}
+				fen.topBar.additionalText = "[#00ff00:]Copied to clipboard!"
+				fen.topBar.showAdditionalText = true
+				return event, action
+			}
+		} else if action == tview.MouseMove {
+			if runtime.GOOS == "windows" {
+				return event, action
+			}
+
+			_, mouseY := event.Position()
+			if mouseY == 0 {
+				if fen.showHomePathAsTilde {
+					fen.showHomePathAsTilde = false
+					if runtime.GOOS == "linux" || runtime.GOOS == "freebsd" {
+						if fen.config.NoWrite {
+							fen.topBar.additionalText = "[red]Copying unavailable (no-write)"
+						} else {
+							fen.topBar.additionalText = "Click to copy"
+						}
+						fen.topBar.showAdditionalText = true
+					}
+					return nil, action
+				}
+			} else {
+				if !fen.showHomePathAsTilde {
+					fen.showHomePathAsTilde = true
+					fen.topBar.showAdditionalText = false
+					return nil, action
+				}
+			}
+			return event, action
+		}
+
+		if action == tview.MouseMove {
+			return event, action
+		}
+
+		// Movement/navigation keys
+		switch event.Buttons() {
+		case tcell.Button1, tcell.Button2:
+			// Small inconsistency with --ui-borders when clicking the left border of the middlepane, not important
+			x, y, w, h := fen.middlePane.GetInnerRect()
+			mouseX, mouseY := event.Position()
+
+			if mouseY < y || mouseY > h { // We don't check > y+h so clicking the bottom row of the screen is ignored
+				break
+			}
+
+			if mouseX < x {
+				fen.GoLeft()
+			} else if mouseX > x+w {
+				fen.GoRight(app, "")
+			} else {
+				fen.GoIndex(mouseY - y + fen.middlePane.GetTopScreenEntryIndex())
+			}
+		case tcell.WheelLeft:
+			fen.GoLeft()
+		case tcell.WheelRight:
+			fen.GoRight(app, "")
+		case tcell.WheelUp:
+			moved := false
+			if time.Since(lastWheelUpTime) > time.Duration(30*time.Millisecond) {
+				moved = fen.GoUp()
+			} else {
+				moved = fen.GoUp(fen.config.ScrollSpeed)
+			}
+
+			lastWheelUpTime = time.Now()
+			if !moved {
+				app.DontDrawOnThisEventMouse()
+				return nil, action
+			}
+		case tcell.WheelDown:
+			moved := false
+			if time.Since(lastWheelDownTime) > time.Duration(30*time.Millisecond) {
+				moved = fen.GoDown()
+			} else {
+				moved = fen.GoDown(fen.config.ScrollSpeed)
+			}
+
+			lastWheelDownTime = time.Now()
+			if !moved {
+				app.DontDrawOnThisEventMouse()
+				return nil, action
+			}
+		default:
+			return nil, action
+		}
+
+		if event.Buttons() != tcell.WheelLeft {
+			fen.history.AddToHistory(fen.sel)
+		}
+
+		fen.UpdatePanes(false)
+		return nil, action
+	})
+
+}
+
+func registerHelpInputHandler(helpScreen *HelpScreen, fen *Fen, pages *tview.Pages, librariesScreen *LibrariesScreen) {
+	helpScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyDown || event.Rune() == 'j' {
+			helpScreen.ScrollDown()
+		} else if event.Key() == tcell.KeyUp || event.Rune() == 'k' {
+			helpScreen.ScrollUp()
+		} else if event.Key() == tcell.KeyF1 || event.Rune() == '?' || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			helpScreen.visible = false
+			helpScreen.scrollIndex = 0
+			pages.RemovePage("popup")
+			fen.ShowFilepanes()
+			return nil
+		} else if event.Key() == tcell.KeyF2 {
+			helpScreen.visible = false
+			helpScreen.scrollIndex = 0
+			pages.RemovePage("popup")
+			librariesScreen.visible = true
+			pages.AddPage("popup", librariesScreen, true, true)
+			return nil
+		}
+		return event
+	})
+}
+
+func SetTviewStyles() {
+	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+	// For the dropdown in the options menu
+	tview.Styles.MoreContrastBackgroundColor = tcell.ColorBlack
+
+	tview.Styles.BorderColor = tcell.ColorDefault
+	tview.Borders.Horizontal = '─'
+	tview.Borders.Vertical = '│'
+
+	if runtime.GOOS == "freebsd" {
+		tview.Borders.TopLeft = '┌'
+		tview.Borders.TopRight = '┐'
+		tview.Borders.BottomLeft = '└'
+		tview.Borders.BottomRight = '┘'
+	} else {
+		tview.Borders.TopLeft = '╭'
+		tview.Borders.TopRight = '╮'
+		tview.Borders.BottomLeft = '╰'
+		tview.Borders.BottomRight = '╯'
 	}
+}
+
+func registerLibrariesInputHandler(librariesScreen *LibrariesScreen, helpScreen *HelpScreen, pages *tview.Pages, fen *Fen) {
+	librariesScreen.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyF2 || event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			librariesScreen.visible = false
+			pages.RemovePage("popup")
+			fen.ShowFilepanes()
+			return nil
+		}
+
+		if event.Key() == tcell.KeyF1 || event.Rune() == '?' {
+			librariesScreen.visible = false
+			pages.RemovePage("popup")
+			helpScreen.visible = true
+			pages.AddPage("popup", helpScreen, true, true)
+			return nil
+		}
+		return event
+	})
 }
