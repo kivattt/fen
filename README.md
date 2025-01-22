@@ -5,6 +5,8 @@
 fen is a terminal file manager inspired by [ranger](https://github.com/ranger/ranger)\
 Works for Linux, macOS, FreeBSD and Windows
 
+Warning! There are race conditions which make fen unsuitable for copying large amounts of individual files. Use something like [ranger](https://github.com/ranger/ranger) for this purpose instead!
+
 <p float="left">
 <img src="screenshots/linux.png" alt="fen running on Linux, with the file preview script rainbow.lua" width="48%">
 <img src="screenshots/macos.png" alt="fen running on macOS, showing the no-write feature" width="50%">
