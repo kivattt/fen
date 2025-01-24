@@ -315,6 +315,10 @@ func (fen *Fen) ReadConfig(path string) error {
 	fen.config = NewConfigDefaultValues()
 	fen.configFilePath = path
 
+	if !strings.HasSuffix(filepath.Base(path), ".lua") {
+		fmt.Fprintln(os.Stderr, "Warning: Config file "+path+" has no .lua file extension.\nSince v1.3.0, config files can only be Lua.\n")
+	}
+
 	_, err := os.Stat(path)
 	if err != nil {
 		oldJSONConfigPath := filepath.Join(filepath.Dir(path), "fenrc.json")
