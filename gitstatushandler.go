@@ -7,7 +7,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -43,40 +42,29 @@ func (gsh *GitStatusHandler) TryFindTrackedParentGitRepository(path string) (str
 	gsh.trackedLocalGitReposMutex.Lock()
 	defer gsh.trackedLocalGitReposMutex.Unlock()
 
-	for repoPath := range gsh.trackedLocalGitRepos {
-		// TODO: Improve performance? filepath.Rel() seems a little slow
-		relativePathToRepo, err := filepath.Rel(repoPath, path)
-		if err != nil {
-			continue
-		}
-
-		if !strings.HasPrefix(relativePathToRepo, "..") { // Hacky
-			return repoPath, nil
+	split := SplitPath(path)
+	for _, pathSplit := range split {
+		_, ok := gsh.trackedLocalGitRepos[pathSplit]
+		if ok {
+			return pathSplit, nil
 		}
 	}
 
 	return "", errors.New("Path is not in any tracked git repositories")
 }
 
-// Looks for the first parent directory of path (or path itself) containing a ".git" directory.
+// Looks for the parent directory of path (or path itself), closest to root, containing a ".git" directory.
 // Returns an error if none found.
 func (gsh *GitStatusHandler) TryFindParentGitRepository(path string) (string, error) {
-	repoPathFound := path
-	for {
-		// Reached root path, no git repository found
-		if repoPathFound == filepath.Dir(repoPathFound) {
-			return "", errors.New("path is not in a local Git repository")
-		}
-
-		stat, err := os.Lstat(filepath.Join(repoPathFound, ".git"))
+	split := SplitPath(path)
+	for _, pathSplit := range split {
+		stat, err := os.Lstat(filepath.Join(pathSplit, ".git"))
 		if err == nil && stat.IsDir() {
-			break
+			return pathSplit, nil
 		}
-
-		repoPathFound = filepath.Dir(repoPathFound)
 	}
 
-	return repoPathFound, nil
+	return "", errors.New("path is not in a local Git repository")
 }
 
 // Returns true if path is an unstaged/untracked file in the local Git repository at repositoryPath.
@@ -186,9 +174,12 @@ func (gsh *GitStatusHandler) Init() {
 				continue chanLoop
 			}
 
-			// Remove oldest tracked repository after 15 repos (pretty arbitrary, repos can vary massively in size)
+			// TODO: Prefer removing repos that took a short time to StatusWithContext() by storing the time it took.
+			// This will prevent removal of repos that take a long time to git status.
+
+			// Remove oldest tracked repository after 50 repos (pretty arbitrary, changed file storage can vary massively in size)
 			gsh.trackedLocalGitReposMutex.Lock()
-			if len(gsh.trackedLocalGitRepos) > 15 {
+			if len(gsh.trackedLocalGitRepos) > 50 {
 				var oldestRepositoryTime time.Time
 				oldestRepositoryPath := ""
 
@@ -241,6 +232,16 @@ func (gsh *GitStatusHandler) Init() {
 
 				if err != nil {
 					gsh.fen.runningGitStatus = false // Can't defer this because it has to run before QueueUpdateDraw()
+					gsh.app.QueueUpdateDraw(func() {})
+					return
+				}
+
+				if len(changedFiles) == 0 {
+					gsh.trackedLocalGitReposMutex.Lock()
+					delete(gsh.trackedLocalGitRepos, gsh.repoPathCurrentlyWorkingOn)
+					gsh.trackedLocalGitReposMutex.Unlock()
+					gsh.fen.runningGitStatus = false // Can't defer this because it has to run before QueueUpdateDraw()
+					gsh.app.QueueUpdateDraw(func() {})
 					return
 				}
 

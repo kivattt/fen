@@ -1129,3 +1129,49 @@ func CurrentWorkingDirectory() (string, error) {
 
 	return path, nil
 }
+
+// Splits an absolute path by os.PathSeparator into its components
+// For the input "C:\Users\user\Desktop\file.txt", it will return:
+// ["C:\", "C:\Users", "C:\Users\user", "C:\Users\user\Desktop", "C:\Users\user\Desktop\file.txt"]
+func SplitPath(path string) []string {
+	if !filepath.IsAbs(path) {
+		panic("SplitPath() was passed a non-absolute path")
+	}
+
+	return splitPathTestable(path, os.PathSeparator)
+}
+
+func splitPathTestable(path string, pathSeparator rune) []string {
+	split := strings.Split(path, string(pathSeparator))
+	split = slices.DeleteFunc(split, func(x string) bool {
+		return x == ""
+	})
+
+	if pathSeparator == '/' {
+		if path != "" {
+			split = append([]string{"/"}, split...)
+		}
+	} else if pathSeparator == '\\' {
+		if len(split) > 0 {
+			split[0] += "\\"
+		}
+	} else {
+		panic("Unsupported OS path separator")
+	}
+
+	ret := make([]string, len(split))
+
+	var pathConcat strings.Builder
+	for i, pathSplit := range split {
+		pathConcat.WriteString(pathSplit)
+
+		ret[i] = pathConcat.String()
+
+		// We should technically be indexing by runes, but we only support "/" and "\\", so it's fine.
+		if pathSplit[len(pathSplit)-1] != byte(pathSeparator) {
+			pathConcat.WriteRune(pathSeparator)
+		}
+	}
+
+	return ret
+}

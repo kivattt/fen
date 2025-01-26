@@ -673,12 +673,15 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 				return nil
 			}
 
-			stat, statErr := os.Lstat(filepath.Join(filepath.Dir(fen.sel), ".git"))
 			repositoryPath, err := fen.gitStatusHandler.TryFindParentGitRepository(filepath.Dir(fen.sel))
-			if err == nil && !(statErr == nil && stat.IsDir()) {
-				fen.GoPath(repositoryPath)
-			} else {
+
+			stat, statErr := os.Lstat(filepath.Join(filepath.Dir(fen.sel), ".git"))
+			atRootOfRepository := statErr == nil && stat.IsDir() && (filepath.Dir(fen.sel) == repositoryPath)
+
+			if err != nil || atRootOfRepository {
 				fen.GoRootPath()
+			} else {
+				fen.GoPath(repositoryPath)
 			}
 			return nil
 		} else if event.Key() == tcell.KeyCtrlSpace || event.Key() == tcell.KeyCtrlN {
