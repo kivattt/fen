@@ -8,7 +8,7 @@ func TestGetHistoryEntryForPath(t *testing.T) {
 
 	e, _ := h.GetHistoryEntryForPath("/home", true)
 	if e != "/home/user" {
-		t.Fatalf("Expected /home/user, but got: " + e)
+		t.Fatal("Expected /home/user, but got: " + e)
 	}
 
 	h.AddToHistory("/home/user/test/something")
@@ -16,12 +16,12 @@ func TestGetHistoryEntryForPath(t *testing.T) {
 
 	e, _ = h.GetHistoryEntryForPath("/home/user/test", true)
 	if e != "/home/user/test/something" {
-		t.Fatalf("Expected /home/user/test/something, but got: " + e)
+		t.Fatal("Expected /home/user/test/something, but got: " + e)
 	}
 
 	e, _ = h.GetHistoryEntryForPath("/", true)
 	if e != "/home" {
-		t.Fatalf("Expected /home, but got: " + e)
+		t.Fatal("Expected /home, but got: " + e)
 	}
 
 	_, err := h.GetHistoryEntryForPath("", true)
