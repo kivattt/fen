@@ -162,5 +162,6 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 - fen intentionally does not handle Unicode "grapheme clusters" (like chinese text) in filenames correctly for performance reasons. You need to manually build fen with the replace directive for my [tcell fork](https://github.com/kivattt/tcell-naively-faster) in the go.mod file removed to show them correctly
 - The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal
 - Bulk-renaming a .git folder on Windows hangs fen forever
+- On Windows, `fen.git_status` may show a file as changed when it was only re-saved in notepad, until you run a Git command in the repo
 
-See [TODO.md](TODO.md) for other issues and possible future features, roughly sorted by priority
+See [TODO.md](TODO.md) for other issues and possible future features
