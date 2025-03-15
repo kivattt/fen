@@ -33,10 +33,12 @@ func (bottomBar *BottomBar) Draw(screen tcell.Screen) {
 
 	x, y, w, _ := bottomBar.GetInnerRect()
 
-	freeBytes, err := FreeDiskSpaceBytes(bottomBar.fen.sel)
-	freeBytesStr := BytesToHumanReadableUnitString(freeBytes, 3)
+	freeBytes, isNegative, err := FreeDiskSpaceBytes(bottomBar.fen.sel)
+	freeBytesStr := BytesToFileSizeFormat(freeBytes, 3, bottomBar.fen.config.FileSizeFormat)
 	if err != nil {
 		freeBytesStr = "?"
+	} else if isNegative {
+		freeBytesStr = "-" + freeBytesStr
 	}
 
 	freeBytesStr += " free"

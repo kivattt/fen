@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"slices"
 	"strconv"
 	"testing"
@@ -173,5 +174,70 @@ func TestRandomStringPathSafe(t *testing.T) {
 	r = RandomStringPathSafe(-1)
 	if r != "" {
 		t.Fatal("Expected \"\" (for -1 length), but got: " + r)
+	}
+}
+
+func TestSplitPathTestable(t *testing.T) {
+	type TestCase struct {
+		pathInput string
+		expected  []string
+	}
+
+	windowsTests := []TestCase{
+		{
+			pathInput: "C:\\Users\\user\\Desktop\\file.txt",
+			expected:  []string{"C:\\", "C:\\Users", "C:\\Users\\user", "C:\\Users\\user\\Desktop", "C:\\Users\\user\\Desktop\\file.txt"},
+		},
+		{
+			pathInput: "C:\\",
+			expected:  []string{"C:\\"},
+		},
+		{
+			pathInput: "", // Should be caught by filepath.IsAbs() anyway in SplitPath()
+			expected:  []string{},
+		},
+		{
+			pathInput: "C:\\Users",
+			expected:  []string{"C:\\", "C:\\Users"},
+		},
+		{
+			pathInput: "D:\\amogus\\video.mp4æ",
+			expected:  []string{"D:\\", "D:\\amogus", "D:\\amogus\\video.mp4æ"},
+		},
+	}
+	for _, test := range windowsTests {
+		got := splitPathTestable(test.pathInput, '\\')
+		if !reflect.DeepEqual(got, test.expected) {
+			t.Fatal("Expected", test.expected, ", but got:", got)
+		}
+	}
+
+	othersTests := []TestCase{
+		{
+			pathInput: "/home/user/file.txt",
+			expected:  []string{"/", "/home", "/home/user", "/home/user/file.txt"},
+		},
+		{
+			pathInput: "/",
+			expected:  []string{"/"},
+		},
+		{
+			pathInput: "", // Should be caught by filepath.IsAbs() anyway in SplitPath()
+			expected:  []string{},
+		},
+		{
+			pathInput: "/home",
+			expected:  []string{"/", "/home"},
+		},
+		{
+			pathInput: "/amogus/video.mp4æ",
+			expected:  []string{"/", "/amogus", "/amogus/video.mp4æ"},
+		},
+	}
+	for _, test := range othersTests {
+		got := splitPathTestable(test.pathInput, '/')
+		if !reflect.DeepEqual(got, test.expected) {
+			t.Fatal("Expected", test.expected, ", but got:", got)
+		}
 	}
 }

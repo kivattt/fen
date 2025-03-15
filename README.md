@@ -157,12 +157,11 @@ You can find examples in [lua-file-open-examples](lua-file-open-examples)
 </details>
 
 ## Known issues
-- fen may crash in the middle of deleting files due to a data race, most commonly when deleting a lot of files (like 4000)
+- fen may crash in the middle of deleting files due to a race condition, most commonly when deleting a lot of files (like 4000)
 - File previews are ran synchronously, which means they slow down fen
 - fen intentionally does not handle Unicode "grapheme clusters" (like chinese text) in filenames correctly for performance reasons. You need to manually build fen with the replace directive for my [tcell fork](https://github.com/kivattt/tcell-naively-faster) in the go.mod file removed to show them correctly
-- On FreeBSD, when the disk is full, fen may erroneously show a very large amount of disk space available (like `18.446 EB free`), when in reality there is no available space
-- `go test` doesn't work on Windows
 - The color for audio files is invisible in the default Windows Powershell colors, but not cmd or Windows Terminal
 - Bulk-renaming a .git folder on Windows hangs fen forever
+- On Windows, `fen.git_status` may show a file as changed when it was only re-saved in notepad, until you run a Git command in the repo
 
-See [TODO.md](TODO.md) for other issues and possible future features, roughly sorted by priority
+See [TODO.md](TODO.md) for other issues and possible future features

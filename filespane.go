@@ -4,7 +4,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -421,9 +420,7 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		})
 	case SORT_NONE: // Does nothing, this has the side effect of making file events always show up at the bottom, until the entire folder is re-read
 	default:
-		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fp.fen.config.SortBy+"\"")
-		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
-		os.Exit(1)
+		panic("Invalid sort_by value \"" + fp.fen.config.SortBy + "\"")
 	}
 
 	if fp.fen.config.SortBy != SORT_NONE && fp.fen.config.SortReverse {
@@ -623,13 +620,21 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 				}
 
 				L.SetGlobal("fen", luar.New(L, fenLuaGlobal))
-				err := L.DoFile(previewWith.Script)
+				err, isApiError := L.DoFile(previewWith.Script).(*lua.ApiError)
 				if err != nil {
 					fp.Box.DrawForSubclass(screen, fp)
-					tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
-					lines := tview.WordWrap(err.Error(), w)
-					for i, line := range lines {
-						tview.Print(fenLuaGlobal.screen, line, x, y+1+i, w, tview.AlignLeft, tcell.ColorDefault)
+
+					if isApiError && err.Type == lua.ApiErrorFile {
+						tview.Print(screen, "File preview script not found:", x, y, w, tview.AlignLeft, tcell.ColorRed)
+						tview.Print(screen, previewWith.Script, x, y+1, w, tview.AlignLeft, tcell.ColorDefault)
+						tview.Print(screen, "The fen.config_path was:", x, y+3, w, tview.AlignLeft, tcell.ColorDefault)
+						tview.Print(screen, "\""+PathWithEndSeparator(filepath.Dir(fp.fen.configFilePath))+"\"", x, y+4, w, tview.AlignLeft, tcell.ColorDefault)
+					} else {
+						tview.Print(screen, "File preview Lua error:", x, y, w, tview.AlignLeft, tcell.ColorRed)
+						lines := tview.WordWrap(err.Error(), w)
+						for i, line := range lines {
+							tview.Print(fenLuaGlobal.screen, line, x, y+1+i, w, tview.AlignLeft, tcell.ColorDefault)
+						}
 					}
 				}
 				return
@@ -680,15 +685,16 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 		entryFullPath := filepath.Join(fp.folder, entry.Name())
 		entryInfo, _ := entry.Info() // This seems to immediately stat on Linux
 		style := FileColor(entryInfo, entryFullPath)
+		isRepositoryWhichContainsUnstagedOrUntrackedFiles := false
 
 		spaceForSelected := ""
 		if i+scrollOffset == fp.selectedEntryIndex {
 			style = style.Reverse(true)
 		}
 
-		_, contains := fp.fen.selected[entryFullPath]
+		_, selected := fp.fen.selected[entryFullPath]
 
-		if contains {
+		if selected {
 			spaceForSelected = " "
 			style = style.Foreground(tcell.ColorYellow)
 			style = style.Bold(false) // FileColor() makes folders and executables bold
@@ -702,6 +708,12 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			}
 		}
 
+		if fp.fen.config.GitStatus && repoErr != nil {
+			if fp.fen.gitStatusHandler.RepositoryPathContainsUnstagedOrUntracked(entryFullPath) {
+				isRepositoryWhichContainsUnstagedOrUntrackedFiles = true
+			}
+		}
+
 		_, entryInYankSelected := fp.fen.yankSelected[entryFullPath]
 		if entryInYankSelected {
 			style = style.Dim(true)
@@ -711,7 +723,7 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 
 		entrySizePrintedSize := 0
 		if fp.fen.config.FileSizeInAllPanes || fp.panePos == MiddlePane {
-			entrySizeText, err := EntrySizeText(fp.fen.folderFileCountCache, entryInfo, entryFullPath, fp.fen.config.HiddenFiles)
+			entrySizeText, err := EntrySizeText(fp.fen.folderFileCountCache, entryInfo, entryFullPath, fp.fen.config.HiddenFiles, fp.fen.config.FileSizeFormat)
 			if err != nil {
 				entrySizeText = "?"
 			}
@@ -746,8 +758,16 @@ func (fp *FilesPane) Draw(screen tcell.Screen) {
 			screen.SetContent(xToUse+leftSizePrinted+j, y+i, ' ', nil, style)
 		}
 
+		if isRepositoryWhichContainsUnstagedOrUntrackedFiles {
+			screen.SetContent(x, y+i, ' ', nil, tcell.StyleDefault.Background(tcell.ColorMaroon))
+		}
+
 		if entryInYankSelected {
-			tview.Print(screen, "[::b]*", x, y+i, w, tview.AlignLeft, tcell.ColorWhite)
+			if isRepositoryWhichContainsUnstagedOrUntrackedFiles {
+				tview.Print(screen, "[:maroon:b]*", x, y+i, w, tview.AlignLeft, tcell.ColorWhite)
+			} else {
+				tview.Print(screen, "[::b]*", x, y+i, w, tview.AlignLeft, tcell.ColorWhite)
+			}
 		}
 	}
 }

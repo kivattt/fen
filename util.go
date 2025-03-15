@@ -45,6 +45,16 @@ func trimLastDecimals(numberString string, maxDecimals int) string {
 	return numberString[:min(len(numberString), dotIndex+maxDecimals+1)]
 }
 
+func BytesToFileSizeFormat(bytes uint64, maxDecimals int, format string) string {
+	if format == HUMAN_READABLE {
+		return BytesToHumanReadableUnitString(bytes, maxDecimals)
+	} else if format == BYTES {
+		return strconv.FormatUint(bytes, 10) + " B"
+	} else {
+		panic("Invalid file_size_format value \"" + format + "\"")
+	}
+}
+
 // If maxDecimals is less than 0, e.g -1, we show the exact size down to the byte
 // https://en.wikipedia.org/wiki/Byte#Multiple-byte_units
 func BytesToHumanReadableUnitString(bytes uint64, maxDecimals int) string {
@@ -101,7 +111,7 @@ func PathWithoutEndSeparator(path string) string {
 // TODO: Maybe make these file functions take a fs.FileInfo from a previously done os.Stat()
 
 // stat should be from an os.Lstat(). If stat is nil, it returns an error.
-func EntrySizeText(folderFileCountCache map[string]int, stat os.FileInfo, path string, hiddenFiles bool) (string, error) {
+func EntrySizeText(folderFileCountCache map[string]int, stat os.FileInfo, path string, hiddenFiles bool, format string) (string, error) {
 	if stat == nil {
 		return "", errors.New("stat was nil")
 	}
@@ -119,7 +129,7 @@ func EntrySizeText(folderFileCountCache map[string]int, stat os.FileInfo, path s
 	}
 
 	if !stat.IsDir() {
-		ret.WriteString(BytesToHumanReadableUnitString(uint64(stat.Size()), 2))
+		ret.WriteString(BytesToFileSizeFormat(uint64(stat.Size()), 2, format))
 	} else {
 		count, err := FolderFileCountCached(folderFileCountCache, path, hiddenFiles)
 		if err != nil {
@@ -495,24 +505,22 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 
 	var ret tcell.Style
 
-	if stat != nil {
-		if stat.IsDir() {
-			return ret.Foreground(tcell.ColorBlue).Bold(true)
-		} else if stat.Mode().IsRegular() {
-			if stat.Mode()&0111 != 0 || (runtime.GOOS == "windows" && hasSuffixFromList(path, windowsExecutableTypes)) { // Executable file
-				return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
-			}
-		} else if stat.Mode()&os.ModeSymlink != 0 {
-			targetStat, err := os.Stat(path)
-			if err == nil && targetStat.IsDir() {
-				return ret.Foreground(tcell.ColorTeal).Bold(true)
-			}
-
-			return ret.Foreground(tcell.ColorTeal)
-		} else {
-			// Should not happen?
-			return ret.Foreground(tcell.ColorDarkGray)
+	if stat.IsDir() {
+		return ret.Foreground(tcell.ColorBlue).Bold(true)
+	} else if stat.Mode().IsRegular() {
+		if stat.Mode()&0111 != 0 || (runtime.GOOS == "windows" && hasSuffixFromList(path, windowsExecutableTypes)) { // Executable file
+			return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
 		}
+	} else if stat.Mode()&os.ModeSymlink != 0 {
+		targetStat, err := os.Stat(path)
+		if err == nil && targetStat.IsDir() {
+			return ret.Foreground(tcell.ColorTeal).Bold(true)
+		}
+
+		return ret.Foreground(tcell.ColorTeal)
+	} else {
+		// Should not happen?
+		return ret.Foreground(tcell.ColorDarkGray)
 	}
 
 	if hasSuffixFromList(path, imageTypes) {
@@ -687,7 +695,7 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 				defer L.Close()
 
 				fenOpenWithLuaGlobal := &FenOpenWithLuaGlobal{
-					ConfigPath: PathWithEndSeparator(filepath.Dir(fen.configPath)),
+					ConfigPath: PathWithEndSeparator(filepath.Dir(fen.configFilePath)),
 					Version:    version,
 					RuntimeOS:  runtime.GOOS,
 				}
@@ -1120,4 +1128,50 @@ func CurrentWorkingDirectory() (string, error) {
 	}
 
 	return path, nil
+}
+
+// Splits an absolute path by os.PathSeparator into its components
+// For the input "C:\Users\user\Desktop\file.txt", it will return:
+// ["C:\", "C:\Users", "C:\Users\user", "C:\Users\user\Desktop", "C:\Users\user\Desktop\file.txt"]
+func SplitPath(path string) []string {
+	if !filepath.IsAbs(path) {
+		panic("SplitPath() was passed a non-absolute path")
+	}
+
+	return splitPathTestable(path, os.PathSeparator)
+}
+
+func splitPathTestable(path string, pathSeparator rune) []string {
+	split := strings.Split(path, string(pathSeparator))
+	split = slices.DeleteFunc(split, func(x string) bool {
+		return x == ""
+	})
+
+	if pathSeparator == '/' {
+		if path != "" {
+			split = append([]string{"/"}, split...)
+		}
+	} else if pathSeparator == '\\' {
+		if len(split) > 0 {
+			split[0] += "\\"
+		}
+	} else {
+		panic("Unsupported OS path separator")
+	}
+
+	ret := make([]string, len(split))
+
+	var pathConcat strings.Builder
+	for i, pathSplit := range split {
+		pathConcat.WriteString(pathSplit)
+
+		ret[i] = pathConcat.String()
+
+		// We should technically be indexing by runes, but we only support "/" and "\\", so it's fine.
+		if pathSplit[len(pathSplit)-1] != byte(pathSeparator) {
+			pathConcat.WriteRune(pathSeparator)
+		}
+	}
+
+	return ret
 }

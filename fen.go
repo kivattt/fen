@@ -40,15 +40,14 @@ type Fen struct {
 	selectedBeforeSelectingWithV map[string]bool
 
 	config                Config
-	configPath            string // Config path as read by ReadConfig()
+	configFilePath        string // Config path as read by ReadConfig()
 	fileOperationsHandler FileOperationsHandler
 	gitStatusHandler      GitStatusHandler
 
 	helpScreenVisible      *bool
 	librariesScreenVisible *bool
 
-	runningGitStatus     bool
-	initializedGitStatus bool // This is for Fini() because the user might have disabled git_status in the options menu
+	runningGitStatus bool
 
 	folderFileCountCache map[string]int
 
@@ -71,6 +70,44 @@ var ConfigKeysByTagNameNotToIncludeInOptionsMenu = []string{
 	"terminal_title", // The push/pop terminal title escape codes don't work properly while fen is running
 }
 
+const (
+	// SORT_NONE should only be used if fen is too slow loading big folders, because it messes with some things
+	SORT_NONE           = "none" // TODO: Make SORT_NONE also disable the implicit sorting of os.ReadDir()
+	SORT_ALPHABETICAL   = "alphabetical"
+	SORT_MODIFIED       = "modified"
+	SORT_SIZE           = "size"
+	SORT_FILE_EXTENSION = "file-extension"
+)
+
+var ValidSortByValues = [...]string{SORT_NONE, SORT_ALPHABETICAL, SORT_MODIFIED, SORT_SIZE, SORT_FILE_EXTENSION}
+
+const (
+	HUMAN_READABLE = "human-readable"
+	BYTES          = "bytes"
+)
+
+var ValidFileSizeFormatValues = [...]string{HUMAN_READABLE, BYTES}
+
+func isInvalidFileSizeFormatValue(format string) bool {
+	for _, e := range ValidFileSizeFormatValues {
+		if format == e {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isInvalidSortByValue(sortBy string) bool {
+	for _, e := range ValidSortByValues {
+		if sortBy == e {
+			return false
+		}
+	}
+
+	return true
+}
+
 type Config struct {
 	UiBorders               bool                 `lua:"ui_borders"`
 	Mouse                   bool                 `lua:"mouse"`
@@ -84,7 +121,7 @@ type Config struct {
 	ShowHostname            bool                 `lua:"show_hostname"`
 	Open                    []PreviewOrOpenEntry `lua:"open"`
 	Preview                 []PreviewOrOpenEntry `lua:"preview"`
-	SortBy                  string               `lua:"sort_by"`
+	SortBy                  string               `lua:"sort_by"` /* Valid values defined in ValidSortByValues */
 	SortReverse             bool                 `lua:"sort_reverse"`
 	FileEventIntervalMillis int                  `lua:"file_event_interval_ms"`
 	AlwaysShowInfoNumbers   bool                 `lua:"always_show_info_numbers"`
@@ -94,6 +131,7 @@ type Config struct {
 	PreviewSafetyBlocklist  bool                 `lua:"preview_safety_blocklist"`
 	CloseOnEscape           bool                 `lua:"close_on_escape"`
 	FileSizeInAllPanes      bool                 `lua:"file_size_in_all_panes"`
+	FileSizeFormat          string               `lua:"file_size_format"` /* Valid values defined in ValidFileSizeFormatValues */
 }
 
 func NewConfigDefaultValues() Config {
@@ -108,19 +146,9 @@ func NewConfigDefaultValues() Config {
 		FileEventIntervalMillis: 300,
 		ScrollSpeed:             2,
 		PreviewSafetyBlocklist:  true,
+		FileSizeFormat:          HUMAN_READABLE,
 	}
 }
-
-const (
-	// SORT_NONE should only be used if fen is too slow loading big folders, because it messes with some things
-	SORT_NONE           = "none" // TODO: Make SORT_NONE also disable the implicit sorting of os.ReadDir()
-	SORT_ALPHABETICAL   = "alphabetical"
-	SORT_MODIFIED       = "modified"
-	SORT_SIZE           = "size"
-	SORT_FILE_EXTENSION = "file-extension"
-)
-
-var ValidSortByValues = [...]string{SORT_NONE, SORT_ALPHABETICAL, SORT_MODIFIED, SORT_SIZE, SORT_FILE_EXTENSION}
 
 // To prevent previewing sensitive files
 var DefaultPreviewBlocklistCaseInsensitive = []string{
@@ -191,11 +219,8 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 	fen.fileOperationsHandler = FileOperationsHandler{fen: fen}
 	fen.folderFileCountCache = make(map[string]int)
 
-	if fen.config.GitStatus {
-		fen.gitStatusHandler = GitStatusHandler{app: app, fen: fen}
-		fen.gitStatusHandler.Init()
-		fen.initializedGitStatus = true
-	}
+	fen.gitStatusHandler = GitStatusHandler{app: app, fen: fen}
+	fen.gitStatusHandler.Init()
 
 	fen.helpScreenVisible = helpScreenVisible
 	fen.librariesScreenVisible = librariesScreenVisible
@@ -263,12 +288,10 @@ func (fen *Fen) Fini() {
 	fen.middlePane.fileWatcher.Close()
 	fen.rightPane.fileWatcher.Close()
 
-	if fen.initializedGitStatus {
-		fen.gitStatusHandler.gitIndexFileWatcher.Close()
+	fen.gitStatusHandler.gitIndexFileWatcher.Close()
 
-		close(fen.gitStatusHandler.channel)
-		fen.gitStatusHandler.wg.Wait()
-	}
+	close(fen.gitStatusHandler.channel)
+	fen.gitStatusHandler.wg.Wait()
 }
 
 func (fen *Fen) InvalidateFolderFileCountCache() {
@@ -290,7 +313,7 @@ func (fen *Fen) PopTerminalTitle() {
 
 func (fen *Fen) ReadConfig(path string) error {
 	fen.config = NewConfigDefaultValues()
-	fen.configPath = path
+	fen.configFilePath = path
 
 	if !strings.HasSuffix(filepath.Base(path), ".lua") {
 		fmt.Fprintln(os.Stderr, "Warning: Config file "+path+" has no .lua file extension.\nSince v1.3.0, config files can only be Lua.\n")
@@ -330,7 +353,7 @@ func (fen *Fen) ReadConfig(path string) error {
 	}
 
 	if err == nil {
-		luaInitialConfigTable.RawSetString("config_path", lua.LString(PathWithEndSeparator(filepath.Dir(fen.configPath))))
+		luaInitialConfigTable.RawSetString("config_path", lua.LString(PathWithEndSeparator(filepath.Dir(fen.configFilePath))))
 	}
 	luaInitialConfigTable.RawSetString("version", lua.LString(version))
 	luaInitialConfigTable.RawSetString("runtime_os", lua.LString(runtime.GOOS))
