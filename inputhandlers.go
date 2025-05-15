@@ -378,6 +378,11 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			fen.DisableSelectingWithV() // FIXME: We shouldn't disable it, but fixing it to not be buggy would be annoying
 			fen.UpdatePanes(true)
 			fen.history.AddToHistory(fen.sel)
+			if fen.config.HiddenFiles {
+				fen.bottomBar.TemporarilyShowTextInstead("Hidden files: visible")
+			} else {
+				fen.bottomBar.TemporarilyShowTextInstead("Hidden files: hidden")
+			}
 			return nil
 		} else if event.Rune() == 'p' {
 			if len(fen.yankSelected) <= 0 {
