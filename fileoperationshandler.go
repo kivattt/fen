@@ -63,8 +63,16 @@ func (handler *FileOperationsHandler) QueueOperations(batch []FileOperation) {
 	handler.workCount += len(batch)
 	handler.workCountMutex.Unlock()
 
+	var theError error = nil
 	for i, e := range batch {
-		handler.doOperation(e, batchIndex, i)
+		err := handler.doOperation(e, batchIndex, i)
+		if err != nil {
+			theError = err
+		}
+	}
+
+	if theError != nil {
+		handler.fen.bottomBar.TemporarilyShowTextInstead(theError.Error())
 	}
 }
 
