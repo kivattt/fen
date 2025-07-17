@@ -1175,3 +1175,76 @@ func splitPathTestable(path string, pathSeparator rune) []string {
 
 	return ret
 }
+
+// Panics on empty string!
+// Returns the number prefix of a string
+// e.g. "123hello" -> "123"
+// and  "hello" -> ""
+func NumberPrefix(s string) string {
+	if len(s) == 0 {
+		panic("NumberPrefix() was passed an empty string")
+	}
+
+	count := 0
+	for _, char := range s {
+		if char < '0' || char > '9' {
+			break
+		}
+
+		count++
+	}
+
+	return s[:count]
+}
+
+// Compares two positive numerical strings.
+// Returns  0 if num1 == num2
+// Returns  1 if num1 > num2
+// Returns -1 if num1 < num2
+func CompareNumericalStrings(num1, num2 string) int {
+	num1Strip := strings.TrimLeft(num1, "0")
+	num2Strip := strings.TrimLeft(num2, "0")
+	len1 := len(num1Strip)
+	len2 := len(num2Strip)
+
+	if len1 > len2 {
+		return 1
+	}
+
+	if len1 < len2 {
+		return -1
+	}
+
+	for i := 0; i < len1; i++ {
+		if num1Strip[i] > num2Strip[i] {
+			return 1
+		} else if num1Strip[i] < num2Strip[i] {
+			return -1
+		}
+	}
+
+	return 0 // Both numbers are equal
+}
+
+// Does tilde expansion on non-windows operating systems
+// If it can't find the home directory, it will return the input unchanged.
+func ExpandTilde(path string) string {
+	if runtime.GOOS == "windows" {
+		return path
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+
+	return expandTildeTestable(path, home)
+}
+
+func expandTildeTestable(path string, homeDir string) string {
+	if path == "~" || strings.HasPrefix(path, "~/") {
+		return filepath.Join(homeDir, path[1:])
+	}
+
+	return path
+}
