@@ -77,9 +77,10 @@ const (
 	SORT_MODIFIED       = "modified"
 	SORT_SIZE           = "size"
 	SORT_FILE_EXTENSION = "file-extension"
+	SORT_NUMBER         = "number"
 )
 
-var ValidSortByValues = [...]string{SORT_NONE, SORT_ALPHABETICAL, SORT_MODIFIED, SORT_SIZE, SORT_FILE_EXTENSION}
+var ValidSortByValues = [...]string{SORT_NONE, SORT_ALPHABETICAL, SORT_NUMBER, SORT_MODIFIED, SORT_SIZE, SORT_FILE_EXTENSION}
 
 const (
 	HUMAN_READABLE = "human-readable"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"runtime"
 	"slices"
 	"strconv"
 	"testing"
@@ -208,7 +209,7 @@ func TestSplitPathTestable(t *testing.T) {
 	for _, test := range windowsTests {
 		got := splitPathTestable(test.pathInput, '\\')
 		if !reflect.DeepEqual(got, test.expected) {
-			t.Fatal("Expected", test.expected, ", but got:", got)
+			t.Fatal("Expected", test.expected, "but got:", got)
 		}
 	}
 
@@ -237,7 +238,90 @@ func TestSplitPathTestable(t *testing.T) {
 	for _, test := range othersTests {
 		got := splitPathTestable(test.pathInput, '/')
 		if !reflect.DeepEqual(got, test.expected) {
-			t.Fatal("Expected", test.expected, ", but got:", got)
+			t.Fatal("Expected", test.expected, "but got:", got)
+		}
+	}
+}
+
+func TestNumberPrefix(t *testing.T) {
+	type TestCase struct {
+		input    string
+		expected string
+	}
+
+	tests := []TestCase{
+		{"123hello", "123"},
+		{"hello", ""},
+		{"0", "0"},
+		{"01", "01"},
+		{"012", "012"},
+		{"0123456789", "0123456789"},
+		{" ", ""},
+		{"9_hello", "9"},
+		{"9", "9"},
+	}
+
+	for _, test := range tests {
+		got := NumberPrefix(test.input)
+		if got != test.expected {
+			t.Fatal("Expected", test.expected, "but got:", got)
+		}
+	}
+}
+
+func TestCompareNumericalStrings(t *testing.T) {
+	type TestCase struct {
+		a        string
+		b        string
+		expected int
+	}
+
+	tests := []TestCase{
+		{"", "", 0},
+		{"1", "1", 0},
+		{"10", "11", -1},
+		{"100", "99", 1},
+		{"1", "10", -1},
+		{"10", "1", 1},
+		{"9999999", "9", 1},
+	}
+
+	for _, test := range tests {
+		got := CompareNumericalStrings(test.a, test.b)
+		if got != test.expected {
+			t.Fatal("Expected", test.expected, "but got:", got)
+		}
+	}
+}
+
+func TestExpandTildeTestable(t *testing.T) {
+	// ExpandTilde() doesn't do anything on Windows, can't be bothered to pass the path separator for testing
+	if runtime.GOOS == "windows" {
+		return
+	}
+
+	type TestCase struct {
+		input    string
+		expected string
+	}
+
+	homeDir := "/home/user"
+	tests := []TestCase{
+		{"", ""},
+		{"~", "/home/user"},
+		{"~/", "/home/user"},
+		{"~a", "~a"},
+		{"hello", "hello"},
+		{" ~", " ~"},
+		{"~/////////", "/home/user"}, // filepath.Join() runs filepath.Clean() on its output
+		{"~/folder", "/home/user/folder"},
+		{"~/folder/subfolder", "/home/user/folder/subfolder"},
+	}
+
+	for _, test := range tests {
+		got := expandTildeTestable(test.input, homeDir)
+		if got != test.expected {
+			t.Fatal("Expected", test.expected, "but got:", got)
 		}
 	}
 }

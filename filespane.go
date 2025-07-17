@@ -418,6 +418,17 @@ func (fp *FilesPane) FilterAndSortEntries() {
 
 			return 1
 		})
+	case SORT_NUMBER:
+		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
+			numberPrefix1 := NumberPrefix(a.Name())
+			numberPrefix2 := NumberPrefix(b.Name())
+
+			if numberPrefix1 == "" || numberPrefix2 == "" {
+				return 0
+			}
+
+			return CompareNumericalStrings(numberPrefix1, numberPrefix2)
+		})
 	case SORT_NONE: // Does nothing, this has the side effect of making file events always show up at the bottom, until the entire folder is re-read
 	default:
 		panic("Invalid sort_by value \"" + fp.fen.config.SortBy + "\"")

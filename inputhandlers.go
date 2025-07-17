@@ -27,8 +27,6 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			AddItem(nil, 0, 1, false)
 	}
 
-	var err error
-
 	enterWillSelectAutoCompleteInGotoPath := false
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if pages.HasPage("popup") {
@@ -559,10 +557,10 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 						return
 					}
 
-					path, err := fen.GoPath(inputField.GetText())
-					if err != nil {
+					path, pathErr := fen.GoPath(ExpandTilde(inputField.GetText()))
+					if pathErr != nil {
 						pages.RemovePage("popup")
-						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+						fen.bottomBar.TemporarilyShowTextInstead(pathErr.Error())
 						return
 					}
 
@@ -577,14 +575,17 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 					return []string{}
 				}
 
+				expanded := ExpandTilde(currentText)
+
 				var pathToUse string
-				if !filepath.IsAbs(currentText) {
+				var err error
+				if !filepath.IsAbs(expanded) {
 					pathToUse, err = filepath.Abs(filepath.Join(fen.wd, pathToUse))
 					if err != nil {
 						return []string{}
 					}
 				} else {
-					pathToUse = filepath.Dir(currentText)
+					pathToUse = filepath.Dir(expanded)
 				}
 
 				dir, err := os.ReadDir(pathToUse)
@@ -719,7 +720,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 					return
 				}
 
-				programNameToUse := inputField.GetText()
+				programNameToUse := ExpandTilde(inputField.GetText())
 				if programNameToUse == "" {
 					if len(programs) > 0 {
 						programNameToUse = programs[0]
@@ -918,7 +919,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			}
 
 			optionsForm.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-				if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+				if event.Key() == tcell.KeyEscape || event.Rune() == 'q' || event.Rune() == 'o' {
 					pages.RemovePage("popup")
 					return nil
 				}
