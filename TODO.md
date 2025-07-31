@@ -2,8 +2,12 @@
 
 ## TODOs, vaguely sorted by priority
 
+- Bash-like tab-completion in things, especially "Run bash command" modal
+- Use underscores to separate words in source code filenames
+- Use prefix `.` instead of trailing `.` for multiline function chaining
+
 - Scrollable search history
-- Better scrolling
+- Better scrolling (leeway either direction, like every other scrolling system in this universe...)
 - It sometimes exits badly, stuff is left on screen ever since async file operations were added
 - Interactive file operations log (with undo when applicable)
 - Make file previews async

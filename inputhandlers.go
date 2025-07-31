@@ -739,6 +739,44 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 
 			pages.AddPage("popup", centered(flex, inputFieldHeight+2+len(programs)), true, true)
 			return nil
+		} else if event.Rune() == 'f' {
+			inputField := tview.NewInputField().
+				SetLabel(" Search: ").
+				SetPlaceholder("case-sensitive"). // TODO: Smart-case
+				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
+			inputField.SetTitleColor(tcell.ColorDefault)
+			inputField.SetFieldBackgroundColor(tcell.ColorGray)
+			inputField.SetFieldTextColor(tcell.ColorBlack)
+			inputField.SetBackgroundColor(tcell.ColorBlack)
+
+			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
+			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
+
+			searchFilenames := NewSearchFilenames(fen)
+			inputField.SetChangedFunc(func(text string) {
+				/*searchFilenames.mutex.Lock()
+				searchFilenames.searchTerm = text
+				searchFilenames.mutex.Unlock()*/
+				searchFilenames.Filter(text)
+			})
+
+			inputField.SetDoneFunc(func(key tcell.Key) {
+				if key == tcell.KeyEscape {
+					pages.RemovePage("popup")
+					return
+				}
+			})
+
+			flex := tview.NewFlex().
+				AddItem(inputField, 1, 1, true).SetDirection(tview.FlexRow).
+				AddItem(searchFilenames, 0, 1, true)
+
+			flex.SetBorder(true)
+			flex.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
+
+			pages.AddPage("popup", centered(flex, 20), true, true)
+			return nil
 		} else if event.Rune() == '!' {
 			shellName := GetShellArgs()[0]
 			inputField := tview.NewInputField().
