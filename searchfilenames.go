@@ -34,6 +34,7 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 		s.wg.Wait()
 		s.fen.app.QueueUpdateDraw(func() {
 			s.Filter("")
+			// TODO: Put it in the search filenames modal, not bottom bar
 			// TODO: Only show if it took > 1 second or something
 			s.fen.bottomBar.TemporarilyShowTextInstead("Finished loading files")
 		})
