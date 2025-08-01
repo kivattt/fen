@@ -16,20 +16,20 @@ type SearchFilenames struct {
 	*tview.Box
 	fen *Fen
 
-	mutex sync.Mutex
-	wg sync.WaitGroup
-	searchTerm string
-	filenames []string
+	mutex                    sync.Mutex
+	wg                       sync.WaitGroup
+	searchTerm               string
+	filenames                []string
 	filenamesFilteredIndices []int
-	cancel bool
-	finishedLoading bool
-	lastDrawTime time.Time
+	cancel                   bool
+	finishedLoading          bool
+	lastDrawTime             time.Time
 }
 
 func NewSearchFilenames(fen *Fen) *SearchFilenames {
 	s := SearchFilenames{
-		Box: tview.NewBox().SetBackgroundColor(tcell.ColorBlack),
-		fen: fen,
+		Box:          tview.NewBox().SetBackgroundColor(tcell.ColorBlack),
+		fen:          fen,
 		lastDrawTime: time.Now(),
 	}
 
@@ -78,7 +78,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 		s.filenames = append(s.filenames, pathName)
 		s.mutex.Unlock()
 
-		if time.Since(s.lastDrawTime) > time.Duration(s.fen.config.FileEventIntervalMillis) * time.Millisecond {
+		if time.Since(s.lastDrawTime) > time.Duration(s.fen.config.FileEventIntervalMillis)*time.Millisecond {
 			s.fen.app.QueueUpdateDraw(func() {
 				s.mutex.Lock()
 				s.Filter(s.searchTerm)
@@ -117,7 +117,7 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	x, y, w, h := s.GetInnerRect()
 
 	for i, e := range s.filenamesFilteredIndices {
-		if i >= h - 1 {
+		if i >= h-1 {
 			break
 		}
 
@@ -133,12 +133,12 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	}
 
 	if s.searchTerm != "" {
-		tview.Print(screen, strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10) + " filenames matched", x, bottomY, w, tview.AlignLeft, green)
+		tview.Print(screen, strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10)+" filenames matched", x, bottomY, w, tview.AlignLeft, green)
 	}
 
 	if s.finishedLoading {
-		tview.Print(screen, strconv.FormatInt(int64(len(s.filenames)), 10) + " files", x, bottomY, w, tview.AlignRight, green)
+		tview.Print(screen, strconv.FormatInt(int64(len(s.filenames)), 10)+" files", x, bottomY, w, tview.AlignRight, green)
 	} else {
-		tview.Print(screen, "Loading... " + strconv.FormatInt(int64(len(s.filenames)), 10) + " files", x, bottomY, w, tview.AlignRight, tcell.ColorWhite)
+		tview.Print(screen, "Loading... "+strconv.FormatInt(int64(len(s.filenames)), 10)+" files", x, bottomY, w, tview.AlignRight, tcell.ColorWhite)
 	}
 }

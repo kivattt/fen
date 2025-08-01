@@ -754,7 +754,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			inputField := tview.NewInputField().
 				SetLabel(" Search: ").
 				SetPlaceholder("case-sensitive"). // TODO: Smart-case
-				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
+				SetFieldWidth(-1)                 // Special feature of my tview fork, github.com/kivattt/tview
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
