@@ -27,6 +27,17 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			AddItem(nil, 0, 1, false)
 	}
 
+	// size = 5 is a reasonable large size
+	centered_large := func(p tview.Primitive, size int) tview.Primitive {
+		return tview.NewFlex().
+			AddItem(nil, 0, 1, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+				AddItem(nil, 0, 1, false).
+				AddItem(p, 0, size, true).
+				AddItem(nil, 0, 1, false), 0, size, true).
+			AddItem(nil, 0, 1, false)
+	}
+
 	enterWillSelectAutoCompleteInGotoPath := false
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if pages.HasPage("popup") {
@@ -755,14 +766,17 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 
 			searchFilenames := NewSearchFilenames(fen)
 			inputField.SetChangedFunc(func(text string) {
-				/*searchFilenames.mutex.Lock()
+				searchFilenames.mutex.Lock()
 				searchFilenames.searchTerm = text
-				searchFilenames.mutex.Unlock()*/
 				searchFilenames.Filter(text)
+				searchFilenames.mutex.Unlock()
 			})
 
 			inputField.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEscape {
+					searchFilenames.mutex.Lock()
+					searchFilenames.cancel = true
+					searchFilenames.mutex.Unlock()
 					pages.RemovePage("popup")
 					return
 				}
@@ -775,7 +789,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			flex.SetBorder(true)
 			flex.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 
-			pages.AddPage("popup", centered(flex, 20), true, true)
+			pages.AddPage("popup", centered_large(flex, 5), true, true)
 			return nil
 		} else if event.Rune() == '!' {
 			shellName := GetShellArgs()[0]

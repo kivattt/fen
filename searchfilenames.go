@@ -3,8 +3,10 @@ package main
 import (
 	"io/fs"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -20,34 +22,45 @@ type SearchFilenames struct {
 	filenames []string
 	filenamesFilteredIndices []int
 	cancel bool
+	finishedLoading bool
+	lastDrawTime time.Time
 }
 
 func NewSearchFilenames(fen *Fen) *SearchFilenames {
 	s := SearchFilenames{
 		Box: tview.NewBox().SetBackgroundColor(tcell.ColorBlack),
 		fen: fen,
+		lastDrawTime: time.Now(),
 	}
 
 	s.wg.Add(1)
-	go s.GatherFiles("..")
+	go s.GatherFiles(fen.wd)
 	go func() {
 		s.wg.Wait()
-		s.fen.app.QueueUpdateDraw(func() {
-			s.Filter("")
-			// TODO: Put it in the search filenames modal, not bottom bar
-			// TODO: Only show if it took > 1 second or something
-			s.fen.bottomBar.TemporarilyShowTextInstead("Finished loading files")
-		})
+
+		if !s.cancel {
+			s.fen.app.QueueUpdateDraw(func() {
+				s.mutex.Lock()
+				s.Filter(s.searchTerm)
+				s.finishedLoading = true
+				s.mutex.Unlock()
+			})
+		}
 	}()
 
 	return &s
 }
 
-func (s *SearchFilenames) GatherFiles(path string) {
+func (s *SearchFilenames) GatherFiles(pathInput string) {
 	// Unhandled error
-	_ = filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(pathInput, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return filepath.SkipDir
+		}
+
+		// Hide directories, and "." directory
+		if d.IsDir() {
+			return nil
 		}
 
 		s.mutex.Lock()
@@ -56,22 +69,32 @@ func (s *SearchFilenames) GatherFiles(path string) {
 			return filepath.SkipAll
 		}
 
-		s.filenames = append(s.filenames, path)
+		pathName, err := filepath.Rel(pathInput, path)
+		if err != nil {
+			s.mutex.Unlock()
+			return nil
+		}
 
-		//s.Filter(s.searchTerm)
-
+		s.filenames = append(s.filenames, pathName)
 		s.mutex.Unlock()
+
+		if time.Since(s.lastDrawTime) > time.Duration(s.fen.config.FileEventIntervalMillis) * time.Millisecond {
+			s.fen.app.QueueUpdateDraw(func() {
+				s.mutex.Lock()
+				s.Filter(s.searchTerm)
+				s.mutex.Unlock()
+			})
+			s.lastDrawTime = time.Now()
+		}
+
 		return nil
 	})
 
 	s.wg.Done()
 }
 
+// You need to manually lock / unlock the mutex to use this function
 func (s *SearchFilenames) Filter(text string) {
-	// Necessary? Do we want this?
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
 	s.filenamesFilteredIndices = make([]int, len(s.filenames))
 	j := 0
 
@@ -85,14 +108,6 @@ func (s *SearchFilenames) Filter(text string) {
 	s.filenamesFilteredIndices = s.filenamesFilteredIndices[:j]
 }
 
-/*func (s *SearchFilenames) InputHandler() func(ek *tcell.EventKey, f func(p tview.Primitive)) {
-	return s.WrapInputHandler(func(ek *tcell.EventKey, f func(p tview.Primitive)) {
-		if ek.Rune() == 'a' {
-			s.filenamesFilteredIndices = slices.Delete(s.filenamesFilteredIndices, 0, 1)
-		}
-	})
-}*/
-
 func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -101,15 +116,29 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 
 	x, y, w, h := s.GetInnerRect()
 
-	//s.filenames = []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"}
-	//s.filenamesFilteredIndices = []int{0, 2, 4, 5, 6}
-
 	for i, e := range s.filenamesFilteredIndices {
-		if i >= h {
+		if i >= h - 1 {
 			break
 		}
 
 		tview.Print(screen, s.filenames[e], x, y+i, w, tview.AlignLeft, tcell.ColorDefault)
-		//tview.PrintSimple(screen, s.filenames[e], x, y+i)
+	}
+
+	bottomY := y + h - 1
+
+	darkGray := tcell.NewRGBColor(20, 20, 22)
+	green := tcell.NewRGBColor(0, 255, 0)
+	for i := 0; i < w; i++ {
+		screen.SetCell(x+i, bottomY, tcell.StyleDefault.Background(darkGray), ' ')
+	}
+
+	if s.searchTerm != "" {
+		tview.Print(screen, strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10) + " filenames matched", x, bottomY, w, tview.AlignLeft, green)
+	}
+
+	if s.finishedLoading {
+		tview.Print(screen, strconv.FormatInt(int64(len(s.filenames)), 10) + " files", x, bottomY, w, tview.AlignRight, green)
+	} else {
+		tview.Print(screen, "Loading... " + strconv.FormatInt(int64(len(s.filenames)), 10) + " files", x, bottomY, w, tview.AlignRight, tcell.ColorWhite)
 	}
 }
