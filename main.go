@@ -39,8 +39,13 @@ func SetTviewStyles() {
 	}
 }
 
+var missingSpaceRune rune = '…'
+
 func main() {
 	SetTviewStyles()
+	if runtime.GOOS == "freebsd" {
+		missingSpaceRune = '~'
+	}
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""

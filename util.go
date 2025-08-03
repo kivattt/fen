@@ -947,11 +947,7 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 	offset := 0
 	for i, c := range filename {
 		if offset >= maxWidth-2 {
-			if runtime.GOOS == "freebsd" {
-				screen.SetContent(x+offset, y, '~', nil, style)
-			} else {
-				screen.SetContent(x+offset, y, '…', nil, style)
-			}
+			screen.SetContent(x+offset, y, missingSpaceRune, nil, style)
 			offset++
 			return offset
 		}
@@ -961,11 +957,7 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 			printableCode := RuneToPrintableCode(c)
 			for _, character := range printableCode {
 				if offset >= maxWidth-2 {
-					if runtime.GOOS == "freebsd" {
-						screen.SetContent(x+offset, y, '~', nil, style)
-					} else {
-						screen.SetContent(x+offset, y, '…', nil, style)
-					}
+					screen.SetContent(x+offset, y, missingSpaceRune, nil, style)
 					offset++
 					return offset
 				}
@@ -982,11 +974,7 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 			printableCode := RuneToPrintableCode(c)
 			for _, character := range printableCode {
 				if offset >= maxWidth-2 {
-					if runtime.GOOS == "freebsd" {
-						screen.SetContent(x+offset, y, '~', nil, style)
-					} else {
-						screen.SetContent(x+offset, y, '…', nil, style)
-					}
+					screen.SetContent(x+offset, y, missingSpaceRune, nil, style)
 					offset++
 					return offset
 				}
