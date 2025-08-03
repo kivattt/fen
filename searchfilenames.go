@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/fs"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -28,7 +29,7 @@ type SearchFilenames struct {
 
 func NewSearchFilenames(fen *Fen) *SearchFilenames {
 	s := SearchFilenames{
-		Box:          tview.NewBox().SetBackgroundColor(tcell.ColorBlack),
+		Box:          tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
 		fen:          fen,
 		lastDrawTime: time.Now(),
 	}
@@ -95,6 +96,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 
 // You need to manually lock / unlock the mutex to use this function
 func (s *SearchFilenames) Filter(text string) {
+	// PERF: Only allocate once, instead of every key-press...
 	s.filenamesFilteredIndices = make([]int, len(s.filenames))
 	j := 0
 
@@ -121,23 +123,42 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 			break
 		}
 
-		tview.Print(screen, s.filenames[e], x, y+i, w, tview.AlignLeft, tcell.ColorDefault)
+		filename := s.filenames[e]
+
+		// There is no strings.LastIndexRune() function, probably because it's slow.
+		lastSlash := strings.LastIndexByte(filename, os.PathSeparator)
+
+		for j, c := range filename {
+			if j >= w-1 {
+				if len(filename) > w {
+					screen.SetCell(x+j, y+i, tcell.StyleDefault, missingSpaceRune)
+				}
+				break
+			}
+
+			color := tcell.ColorBlue
+			if j > lastSlash {
+				color = tcell.ColorDefault
+			}
+
+			screen.SetCell(x+j, y+i, tcell.StyleDefault.Foreground(color), c)
+		}
 	}
 
 	bottomY := y + h - 1
 
-	darkGray := tcell.NewRGBColor(20, 20, 22)
 	green := tcell.NewRGBColor(0, 255, 0)
-	for i := 0; i < w; i++ {
-		screen.SetCell(x+i, bottomY, tcell.StyleDefault.Background(darkGray), ' ')
-	}
-
 	if s.searchTerm != "" {
-		tview.Print(screen, strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10)+" filenames matched", x, bottomY, w, tview.AlignLeft, green)
+		numFilesMatched := len(s.filenamesFilteredIndices)
+		if numFilesMatched == 0 {
+			tview.Print(screen, strconv.FormatInt(int64(numFilesMatched), 10)+" filenames matched", x, bottomY, w, tview.AlignLeft, tcell.ColorDefault)
+		} else {
+			tview.Print(screen, strconv.FormatInt(int64(numFilesMatched), 10)+" filenames matched", x, bottomY, w, tview.AlignLeft, green)
+		}
 	}
 
 	if s.finishedLoading {
-		tview.Print(screen, strconv.FormatInt(int64(len(s.filenames)), 10)+" files", x, bottomY, w, tview.AlignRight, green)
+		tview.Print(screen, strconv.FormatInt(int64(len(s.filenames)), 10)+" files total", x, bottomY, w, tview.AlignRight, green)
 	} else {
 		tview.Print(screen, "Loading... "+strconv.FormatInt(int64(len(s.filenames)), 10)+" files", x, bottomY, w, tview.AlignRight, tcell.ColorWhite)
 	}

@@ -757,10 +757,10 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 				SetFieldWidth(-1)                 // Special feature of my tview fork, github.com/kivattt/tview
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
+			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldTextColor(tcell.ColorBlack)
-			inputField.SetBackgroundColor(tcell.ColorBlack)
+			inputField.SetBackgroundColor(tcell.ColorDefault)
 
-			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack)) // This has to be before the .SetLabelColor
 			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
 
@@ -783,8 +783,8 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			})
 
 			flex := tview.NewFlex().
-				AddItem(inputField, 1, 1, true).SetDirection(tview.FlexRow).
-				AddItem(searchFilenames, 0, 1, true)
+				AddItem(searchFilenames, 0, 1, false).SetDirection(tview.FlexRow).
+				AddItem(inputField, 1, 1, true)
 
 			flex.SetBorder(true)
 			flex.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
