@@ -117,6 +117,9 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	s.Box.DrawForSubclass(screen, s)
 
 	x, y, w, h := s.GetInnerRect()
+	// 1 cell padding on left and right
+	x += 1
+	w -= 2
 
 	for i, e := range s.filenamesFilteredIndices {
 		if i >= h-1 {
@@ -128,17 +131,24 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		// There is no strings.LastIndexRune() function, probably because it's slow.
 		lastSlash := strings.LastIndexByte(filename, os.PathSeparator)
 
+		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm)
+
 		for j, c := range filename {
 			if j >= w-1 {
-				if len(filename) > w {
-					screen.SetCell(x+j, y+i, tcell.StyleDefault, missingSpaceRune)
-				}
+				screen.SetCell(x+j, y+i, tcell.StyleDefault, missingSpaceRune)
 				break
 			}
 
 			color := tcell.ColorBlue
 			if j > lastSlash {
 				color = tcell.ColorDefault
+			}
+
+			for _, matchIndex := range matchIndices {
+				if j >= matchIndex && j < matchIndex + len(s.searchTerm) {
+					color = tcell.ColorOrange
+					break
+				}
 			}
 
 			screen.SetCell(x+j, y+i, tcell.StyleDefault.Foreground(color), c)
@@ -148,18 +158,12 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	bottomY := y + h - 1
 
 	green := tcell.NewRGBColor(0, 255, 0)
-	if s.searchTerm != "" {
-		numFilesMatched := len(s.filenamesFilteredIndices)
-		if numFilesMatched == 0 {
-			tview.Print(screen, strconv.FormatInt(int64(numFilesMatched), 10)+" filenames matched", x, bottomY, w, tview.AlignLeft, tcell.ColorDefault)
-		} else {
-			tview.Print(screen, strconv.FormatInt(int64(numFilesMatched), 10)+" filenames matched", x, bottomY, w, tview.AlignLeft, green)
-		}
-	}
 
+	color := tcell.ColorYellow
 	if s.finishedLoading {
-		tview.Print(screen, strconv.FormatInt(int64(len(s.filenames)), 10)+" files total", x, bottomY, w, tview.AlignRight, green)
-	} else {
-		tview.Print(screen, "Loading... "+strconv.FormatInt(int64(len(s.filenames)), 10)+" files", x, bottomY, w, tview.AlignRight, tcell.ColorWhite)
+		color = green
 	}
+	matchCountStr := strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10)
+	filesTotalCountStr := strconv.FormatInt(int64(len(s.filenames)), 10)
+	tview.Print(screen, matchCountStr + " / " + filesTotalCountStr + " files", x, bottomY, w, tview.AlignLeft, color)
 }

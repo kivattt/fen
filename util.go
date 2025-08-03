@@ -1236,3 +1236,29 @@ func expandTildeTestable(path string, homeDir string) string {
 
 	return path
 }
+
+func FindSubstringAllStartIndices(s, searchText string) []int {
+	if s == "" || searchText == "" {
+		return []int{}
+	}
+
+	var result []int
+
+	i := 0
+	for {
+		if i >= len(s) {
+			break
+		}
+
+		found := strings.Index(s[i:], searchText)
+		if found == -1 {
+			break
+		}
+
+		i += found
+		result = append(result, i)
+		i += len(searchText)
+	}
+
+	return result
+}

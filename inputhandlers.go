@@ -787,9 +787,8 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 				AddItem(inputField, 1, 1, true)
 
 			flex.SetBorder(true)
-			flex.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
 
-			pages.AddPage("popup", centered_large(flex, 5), true, true)
+			pages.AddPage("popup", centered_large(flex, 10), true, true)
 			return nil
 		} else if event.Rune() == '!' {
 			shellName := GetShellArgs()[0]

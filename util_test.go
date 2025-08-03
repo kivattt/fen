@@ -325,3 +325,37 @@ func TestExpandTildeTestable(t *testing.T) {
 		}
 	}
 }
+
+func TestFindSubstringAllStartIndices(t *testing.T) {
+	type TestCase struct {
+		text string
+		searchText string
+		expected []int
+	}
+
+	tests := []TestCase{
+		{"", "", []int{}},
+		{"hello", "", []int{}},
+		{"file", "file", []int{0}},
+		{"file.go", "file", []int{0}},
+		{"file.go", ".go", []int{4}},
+		{"file.go.go", ".go", []int{4,7}},
+		{"aa", "a", []int{0, 1}},
+		{"aa aa", "aa", []int{0, 3}},
+		{"hooks/hooks", "hoo", []int{0, 6}},
+		{"hooks/hooks", "hooo", []int{}},
+	}
+
+	for _, test := range tests {
+		got := FindSubstringAllStartIndices(test.text, test.searchText)
+
+		// For some reason, reflect.DeepEqual() doesn't think two empty slices are equal
+		if len(got) == 0 && len(test.expected) == 0 {
+			continue
+		}
+
+		if !reflect.DeepEqual(got, test.expected) {
+			t.Fatal("Expected", test.expected, "but got:", got)
+		}
+	}
+}
