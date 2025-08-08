@@ -165,14 +165,14 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	w -= 2
 	h -= 1
 
-	scrollOffset := max(0, s.selectedFilenameIndex - h/2)
+	scrollOffset := max(0, min(len(s.filenamesFilteredIndices) - h + 1, s.selectedFilenameIndex - h/2))
+	startY := y + max(0, h - len(s.filenamesFilteredIndices) - 1)
 
-	scrollOffset = max(0, scrollOffset)
-
-	startY := y + max(0, h - len(s.filenamesFilteredIndices))
-
-	//theString := strconv.FormatInt(int64(scrollOffset), 10) + " " + strconv.FormatInt(int64(startY), 10)
-	//s.fen.bottomBar.TemporarilyShowTextInstead(theString)
+	/*debugString := fmt.Sprint("scrollOffset: ", scrollOffset, " startY: ", startY, " selected: ", s.selectedFilenameIndex)
+	if s.selectedFilenameIndex > 0 {
+		debugString += " " + s.filenames[s.filenamesFilteredIndices[s.selectedFilenameIndex]]
+	}
+	s.fen.bottomBar.TemporarilyShowTextInstead(debugString)*/
 
 	for i, e := range s.filenamesFilteredIndices[scrollOffset:] {
 		if i >= h-1 {
@@ -191,8 +191,6 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 			style = style.Reverse(true)
 		}
 
-		//yPos := y + h-2 - i
-		//yPos := y + h-2 + i
 		yPos := startY + i
 
 		for j, c := range filename {
