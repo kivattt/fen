@@ -1,5 +1,46 @@
 package main
 
+/*
+	+---------------------+
+	| Search format ideas |
+	+---------------------+
+
+	Match "file"
+	file
+
+	Match all ending with ".go"
+	*.go
+
+	Match all starting with "file"
+	file*
+
+	Invert search
+	!file
+
+	+------------------+
+	| Escape sequences |
+	+------------------+
+
+	Match "*.go"
+	\*.go
+
+	Match "file*"
+	file\*
+
+	Match "!file"
+	\!file
+
+	+-----------------------------------------+
+	| Requiring whitespace-trimming / parsing |
+	+-----------------------------------------+
+
+	Match "a" OR "b"
+	~a ~b
+
+	Match *.go OR *.txt
+	~*.go ~*.txt
+*/
+
 import (
 	"io/fs"
 	"os"
@@ -22,6 +63,7 @@ type SearchFilenames struct {
 	searchTerm               string
 	filenames                []string
 	filenamesFilteredIndices []int
+	selectedFilenameIndex int
 	cancel                   bool
 	finishedLoading          bool
 	lastDrawTime             time.Time
@@ -108,6 +150,7 @@ func (s *SearchFilenames) Filter(text string) {
 	}
 
 	s.filenamesFilteredIndices = s.filenamesFilteredIndices[:j]
+	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices) - 1)
 }
 
 func (s *SearchFilenames) Draw(screen tcell.Screen) {
@@ -120,8 +163,18 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	// 1 cell padding on left and right
 	x += 1
 	w -= 2
+	h -= 1
 
-	for i, e := range s.filenamesFilteredIndices {
+	scrollOffset := max(0, s.selectedFilenameIndex - h/2)
+
+	scrollOffset = max(0, scrollOffset)
+
+	startY := y + max(0, h - len(s.filenamesFilteredIndices))
+
+	//theString := strconv.FormatInt(int64(scrollOffset), 10) + " " + strconv.FormatInt(int64(startY), 10)
+	//s.fen.bottomBar.TemporarilyShowTextInstead(theString)
+
+	for i, e := range s.filenamesFilteredIndices[scrollOffset:] {
 		if i >= h-1 {
 			break
 		}
@@ -133,9 +186,18 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 
 		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm)
 
+		style := tcell.StyleDefault
+		if i == s.selectedFilenameIndex - scrollOffset {
+			style = style.Reverse(true)
+		}
+
+		//yPos := y + h-2 - i
+		//yPos := y + h-2 + i
+		yPos := startY + i
+
 		for j, c := range filename {
 			if j >= w-1 {
-				screen.SetCell(x+j, y+i, tcell.StyleDefault, missingSpaceRune)
+				screen.SetCell(x+j, yPos, style, missingSpaceRune)
 				break
 			}
 
@@ -151,11 +213,11 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 				}
 			}
 
-			screen.SetCell(x+j, y+i, tcell.StyleDefault.Foreground(color), c)
+			screen.SetCell(x+j, yPos, style.Foreground(color), c)
 		}
 	}
 
-	bottomY := y + h - 1
+	bottomY := y + h
 
 	green := tcell.NewRGBColor(0, 255, 0)
 
@@ -166,4 +228,60 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	matchCountStr := strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10)
 	filesTotalCountStr := strconv.FormatInt(int64(len(s.filenames)), 10)
 	tview.Print(screen, matchCountStr + " / " + filesTotalCountStr + " files", x, bottomY, w, tview.AlignLeft, color)
+}
+
+func (s *SearchFilenames) GoUp() {
+	// Do we want the mutex lock/unlock here?
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if s.selectedFilenameIndex > 0 {
+		s.selectedFilenameIndex -= 1
+	}
+}
+
+func (s *SearchFilenames) GoDown() {
+	// Do we want the mutex lock/unlock here?
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if s.selectedFilenameIndex < len(s.filenamesFilteredIndices) - 1 {
+		s.selectedFilenameIndex += 1
+	}
+}
+
+func (s *SearchFilenames) GoTop() {
+	// Do we want the mutex lock/unlock here?
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.selectedFilenameIndex = 0
+}
+
+func (s *SearchFilenames) GoBottom() {
+	// Do we want the mutex lock/unlock here?
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices) - 1)
+}
+
+func (s *SearchFilenames) PageUp() {
+	// Do we want the mutex lock/unlock here?
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	_, _, _, height := s.Box.GetInnerRect()
+	height = max(5, height-10) // Padding
+	s.selectedFilenameIndex = max(0, s.selectedFilenameIndex - height)
+}
+
+func (s *SearchFilenames) PageDown() {
+	// Do we want the mutex lock/unlock here?
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	_, _, _, height := s.Box.GetInnerRect()
+	height = max(5, height-10) // Padding
+	s.selectedFilenameIndex = max(0, min(len(s.filenamesFilteredIndices) - 1, s.selectedFilenameIndex + height))
 }
