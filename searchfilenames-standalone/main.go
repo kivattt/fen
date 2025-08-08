@@ -134,6 +134,30 @@ func main() {
 				}
 			})
 
+			inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+				if event.Key() == tcell.KeyUp {
+					searchFilenames.GoUp()
+					return nil
+				} else if event.Key() == tcell.KeyDown {
+					searchFilenames.GoDown()
+					return nil
+				} else if event.Key() == tcell.KeyPgUp {
+					searchFilenames.PageUp()
+					return nil
+				} else if event.Key() == tcell.KeyPgDn {
+					searchFilenames.PageDown()
+					return nil
+				} else if event.Modifiers() & tcell.ModCtrl != 0 && event.Key() == tcell.KeyHome {
+					searchFilenames.GoTop()
+					return nil
+				} else if event.Modifiers() & tcell.ModCtrl != 0 && event.Key() == tcell.KeyEnd {
+					searchFilenames.GoBottom()
+					return nil
+				}
+
+				return event
+			})
+
 			flex := tview.NewFlex().
 				AddItem(searchFilenames, 0, 1, false).SetDirection(tview.FlexRow).
 				AddItem(inputField, 1, 1, true)
