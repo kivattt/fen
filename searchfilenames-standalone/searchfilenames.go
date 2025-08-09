@@ -226,10 +226,23 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	matchCountStr := strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10)
 	filesTotalCountStr := strconv.FormatInt(int64(len(s.filenames)), 10)
 	tview.Print(screen, matchCountStr + " / " + filesTotalCountStr + " files", x, bottomY, w, tview.AlignLeft, color)
+
+	var scrollPercentageStr string
+	if len(s.filenamesFilteredIndices) < h {
+		scrollPercentageStr = "All"
+	} else {
+		if s.selectedFilenameIndex == 0 { // Prevent divide-by-zero
+			scrollPercentageStr = "Top"
+		} else if s.selectedFilenameIndex == len(s.filenamesFilteredIndices) - 1 {
+			scrollPercentageStr = "Bot"
+		} else {
+			scrollPercentageStr = strconv.FormatInt(int64(float32(s.selectedFilenameIndex) / float32(len(s.filenamesFilteredIndices) - 1) * 100), 10) + "%"
+		}
+	}
+	tview.Print(screen, scrollPercentageStr, x, bottomY, w, tview.AlignRight, tcell.ColorDefault)
 }
 
 func (s *SearchFilenames) GoUp() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -239,7 +252,6 @@ func (s *SearchFilenames) GoUp() {
 }
 
 func (s *SearchFilenames) GoDown() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -249,7 +261,6 @@ func (s *SearchFilenames) GoDown() {
 }
 
 func (s *SearchFilenames) GoTop() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -257,7 +268,6 @@ func (s *SearchFilenames) GoTop() {
 }
 
 func (s *SearchFilenames) GoBottom() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -265,7 +275,6 @@ func (s *SearchFilenames) GoBottom() {
 }
 
 func (s *SearchFilenames) PageUp() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -275,7 +284,6 @@ func (s *SearchFilenames) PageUp() {
 }
 
 func (s *SearchFilenames) PageDown() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
