@@ -783,6 +783,9 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			})
 
 			inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+				// These GoUp/Go.../PageUp/PageDown functions lock/unlock the mutex internally.
+				// Keep this in mind if you want to make these blocks do more than just the Go... function call
+				// since that might require moving the mutex lock/unlock into the if-block instead.
 				if event.Key() == tcell.KeyUp {
 					searchFilenames.GoUp()
 					return nil

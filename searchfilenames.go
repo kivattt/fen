@@ -243,7 +243,6 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 }
 
 func (s *SearchFilenames) GoUp() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -253,7 +252,6 @@ func (s *SearchFilenames) GoUp() {
 }
 
 func (s *SearchFilenames) GoDown() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -263,7 +261,6 @@ func (s *SearchFilenames) GoDown() {
 }
 
 func (s *SearchFilenames) GoTop() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -271,7 +268,6 @@ func (s *SearchFilenames) GoTop() {
 }
 
 func (s *SearchFilenames) GoBottom() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -279,7 +275,6 @@ func (s *SearchFilenames) GoBottom() {
 }
 
 func (s *SearchFilenames) PageUp() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -289,7 +284,6 @@ func (s *SearchFilenames) PageUp() {
 }
 
 func (s *SearchFilenames) PageDown() {
-	// Do we want the mutex lock/unlock here?
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
