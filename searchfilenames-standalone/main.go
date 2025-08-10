@@ -135,6 +135,25 @@ func main() {
 			})
 
 			inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+				if event.Key() == tcell.KeyEnter {
+					searchFilenames.mutex.Lock()
+					if len(searchFilenames.filenamesFilteredIndices) > 0 {
+						selectedFilename := searchFilenames.filenames[searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex]]
+						if selectedFilename == "" {
+							panic("Empty string selected in search filenames popup")
+						}
+
+						_, err := fen.GoPath(selectedFilename)
+						if err != nil {
+							fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+						}
+					}
+					searchFilenames.cancel = true
+					searchFilenames.mutex.Unlock()
+					pages.RemovePage("popup")
+					return nil
+				}
+
 				// These GoUp/Go.../PageUp/PageDown functions lock/unlock the mutex internally.
 				// Keep this in mind if you want to make these blocks do more than just the Go... function call
 				// since that might require moving the mutex lock/unlock into the if-block instead.
@@ -166,6 +185,7 @@ func main() {
 				AddItem(inputField, 1, 1, true)
 
 			flex.SetBorder(true)
+			//flex.SetMouseCapture(nil)
 
 			pages.AddPage("popup", centered_large(flex, 10), true, true)
 			return nil

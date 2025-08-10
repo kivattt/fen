@@ -67,6 +67,7 @@ type SearchFilenames struct {
 	cancel                   bool
 	finishedLoading          bool
 	lastDrawTime             time.Time
+	firstDraw                bool
 }
 
 func NewSearchFilenames(fen *Fen) *SearchFilenames {
@@ -74,6 +75,7 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 		Box:          tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
 		fen:          fen,
 		lastDrawTime: time.Now(),
+		firstDraw: true, // This is used so we can have a shorter delay on the first draw and longer for later ones
 	}
 
 	s.wg.Add(1)
@@ -121,7 +123,15 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 		s.filenames = append(s.filenames, pathName)
 		s.mutex.Unlock()
 
-		if time.Since(s.lastDrawTime) > time.Duration(s.fen.config.FileEventIntervalMillis)*time.Millisecond {
+		delay := 200 * time.Millisecond
+		if s.firstDraw { // need mutex?
+			// We use a shorter delay for the first draw so the user isn't left waiting 200ms for the first files to show up on-screen.
+			delay = 10 * time.Millisecond
+		}
+
+		if time.Since(s.lastDrawTime) > delay {
+			s.firstDraw = false
+
 			s.fen.app.QueueUpdateDraw(func() {
 				s.mutex.Lock()
 				s.Filter(s.searchTerm)
