@@ -124,12 +124,14 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 		s.mutex.Unlock()
 
 		delay := 200 * time.Millisecond
-		if s.firstDraw { // need mutex?
+		if s.firstDraw { // A mutex is not necessary here.
 			// We use a shorter delay for the first draw so the user isn't left waiting 200ms for the first files to show up on-screen.
 			delay = 10 * time.Millisecond
 		}
 
-		if time.Since(s.lastDrawTime) > delay {
+		// If we've loaded atleast 100 files, don't bother waiting the whole 10 milliseconds for the first draw
+		// TODO: Store the time it took to first draw, and show in some debug info in the UI
+		if time.Since(s.lastDrawTime) > delay || (s.firstDraw && len(s.filenames) >= 100) {
 			s.firstDraw = false
 
 			s.fen.app.QueueUpdateDraw(func() {
