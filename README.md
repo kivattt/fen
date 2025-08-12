@@ -37,7 +37,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 <kbd>q</kbd> Quit fen\
 <kbd>o</kbd> Options\
 <kbd>z</kbd> or <kbd>Backspace</kbd> Toggle hidden files\
-<kbd>Ctrl + Space</kbd> or <kbd>Ctrl + n</kbd> Open file(s) with specific program\
+<kbd>Ctrl + Space</kbd> or <kbd>Ctrl + b</kbd> Open file(s) with specific program\
 <kbd>!</kbd> Run system shell command (cmd on Windows)\
 <kbd>Home</kbd> or <kbd>g</kbd> Go to the top\
 <kbd>End</kbd> or <kbd>G</kbd> Go to the bottom\
@@ -52,6 +52,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 <kbd>d</kbd> Cut file(s)\
 <kbd>p</kbd> Paste file(s)\
 <kbd>/</kbd> or <kbd>Ctrl + f</kbd> Search\
+<kbd>f</kbd> or <kbd>Ctrl + n</kbd> Search filenames recursively\
 <kbd>c</kbd> Goto path\
 <kbd>Space</kbd> Select files\
 <kbd>A</kbd> Flip selection in folder (select all files)\

@@ -1,9 +1,16 @@
-## Source code comments with "PLUGINS:" in them are for things we have to change to make Lua plugins a possibility in the future
+## Source code comments with "LUA PLUGINS:" in them are for things we have to change to make Lua plugins a possibility in the future
 
-## TODOs, vaguely sorted by priority
+## TODOs for the "Search filenames" (f / Ctrl + n) feature
+- Case-insensitive search
+- Pack filename strings into a single string builder, instead of []string to lower memory usage
+- Show approximate memory usage
+- Speed up GatherFiles()
+- Speed up Filter(), atleast by multithreading it
+- Add sorting (See the first comment in `searchfilenames.go`)
+
+## TODOs, (very vaguely) sorted by priority
 
 - Bash-like tab-completion in things, especially "Run bash command" modal
-- Use underscores to separate words in source code filenames
 
 - Scrollable search history
 - Better scrolling (leeway either direction, like every other scrolling system in this universe...)

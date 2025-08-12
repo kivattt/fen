@@ -701,7 +701,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 				fen.GoPath(repositoryPath)
 			}
 			return nil
-		} else if event.Key() == tcell.KeyCtrlSpace || event.Key() == tcell.KeyCtrlN {
+		} else if event.Key() == tcell.KeyCtrlSpace || event.Key() == tcell.KeyCtrlB {
 			inputField := tview.NewInputField().
 				SetLabel(" Open with: ").
 				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
@@ -750,10 +750,10 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 
 			pages.AddPage("popup", centered(flex, inputFieldHeight+2+len(programs)), true, true)
 			return nil
-		} else if event.Rune() == 'f' {
+		} else if event.Key() == tcell.KeyCtrlN || event.Rune() == 'f' {
 			inputField := tview.NewInputField().
 				SetLabel(" Search: ").
-				SetPlaceholder("case-sensitive"). // TODO: Smart-case
+				SetPlaceholder("case-sensitive"). // TODO: Smart-case or atleast case-insensitive
 				SetFieldWidth(-1)                 // Special feature of my tview fork, github.com/kivattt/tview
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)

@@ -33,7 +33,7 @@ var helpScreenControlsList = []control{
 	{KeyBindings: []string{"o"}, Description: "Options"},
 
 	{KeyBindings: []string{"z", "Backspace"}, Description: "Toggle hidden files"},
-	{KeyBindings: []string{"^Space", "^N"}, Description: "Open file(s) with specific program"},
+	{KeyBindings: []string{"^Space", "^B"}, Description: "Open file(s) with specific program"},
 	{KeyBindings: []string{"!"}, Description: "Run system shell command"},
 
 	{KeyBindings: []string{"n"}, Description: "Create a new file"},
@@ -45,6 +45,7 @@ var helpScreenControlsList = []control{
 	{KeyBindings: []string{"b"}, Description: "Bulk-rename files in editor"},
 	{KeyBindings: []string{"Del", "x"}, Description: "Delete file"},
 	{KeyBindings: []string{"/", "^F"}, Description: "Search"},
+	{KeyBindings: []string{"f", "^N"}, Description: "Search filenames recursively"},
 	{KeyBindings: []string{"c"}, Description: "Goto path"},
 
 	{KeyBindings: []string{"Home", "g"}, Description: "Go to the top"},

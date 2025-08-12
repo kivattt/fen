@@ -1003,7 +1003,7 @@ func (fen *Fen) GoIndex(index int) {
 func (fen *Fen) GoPath(path string) (string, error) {
 	// TODO: Add an option to not enter directories
 
-	/* PLUGINS:
+	/* LUA PLUGINS:
 	 * We should fen.UpdatePanes(true) when we can't find the newPath in the current middlePane (for going to path on renaming)
 	 * This would slow down "Goto path" when going to a non-existent path, but would guarantee this function always works predictably
 	 * so that Lua plugins won't have to manually call fen.UpdatePanes(true) before a fen.GoPath() for recently renamed/created/etc. files
