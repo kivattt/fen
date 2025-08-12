@@ -41,6 +41,10 @@ package main
 	~*.go ~*.txt
 */
 
+// TODO: Add sorting based on fen.config.SortBy
+// Make the file-loading thread insert at correct positions with a binary search.
+// That way we avoid re-sorting every 200ms when we re-filter and re-draw the screen
+
 import (
 	"io/fs"
 	"os"
@@ -97,10 +101,30 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 }
 
 func (s *SearchFilenames) GatherFiles(pathInput string) {
+	// I forgot the difference between EvalSymlinks and directly stat-ing the symlink to get its path.
+	// I think EvalSymlinks does so recursively and is slower.
+	// We can afford it to be slow, this is only ran once when you open the search filenames popup.
+	pathSymlinkResolved, err := filepath.EvalSymlinks(pathInput)
+	if err != nil {
+		s.fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+		return
+	}
+
+	// FIXME: Unfortunately, WalkDir doesn't resolve symlink directories. Do you think anyone will notice? :3
+
 	// Unhandled error
-	_ = filepath.WalkDir(pathInput, func(path string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(pathSymlinkResolved, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return filepath.SkipDir
+		}
+
+		// Hide files/folders starting with '.' if hidden files are hidden
+		if !s.fen.config.HiddenFiles && d.Name()[0] == '.' {
+			if d.IsDir() {
+				return filepath.SkipDir
+			} else {
+				return nil
+			}
 		}
 
 		// Hide directories, and "." directory
@@ -109,18 +133,21 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 		}
 
 		s.mutex.Lock()
-		if s.cancel {
-			s.mutex.Unlock()
-			return filepath.SkipAll
-		}
+		{
+			// Are we cancelled?
+			if s.cancel {
+				s.mutex.Unlock()
+				return filepath.SkipAll
+			}
 
-		pathName, err := filepath.Rel(pathInput, path)
-		if err != nil {
-			s.mutex.Unlock()
-			return nil
-		}
+			pathName, err := filepath.Rel(pathSymlinkResolved, path)
+			if err != nil {
+				s.mutex.Unlock()
+				return nil
+			}
 
-		s.filenames = append(s.filenames, pathName)
+			s.filenames = append(s.filenames, pathName)
+		}
 		s.mutex.Unlock()
 
 		delay := 200 * time.Millisecond
@@ -282,7 +309,6 @@ func (s *SearchFilenames) GoTop() {
 func (s *SearchFilenames) GoBottom() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-
 	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices) - 1)
 }
 

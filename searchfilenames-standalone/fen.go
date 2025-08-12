@@ -4,6 +4,7 @@ import "github.com/rivo/tview"
 
 type Config struct {
 	FileEventIntervalMillis int
+	HiddenFiles bool
 }
 
 type BottomBar struct {
@@ -25,7 +26,7 @@ func NewFen(app *tview.Application) *Fen {
 	return &Fen{
 		//wd: "../..",
 		app: app,
-		config: Config{333},
+		config: Config{FileEventIntervalMillis: 333, HiddenFiles: true},
 	}
 }
 
