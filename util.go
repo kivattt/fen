@@ -182,6 +182,7 @@ func FolderFileCount(path string, hiddenFiles bool) (int, error) {
 	return len(files), nil
 }
 
+// FIXME: We can do better than this. Avoid allocating, make the buffer a constant variable.
 func FilePermissionsString(stat os.FileInfo) string {
 	var ret strings.Builder
 
