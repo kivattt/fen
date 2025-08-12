@@ -41,6 +41,10 @@ package main
 	~*.go ~*.txt
 */
 
+// TODO: Add sorting based on fen.config.SortBy
+// Make the file-loading thread insert at correct positions with a binary search.
+// That way we avoid re-sorting every 200ms when we re-filter and re-draw the screen
+
 import (
 	"io/fs"
 	"os"
