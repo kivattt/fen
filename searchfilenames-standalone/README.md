@@ -7,6 +7,10 @@ Since fen has data races elsewhere, I need this to be able to look for data race
 cp ../searchfilenames.go .
 # At this point you also need to manually copy the
 # `event.Rune() == 'f'` if-block from `../inputhandlers.go` into `main.go` if you changed it.
+#
+# These functions are also used from `../util.go`:
+# FindSubstringAllStartIndices() SpreadArrayIntoSlicesForGoroutines()
+# they have been copied into `main.go`.
 
 go build -race
 ./main

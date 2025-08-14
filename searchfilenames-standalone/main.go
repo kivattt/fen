@@ -13,6 +13,54 @@ import (
 
 var missingSpaceRune rune = '…'
 
+type Slice struct {
+	start int
+	length int
+}
+
+func SpreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []Slice {
+	if arrayLength == 0 {
+		return []Slice{}
+	}
+
+	if numGoroutines <= 1 {
+		return []Slice{
+			Slice{0, arrayLength},
+		}
+	}
+
+	// More goroutines than there are elements, use arrayLength goroutines instead.
+	// That is, 1 goroutine per element...
+	if numGoroutines >= arrayLength {
+		var result []Slice
+		for i := 0; i < arrayLength; i++ {
+			result = append(result, Slice{i, 1})
+		}
+		return result
+	}
+
+	var result []Slice
+	lengthPerGoroutine := arrayLength / numGoroutines
+
+	rollingIndex := 0
+	for i := 0; i < numGoroutines - 1; i++ {
+		result = append(result, Slice{
+			start: rollingIndex,
+			length: lengthPerGoroutine,
+		})
+
+		rollingIndex += lengthPerGoroutine
+	}
+
+	// Last goroutine will handle the last part of the array
+	result = append(result, Slice{
+		start: rollingIndex,
+		length: arrayLength - rollingIndex,
+	})
+
+	return result
+}
+
 func FindSubstringAllStartIndices(s, searchText string) []int {
 	if s == "" || searchText == "" {
 		return []int{}
@@ -139,8 +187,6 @@ func main() {
 					searchFilenames.mutex.Lock()
 					if len(searchFilenames.filenamesFilteredIndices) > 0 {
 						selectedFilename := searchFilenames.filenames[searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex]]
-						// Memory-usage optimization:
-						//selectedFilename := string_from_start(&searchFilenames.filenames, searchFilenames.filenamesStartIndices, searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex])
 						if selectedFilename == "" {
 							panic("Empty string selected in search filenames popup")
 						}
