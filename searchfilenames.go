@@ -49,6 +49,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -66,10 +67,6 @@ type SearchFilenames struct {
 	wg                       sync.WaitGroup
 	searchTerm               string
 	filenames                []string
-
-	// Memory-usage optimization:
-	/*filenames                strings.Builder
-	filenamesStartIndices    []int*/
 	filenamesFilteredIndices []int
 
 	filenamesFilteredIndicesUnderlying []int
@@ -105,21 +102,6 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 
 	return &s
 }
-
-// Memory-usage optimization:
-/*func string_from_start(s *strings.Builder, startIndices []int, index int) string {
-	if s.Len() == 0 || len(startIndices) == 0 {
-		return ""
-	}
-
-	start := startIndices[index]
-
-	if index == len(startIndices) - 1 {
-		return s.String()[start:]
-	} else {
-		return s.String()[start:startIndices[index + 1]]
-	}
-}*/
 
 func (s *SearchFilenames) GatherFiles(pathInput string) {
 	// I forgot the difference between EvalSymlinks and directly stat-ing the symlink to get its path.
@@ -168,9 +150,6 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 			}
 
 			s.filenames = append(s.filenames, pathName)
-			// Memory-usage optimization:
-			/*s.filenamesStartIndices = append(s.filenamesStartIndices, s.filenames.Len())
-			s.filenames.WriteString(pathName)*/
 		}
 		s.mutex.Unlock()
 
@@ -183,8 +162,6 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 		// If we've loaded atleast 100 files, don't bother waiting the whole 10 milliseconds for the first draw
 		// TODO: Store the time it took to first draw, and show in some debug info in the UI
 		if time.Since(s.lastDrawTime) > delay || (s.firstDraw && len(s.filenames) >= 100) {
-		// Memory-usage optimization:
-		//if time.Since(s.lastDrawTime) > delay || (s.firstDraw && len(s.filenamesStartIndices) >= 100) {
 			s.firstDraw = false
 
 			s.fen.app.QueueUpdateDraw(func() {
@@ -207,21 +184,41 @@ func (s *SearchFilenames) Filter(text string) {
 	// https://go.dev/wiki/SliceTricks
 	grow := 125000 // 125000 * 4 bytes = 0.5 MB
 	if len(s.filenamesFilteredIndicesUnderlying) < len(s.filenames) {
-	// Memory-usage optimization:
-	//if len(s.filenamesFilteredIndicesUnderlying) < len(s.filenamesStartIndices) {
     	s.filenamesFilteredIndicesUnderlying = append(make([]int, len(s.filenamesFilteredIndicesUnderlying)+grow), s.filenamesFilteredIndicesUnderlying...)
 	}
 
-	j := 0
+	numGoroutines := runtime.NumCPU()
+	arraySlices := SpreadArrayIntoSlicesForGoroutines(len(s.filenames), numGoroutines)
 
-	for i, filename := range s.filenames {
-	// Memory-usage optimization:
-	/*for i, _ := range s.filenamesStartIndices {
-		filename := string_from_start(&s.filenames, s.filenamesStartIndices, i)*/
-		if strings.Contains(filename, text) {
-			s.filenamesFilteredIndicesUnderlying[j] = i
-			j += 1
-		}
+	// FIXME: Prevent allocating on every keypress.
+	// Do something similar to the array grow trick above.
+	// We can do that, because runtime.NumCPU() is constant over the program execution
+	resultsList := make([][]int, len(arraySlices))
+	var wg sync.WaitGroup
+	for goroutineIndex, slice := range arraySlices {
+		wg.Add(1)
+		go func(slice Slice, goroutineIndex int) {
+			var ourList []int
+
+			for i := 0; i < slice.length; i++ {
+				filename := s.filenames[slice.start + i]
+				if strings.Contains(filename, text) {
+					ourList = append(ourList, slice.start + i)
+				}
+			}
+
+			resultsList[goroutineIndex] = ourList
+			wg.Done()
+		}(slice, goroutineIndex)
+	}
+
+	wg.Wait()
+
+	// Merge the search results of all the goroutines
+	j := 0
+	for _, e := range resultsList {
+		copy(s.filenamesFilteredIndicesUnderlying[j:], e[:])
+		j += len(e)
 	}
 
 	s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:j]
@@ -255,8 +252,6 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		}
 
 		filename := s.filenames[e]
-		// Memory-usage optimization:
-		//filename := string_from_start(&s.filenames, s.filenamesStartIndices, e)
 
 		// There is no strings.LastIndexRune() function, probably because it's slow.
 		lastSlash := strings.LastIndexByte(filename, os.PathSeparator)
@@ -303,11 +298,6 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	matchCountStr := strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10)
 	filesTotalCountStr := strconv.FormatInt(int64(len(s.filenames)), 10)
 	tview.Print(screen, matchCountStr + " / " + filesTotalCountStr + " files", x, bottomY, w, tview.AlignLeft, color)
-
-	// Memory-usage optimization:
-	/*filesTotalCountStr := strconv.FormatInt(int64(len(s.filenamesStartIndices)), 10)
-	memUsageStr := strconv.FormatInt(int64(s.filenames.Len()), 10) + " bytes"
-	tview.Print(screen, matchCountStr + " / " + filesTotalCountStr + " files (" + memUsageStr + ")", x, bottomY, w, tview.AlignLeft, color)*/
 
 	var scrollPercentageStr string
 	if len(s.filenamesFilteredIndices) < h {

@@ -359,3 +359,33 @@ func TestFindSubstringAllStartIndices(t *testing.T) {
 		}
 	}
 }
+
+func TestSpreadArrayIntoSlicesForGoroutines(t *testing.T) {
+	type TestCase struct {
+		arrayLength int
+		numGoroutines int
+		expected []Slice
+	}
+
+	tests := []TestCase{
+		{0, 0, []Slice{}},
+		{1, 4, []Slice{{0, 1}}}, // Less goroutines than elements, will use arrayLength goroutines instead.
+		{1, 1, []Slice{{0, 1}}},
+		{2, 2, []Slice{{0, 1}, {1, 1}}},
+		{3, 2, []Slice{{0, 1}, {1, 2}}},
+		{3, 4, []Slice{{0, 1}, {1, 1}, {2, 1}}}, // Less goroutines than elements, will use arrayLength goroutines instead.
+		{100, 2, []Slice{{0, 50}, {50, 50}}},
+		{500, 4, []Slice{{0, 125}, {125, 125}, {250, 125}, {375, 125}}},
+		{501, 4, []Slice{{0, 125}, {125, 125}, {250, 125}, {375, 126}}},
+		{504, 4, []Slice{{0, 126}, {126, 126}, {252, 126}, {378, 126}}},
+		{505, 4, []Slice{{0, 126}, {126, 126}, {252, 126}, {378, 127}}},
+	}
+
+	for _, test := range tests {
+		got := SpreadArrayIntoSlicesForGoroutines(test.arrayLength, test.numGoroutines)
+
+		if !reflect.DeepEqual(got, test.expected) {
+			t.Fatal("Expected", test.expected, "but got:", got)
+		}
+	}
+}
