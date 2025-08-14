@@ -1,5 +1,9 @@
 package main
 
+// TODO: Add sorting based on fen.config.SortBy
+// Make the file-loading thread insert at correct positions with a binary search.
+// That way we avoid re-sorting every 200ms when we re-filter and re-draw the screen
+
 /*
 	+---------------------+
 	| Search format ideas |
@@ -41,10 +45,6 @@ package main
 	~*.go ~*.txt
 */
 
-// TODO: Add sorting based on fen.config.SortBy
-// Make the file-loading thread insert at correct positions with a binary search.
-// That way we avoid re-sorting every 200ms when we re-filter and re-draw the screen
-
 import (
 	"io/fs"
 	"os"
@@ -66,7 +66,13 @@ type SearchFilenames struct {
 	wg                       sync.WaitGroup
 	searchTerm               string
 	filenames                []string
+
+	// Memory-usage optimization:
+	/*filenames                strings.Builder
+	filenamesStartIndices    []int*/
 	filenamesFilteredIndices []int
+
+	filenamesFilteredIndicesUnderlying []int
 	selectedFilenameIndex int
 	cancel                   bool
 	finishedLoading          bool
@@ -99,6 +105,21 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 
 	return &s
 }
+
+// Memory-usage optimization:
+/*func string_from_start(s *strings.Builder, startIndices []int, index int) string {
+	if s.Len() == 0 || len(startIndices) == 0 {
+		return ""
+	}
+
+	start := startIndices[index]
+
+	if index == len(startIndices) - 1 {
+		return s.String()[start:]
+	} else {
+		return s.String()[start:startIndices[index + 1]]
+	}
+}*/
 
 func (s *SearchFilenames) GatherFiles(pathInput string) {
 	// I forgot the difference between EvalSymlinks and directly stat-ing the symlink to get its path.
@@ -147,6 +168,9 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 			}
 
 			s.filenames = append(s.filenames, pathName)
+			// Memory-usage optimization:
+			/*s.filenamesStartIndices = append(s.filenamesStartIndices, s.filenames.Len())
+			s.filenames.WriteString(pathName)*/
 		}
 		s.mutex.Unlock()
 
@@ -159,6 +183,8 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 		// If we've loaded atleast 100 files, don't bother waiting the whole 10 milliseconds for the first draw
 		// TODO: Store the time it took to first draw, and show in some debug info in the UI
 		if time.Since(s.lastDrawTime) > delay || (s.firstDraw && len(s.filenames) >= 100) {
+		// Memory-usage optimization:
+		//if time.Since(s.lastDrawTime) > delay || (s.firstDraw && len(s.filenamesStartIndices) >= 100) {
 			s.firstDraw = false
 
 			s.fen.app.QueueUpdateDraw(func() {
@@ -177,18 +203,28 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 
 // You need to manually lock / unlock the mutex to use this function
 func (s *SearchFilenames) Filter(text string) {
-	// PERF: Only allocate once, instead of every key-press...
-	s.filenamesFilteredIndices = make([]int, len(s.filenames))
+	// Let's grow the filenamesFilteredIndices by 0.5 MB whenever we need to.
+	// https://go.dev/wiki/SliceTricks
+	grow := 125000 // 125000 * 4 bytes = 0.5 MB
+	if len(s.filenamesFilteredIndicesUnderlying) < len(s.filenames) {
+	// Memory-usage optimization:
+	//if len(s.filenamesFilteredIndicesUnderlying) < len(s.filenamesStartIndices) {
+    	s.filenamesFilteredIndicesUnderlying = append(make([]int, len(s.filenamesFilteredIndicesUnderlying)+grow), s.filenamesFilteredIndicesUnderlying...)
+	}
+
 	j := 0
 
-	for i, e := range s.filenames {
-		if strings.Contains(e, text) {
-			s.filenamesFilteredIndices[j] = i
+	for i, filename := range s.filenames {
+	// Memory-usage optimization:
+	/*for i, _ := range s.filenamesStartIndices {
+		filename := string_from_start(&s.filenames, s.filenamesStartIndices, i)*/
+		if strings.Contains(filename, text) {
+			s.filenamesFilteredIndicesUnderlying[j] = i
 			j += 1
 		}
 	}
 
-	s.filenamesFilteredIndices = s.filenamesFilteredIndices[:j]
+	s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:j]
 	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices) - 1)
 }
 
@@ -219,6 +255,8 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		}
 
 		filename := s.filenames[e]
+		// Memory-usage optimization:
+		//filename := string_from_start(&s.filenames, s.filenamesStartIndices, e)
 
 		// There is no strings.LastIndexRune() function, probably because it's slow.
 		lastSlash := strings.LastIndexByte(filename, os.PathSeparator)
@@ -265,6 +303,11 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	matchCountStr := strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10)
 	filesTotalCountStr := strconv.FormatInt(int64(len(s.filenames)), 10)
 	tview.Print(screen, matchCountStr + " / " + filesTotalCountStr + " files", x, bottomY, w, tview.AlignLeft, color)
+
+	// Memory-usage optimization:
+	/*filesTotalCountStr := strconv.FormatInt(int64(len(s.filenamesStartIndices)), 10)
+	memUsageStr := strconv.FormatInt(int64(s.filenames.Len()), 10) + " bytes"
+	tview.Print(screen, matchCountStr + " / " + filesTotalCountStr + " files (" + memUsageStr + ")", x, bottomY, w, tview.AlignLeft, color)*/
 
 	var scrollPercentageStr string
 	if len(s.filenamesFilteredIndices) < h {

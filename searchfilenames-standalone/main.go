@@ -105,7 +105,7 @@ func main() {
 		} else if event.Rune() == 'f' {
 			inputField := tview.NewInputField().
 				SetLabel(" Search: ").
-				SetPlaceholder("case-sensitive"). // TODO: Smart-case
+				SetPlaceholder("case-sensitive"). // TODO: Smart-case or atleast case-insensitive
 				SetFieldWidth(-1)                 // Special feature of my tview fork, github.com/kivattt/tview
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
@@ -139,6 +139,8 @@ func main() {
 					searchFilenames.mutex.Lock()
 					if len(searchFilenames.filenamesFilteredIndices) > 0 {
 						selectedFilename := searchFilenames.filenames[searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex]]
+						// Memory-usage optimization:
+						//selectedFilename := string_from_start(&searchFilenames.filenames, searchFilenames.filenamesStartIndices, searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex])
 						if selectedFilename == "" {
 							panic("Empty string selected in search filenames popup")
 						}
