@@ -761,7 +761,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			inputField.SetFieldTextColor(tcell.ColorBlack)
 			inputField.SetBackgroundColor(tcell.ColorDefault)
 
-			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
 
 			searchFilenames := NewSearchFilenames(fen)
@@ -819,10 +819,10 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 				} else if event.Key() == tcell.KeyPgDn {
 					searchFilenames.PageDown()
 					return nil
-				} else if event.Modifiers() & tcell.ModCtrl != 0 && event.Key() == tcell.KeyHome {
+				} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyHome {
 					searchFilenames.GoTop()
 					return nil
-				} else if event.Modifiers() & tcell.ModCtrl != 0 && event.Key() == tcell.KeyEnd {
+				} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyEnd {
 					searchFilenames.GoBottom()
 					return nil
 				}

@@ -328,9 +328,9 @@ func TestExpandTildeTestable(t *testing.T) {
 
 func TestFindSubstringAllStartIndices(t *testing.T) {
 	type TestCase struct {
-		text string
+		text       string
 		searchText string
-		expected []int
+		expected   []int
 	}
 
 	tests := []TestCase{
@@ -339,7 +339,7 @@ func TestFindSubstringAllStartIndices(t *testing.T) {
 		{"file", "file", []int{0}},
 		{"file.go", "file", []int{0}},
 		{"file.go", ".go", []int{4}},
-		{"file.go.go", ".go", []int{4,7}},
+		{"file.go.go", ".go", []int{4, 7}},
 		{"aa", "a", []int{0, 1}},
 		{"aa aa", "aa", []int{0, 3}},
 		{"hooks/hooks", "hoo", []int{0, 6}},
@@ -362,9 +362,9 @@ func TestFindSubstringAllStartIndices(t *testing.T) {
 
 func TestSpreadArrayIntoSlicesForGoroutines(t *testing.T) {
 	type TestCase struct {
-		arrayLength int
+		arrayLength   int
 		numGoroutines int
-		expected []Slice
+		expected      []Slice
 	}
 
 	tests := []TestCase{

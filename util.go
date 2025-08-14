@@ -1265,7 +1265,7 @@ func FindSubstringAllStartIndices(s, searchText string) []int {
 }
 
 type Slice struct {
-	start int
+	start  int
 	length int
 }
 
@@ -1276,7 +1276,7 @@ func SpreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []Slice 
 
 	if numGoroutines <= 1 {
 		return []Slice{
-			Slice{0, arrayLength},
+			{0, arrayLength},
 		}
 	}
 
@@ -1294,9 +1294,9 @@ func SpreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []Slice 
 	lengthPerGoroutine := arrayLength / numGoroutines
 
 	rollingIndex := 0
-	for i := 0; i < numGoroutines - 1; i++ {
+	for i := 0; i < numGoroutines-1; i++ {
 		result = append(result, Slice{
-			start: rollingIndex,
+			start:  rollingIndex,
 			length: lengthPerGoroutine,
 		})
 
@@ -1305,7 +1305,7 @@ func SpreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []Slice 
 
 	// Last goroutine will handle the last part of the array
 	result = append(result, Slice{
-		start: rollingIndex,
+		start:  rollingIndex,
 		length: arrayLength - rollingIndex,
 	})
 

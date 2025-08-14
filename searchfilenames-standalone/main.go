@@ -14,7 +14,7 @@ import (
 var missingSpaceRune rune = '…'
 
 type Slice struct {
-	start int
+	start  int
 	length int
 }
 
@@ -25,7 +25,7 @@ func SpreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []Slice 
 
 	if numGoroutines <= 1 {
 		return []Slice{
-			Slice{0, arrayLength},
+			{0, arrayLength},
 		}
 	}
 
@@ -43,9 +43,9 @@ func SpreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []Slice 
 	lengthPerGoroutine := arrayLength / numGoroutines
 
 	rollingIndex := 0
-	for i := 0; i < numGoroutines - 1; i++ {
+	for i := 0; i < numGoroutines-1; i++ {
 		result = append(result, Slice{
-			start: rollingIndex,
+			start:  rollingIndex,
 			length: lengthPerGoroutine,
 		})
 
@@ -54,7 +54,7 @@ func SpreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []Slice 
 
 	// Last goroutine will handle the last part of the array
 	result = append(result, Slice{
-		start: rollingIndex,
+		start:  rollingIndex,
 		length: arrayLength - rollingIndex,
 	})
 
@@ -122,7 +122,6 @@ func main() {
 	appFlex := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(tview.NewTextView().SetText("press 'f'"), 1, 0, false)
 
-
 	fen := NewFen(app)
 	fen.wd = folderToSearch
 
@@ -161,7 +160,7 @@ func main() {
 			inputField.SetFieldTextColor(tcell.ColorBlack)
 			inputField.SetBackgroundColor(tcell.ColorDefault)
 
-			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0))                    // Green
+			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
 			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
 
 			searchFilenames := NewSearchFilenames(fen)
@@ -217,10 +216,10 @@ func main() {
 				} else if event.Key() == tcell.KeyPgDn {
 					searchFilenames.PageDown()
 					return nil
-				} else if event.Modifiers() & tcell.ModCtrl != 0 && event.Key() == tcell.KeyHome {
+				} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyHome {
 					searchFilenames.GoTop()
 					return nil
-				} else if event.Modifiers() & tcell.ModCtrl != 0 && event.Key() == tcell.KeyEnd {
+				} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyEnd {
 					searchFilenames.GoBottom()
 					return nil
 				}

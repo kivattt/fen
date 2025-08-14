@@ -70,11 +70,11 @@ type SearchFilenames struct {
 	filenamesFilteredIndices []int
 
 	filenamesFilteredIndicesUnderlying []int
-	selectedFilenameIndex int
-	cancel                   bool
-	finishedLoading          bool
-	lastDrawTime             time.Time
-	firstDraw                bool
+	selectedFilenameIndex              int
+	cancel                             bool
+	finishedLoading                    bool
+	lastDrawTime                       time.Time
+	firstDraw                          bool
 }
 
 func NewSearchFilenames(fen *Fen) *SearchFilenames {
@@ -82,7 +82,7 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 		Box:          tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
 		fen:          fen,
 		lastDrawTime: time.Now(),
-		firstDraw: true, // This is used so we can have a shorter delay on the first draw and longer for later ones
+		firstDraw:    true, // This is used so we can have a shorter delay on the first draw and longer for later ones
 	}
 
 	s.wg.Add(1)
@@ -184,7 +184,7 @@ func (s *SearchFilenames) Filter(text string) {
 	// https://go.dev/wiki/SliceTricks
 	grow := 125000 // 125000 * 4 bytes = 0.5 MB
 	if len(s.filenamesFilteredIndicesUnderlying) < len(s.filenames) {
-    	s.filenamesFilteredIndicesUnderlying = append(make([]int, len(s.filenamesFilteredIndicesUnderlying)+grow), s.filenamesFilteredIndicesUnderlying...)
+		s.filenamesFilteredIndicesUnderlying = append(make([]int, len(s.filenamesFilteredIndicesUnderlying)+grow), s.filenamesFilteredIndicesUnderlying...)
 	}
 
 	numGoroutines := runtime.NumCPU()
@@ -201,9 +201,9 @@ func (s *SearchFilenames) Filter(text string) {
 			var ourList []int
 
 			for i := 0; i < slice.length; i++ {
-				filename := s.filenames[slice.start + i]
+				filename := s.filenames[slice.start+i]
 				if strings.Contains(filename, text) {
-					ourList = append(ourList, slice.start + i)
+					ourList = append(ourList, slice.start+i)
 				}
 			}
 
@@ -222,7 +222,7 @@ func (s *SearchFilenames) Filter(text string) {
 	}
 
 	s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:j]
-	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices) - 1)
+	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices)-1)
 }
 
 func (s *SearchFilenames) Draw(screen tcell.Screen) {
@@ -237,8 +237,8 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	w -= 2
 	h -= 1
 
-	scrollOffset := max(0, min(len(s.filenamesFilteredIndices) - h + 1, s.selectedFilenameIndex - h/2))
-	startY := y + max(0, h - len(s.filenamesFilteredIndices) - 1)
+	scrollOffset := max(0, min(len(s.filenamesFilteredIndices)-h+1, s.selectedFilenameIndex-h/2))
+	startY := y + max(0, h-len(s.filenamesFilteredIndices)-1)
 
 	/*debugString := fmt.Sprint("scrollOffset: ", scrollOffset, " startY: ", startY, " selected: ", s.selectedFilenameIndex)
 	if s.selectedFilenameIndex > 0 {
@@ -259,7 +259,7 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm)
 
 		style := tcell.StyleDefault
-		if i == s.selectedFilenameIndex - scrollOffset {
+		if i == s.selectedFilenameIndex-scrollOffset {
 			style = style.Reverse(true)
 		}
 
@@ -277,7 +277,7 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 			}
 
 			for _, matchIndex := range matchIndices {
-				if j >= matchIndex && j < matchIndex + len(s.searchTerm) {
+				if j >= matchIndex && j < matchIndex+len(s.searchTerm) {
 					color = tcell.ColorOrange
 					break
 				}
@@ -297,7 +297,7 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	}
 	matchCountStr := strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10)
 	filesTotalCountStr := strconv.FormatInt(int64(len(s.filenames)), 10)
-	tview.Print(screen, matchCountStr + " / " + filesTotalCountStr + " files", x, bottomY, w, tview.AlignLeft, color)
+	tview.Print(screen, matchCountStr+" / "+filesTotalCountStr+" files", x, bottomY, w, tview.AlignLeft, color)
 
 	var scrollPercentageStr string
 	if len(s.filenamesFilteredIndices) < h {
@@ -305,10 +305,10 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	} else {
 		if s.selectedFilenameIndex == 0 { // Prevent divide-by-zero
 			scrollPercentageStr = "Top"
-		} else if s.selectedFilenameIndex == len(s.filenamesFilteredIndices) - 1 {
+		} else if s.selectedFilenameIndex == len(s.filenamesFilteredIndices)-1 {
 			scrollPercentageStr = "Bot"
 		} else {
-			scrollPercentageStr = strconv.FormatInt(int64(float32(s.selectedFilenameIndex) / float32(len(s.filenamesFilteredIndices) - 1) * 100), 10) + "%"
+			scrollPercentageStr = strconv.FormatInt(int64(float32(s.selectedFilenameIndex)/float32(len(s.filenamesFilteredIndices)-1)*100), 10) + "%"
 		}
 	}
 	tview.Print(screen, scrollPercentageStr, x, bottomY, w, tview.AlignRight, tcell.ColorDefault)
@@ -327,7 +327,7 @@ func (s *SearchFilenames) GoDown() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if s.selectedFilenameIndex < len(s.filenamesFilteredIndices) - 1 {
+	if s.selectedFilenameIndex < len(s.filenamesFilteredIndices)-1 {
 		s.selectedFilenameIndex += 1
 	}
 }
@@ -342,7 +342,7 @@ func (s *SearchFilenames) GoTop() {
 func (s *SearchFilenames) GoBottom() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices) - 1)
+	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices)-1)
 }
 
 func (s *SearchFilenames) PageUp() {
@@ -351,7 +351,7 @@ func (s *SearchFilenames) PageUp() {
 
 	_, _, _, height := s.Box.GetInnerRect()
 	height = max(5, height-10) // Padding
-	s.selectedFilenameIndex = max(0, s.selectedFilenameIndex - height)
+	s.selectedFilenameIndex = max(0, s.selectedFilenameIndex-height)
 }
 
 func (s *SearchFilenames) PageDown() {
@@ -360,5 +360,5 @@ func (s *SearchFilenames) PageDown() {
 
 	_, _, _, height := s.Box.GetInnerRect()
 	height = max(5, height-10) // Padding
-	s.selectedFilenameIndex = max(0, min(len(s.filenamesFilteredIndices) - 1, s.selectedFilenameIndex + height))
+	s.selectedFilenameIndex = max(0, min(len(s.filenamesFilteredIndices)-1, s.selectedFilenameIndex+height))
 }

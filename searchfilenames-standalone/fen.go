@@ -4,11 +4,12 @@ import "github.com/rivo/tview"
 
 type Config struct {
 	FileEventIntervalMillis int
-	HiddenFiles bool
+	HiddenFiles             bool
 }
 
 type BottomBar struct {
 }
+
 func (bottomBar *BottomBar) TemporarilyShowTextInstead(text string) {
 	return
 }
@@ -16,16 +17,16 @@ func (bottomBar *BottomBar) TemporarilyShowTextInstead(text string) {
 type Fen struct {
 	config Config
 
-	wd string
-	app *tview.Application
+	wd                      string
+	app                     *tview.Application
 	FileEventIntervalMillis int
-	bottomBar BottomBar
+	bottomBar               BottomBar
 }
 
 func NewFen(app *tview.Application) *Fen {
 	return &Fen{
 		//wd: "../..",
-		app: app,
+		app:    app,
 		config: Config{FileEventIntervalMillis: 333, HiddenFiles: true},
 	}
 }
