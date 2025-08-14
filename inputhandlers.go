@@ -787,6 +787,8 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 					searchFilenames.mutex.Lock()
 					if len(searchFilenames.filenamesFilteredIndices) > 0 {
 						selectedFilename := searchFilenames.filenames[searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex]]
+						// Memory-usage optimization:
+						//selectedFilename := string_from_start(&searchFilenames.filenames, searchFilenames.filenamesStartIndices, searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex])
 						if selectedFilename == "" {
 							panic("Empty string selected in search filenames popup")
 						}
