@@ -215,13 +215,13 @@ func (s *SearchFilenames) Filter(text string) {
 	wg.Wait()
 
 	// Merge the search results of all the goroutines
-	j := 0
+	i := 0
 	for _, e := range resultsList {
-		copy(s.filenamesFilteredIndicesUnderlying[j:], e[:])
-		j += len(e)
+		copy(s.filenamesFilteredIndicesUnderlying[i:], e[:])
+		i += len(e)
 	}
 
-	s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:j]
+	s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:i]
 	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices)-1)
 }
 
