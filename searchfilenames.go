@@ -107,16 +107,22 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 	// I forgot the difference between EvalSymlinks and directly stat-ing the symlink to get its path.
 	// I think EvalSymlinks does so recursively and is slower.
 	// We can afford it to be slow, this is only ran once when you open the search filenames popup.
-	pathSymlinkResolved, err := filepath.EvalSymlinks(pathInput)
+	basePathSymlinkResolved, err := filepath.EvalSymlinks(pathInput)
 	if err != nil {
 		s.fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 		return
 	}
 
+	basePathLength := len(basePathSymlinkResolved)
+	// TODO: Make sure this works correctly on Windows
+	if basePathSymlinkResolved != "/" {
+		basePathLength += 1
+	}
+
 	// FIXME: Unfortunately, WalkDir doesn't resolve symlink directories. Do you think anyone will notice? :3
 
 	// Unhandled error
-	_ = filepath.WalkDir(pathSymlinkResolved, func(path string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(basePathSymlinkResolved, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return filepath.SkipDir
 		}
@@ -143,12 +149,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 				return filepath.SkipAll
 			}
 
-			pathName, err := filepath.Rel(pathSymlinkResolved, path)
-			if err != nil {
-				s.mutex.Unlock()
-				return nil
-			}
-
+			pathName := path[basePathLength:]
 			s.filenames = append(s.filenames, pathName)
 		}
 		s.mutex.Unlock()
