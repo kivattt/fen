@@ -181,10 +181,11 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 
 // You need to manually lock / unlock the mutex to use this function
 func (s *SearchFilenames) Filter(text string) {
-	// Let's grow the filenamesFilteredIndices by 0.5 MB whenever we need to.
+	// Let's grow the filenamesFilteredIndices by atleast 0.5 MB whenever we need to.
 	// https://go.dev/wiki/SliceTricks
-	grow := 125000 // 125000 * 4 bytes = 0.5 MB
 	if len(s.filenamesFilteredIndicesUnderlying) < len(s.filenames) {
+		// 125000 * 4 bytes = 0.5MB
+		grow := max(125000, len(s.filenames) - len(s.filenamesFilteredIndicesUnderlying))
 		s.filenamesFilteredIndicesUnderlying = append(make([]int, len(s.filenamesFilteredIndicesUnderlying)+grow), s.filenamesFilteredIndicesUnderlying...)
 	}
 
@@ -199,7 +200,7 @@ func (s *SearchFilenames) Filter(text string) {
 	for goroutineIndex, slice := range arraySlices {
 		wg.Add(1)
 		go func(slice Slice, goroutineIndex int) {
-			var ourList []int
+			ourList := make([]int, 0, slice.length)
 
 			for i := 0; i < slice.length; i++ {
 				filename := s.filenames[slice.start+i]
