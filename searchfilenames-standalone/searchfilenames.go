@@ -107,16 +107,22 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 	// I forgot the difference between EvalSymlinks and directly stat-ing the symlink to get its path.
 	// I think EvalSymlinks does so recursively and is slower.
 	// We can afford it to be slow, this is only ran once when you open the search filenames popup.
-	pathSymlinkResolved, err := filepath.EvalSymlinks(pathInput)
+	basePathSymlinkResolved, err := filepath.EvalSymlinks(pathInput)
 	if err != nil {
 		s.fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 		return
 	}
 
+	basePathLength := len(basePathSymlinkResolved)
+	// TODO: Make sure this works correctly on Windows
+	if basePathSymlinkResolved != "/" {
+		basePathLength += 1
+	}
+
 	// FIXME: Unfortunately, WalkDir doesn't resolve symlink directories. Do you think anyone will notice? :3
 
 	// Unhandled error
-	_ = filepath.WalkDir(pathSymlinkResolved, func(path string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(basePathSymlinkResolved, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return filepath.SkipDir
 		}
@@ -143,12 +149,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 				return filepath.SkipAll
 			}
 
-			pathName, err := filepath.Rel(pathSymlinkResolved, path)
-			if err != nil {
-				s.mutex.Unlock()
-				return nil
-			}
-
+			pathName := path[basePathLength:]
 			s.filenames = append(s.filenames, pathName)
 		}
 		s.mutex.Unlock()
@@ -180,10 +181,18 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 
 // You need to manually lock / unlock the mutex to use this function
 func (s *SearchFilenames) Filter(text string) {
-	// Let's grow the filenamesFilteredIndices by 0.5 MB whenever we need to.
+	s.searchTerm = text
+
+	if text == "" {
+		s.selectedFilenameIndex = max(0, len(s.filenames)-1)
+		return
+	}
+
+	// Let's grow the filenamesFilteredIndices by atleast 0.5 MB whenever we need to.
 	// https://go.dev/wiki/SliceTricks
-	grow := 125000 // 125000 * 4 bytes = 0.5 MB
 	if len(s.filenamesFilteredIndicesUnderlying) < len(s.filenames) {
+		// 125000 * 4 bytes = 0.5MB
+		grow := max(125000, len(s.filenames)-len(s.filenamesFilteredIndicesUnderlying))
 		s.filenamesFilteredIndicesUnderlying = append(make([]int, len(s.filenamesFilteredIndicesUnderlying)+grow), s.filenamesFilteredIndicesUnderlying...)
 	}
 
@@ -198,13 +207,14 @@ func (s *SearchFilenames) Filter(text string) {
 	for goroutineIndex, slice := range arraySlices {
 		wg.Add(1)
 		go func(slice Slice, goroutineIndex int) {
-			var ourList []int
+			ourList := make([]int, 0, slice.length)
 
-			for i := 0; i < slice.length; i++ {
-				filename := s.filenames[slice.start+i]
+			for i := slice.start; i < slice.start + slice.length; i++ {
+				filename := s.filenames[i]
 				if strings.Contains(filename, text) {
-					ourList = append(ourList, slice.start+i)
+					ourList = append(ourList, i)
 				}
+				//time.Sleep(50 * time.Nanosecond)
 			}
 
 			resultsList[goroutineIndex] = ourList
@@ -215,13 +225,13 @@ func (s *SearchFilenames) Filter(text string) {
 	wg.Wait()
 
 	// Merge the search results of all the goroutines
-	j := 0
+	i := 0
 	for _, e := range resultsList {
-		copy(s.filenamesFilteredIndicesUnderlying[j:], e[:])
-		j += len(e)
+		copy(s.filenamesFilteredIndicesUnderlying[i:], e[:])
+		i += len(e)
 	}
 
-	s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:j]
+	s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:i]
 	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices)-1)
 }
 
@@ -237,34 +247,24 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	w -= 2
 	h -= 1
 
-	scrollOffset := max(0, min(len(s.filenamesFilteredIndices)-h+1, s.selectedFilenameIndex-h/2))
-	startY := y + max(0, h-len(s.filenamesFilteredIndices)-1)
-
-	/*debugString := fmt.Sprint("scrollOffset: ", scrollOffset, " startY: ", startY, " selected: ", s.selectedFilenameIndex)
-	if s.selectedFilenameIndex > 0 {
-		debugString += " " + s.filenames[s.filenamesFilteredIndices[s.selectedFilenameIndex]]
+	filenamesLen := len(s.filenamesFilteredIndices)
+	if s.searchTerm == "" {
+		filenamesLen = len(s.filenames)
 	}
-	s.fen.bottomBar.TemporarilyShowTextInstead(debugString)*/
 
-	for i, e := range s.filenamesFilteredIndices[scrollOffset:] {
-		if i >= h-1 {
-			break
-		}
+	scrollOffset := max(0, min(filenamesLen-h+1, s.selectedFilenameIndex-h/2))
+	startY := y + max(0, h-filenamesLen-1)
 
-		filename := s.filenames[e]
-
-		// There is no strings.LastIndexRune() function, probably because it's slow.
-		lastSlash := strings.LastIndexByte(filename, os.PathSeparator)
-
-		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm)
-
+	drawFilename := func(i int, filename string) {
 		style := tcell.StyleDefault
 		if i == s.selectedFilenameIndex-scrollOffset {
 			style = style.Reverse(true)
 		}
+		// There is no strings.LastIndexRune() function, probably because it's slow.
+		lastSlash := strings.LastIndexByte(filename, os.PathSeparator)
+		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm)
 
 		yPos := startY + i
-
 		for j, c := range filename {
 			if j >= w-1 {
 				screen.SetCell(x+j, yPos, style, missingSpaceRune)
@@ -287,28 +287,44 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		}
 	}
 
+	if s.searchTerm == "" {
+		for i, filename := range s.filenames[scrollOffset:] {
+			if i >= h-1 {
+				break
+			}
+			drawFilename(i, filename)
+		}
+	} else {
+		for i, e := range s.filenamesFilteredIndices[scrollOffset:] {
+			if i >= h-1 {
+				break
+			}
+			filename := s.filenames[e]
+			drawFilename(i, filename)
+		}
+	}
+
 	bottomY := y + h
-
 	green := tcell.NewRGBColor(0, 255, 0)
-
 	color := tcell.ColorYellow
 	if s.finishedLoading {
 		color = green
 	}
-	matchCountStr := strconv.FormatInt(int64(len(s.filenamesFilteredIndices)), 10)
+
+	matchCountStr := strconv.FormatInt(int64(filenamesLen), 10)
 	filesTotalCountStr := strconv.FormatInt(int64(len(s.filenames)), 10)
 	tview.Print(screen, matchCountStr+" / "+filesTotalCountStr+" files", x, bottomY, w, tview.AlignLeft, color)
 
 	var scrollPercentageStr string
-	if len(s.filenamesFilteredIndices) < h {
+	if filenamesLen < h {
 		scrollPercentageStr = "All"
 	} else {
 		if s.selectedFilenameIndex == 0 { // Prevent divide-by-zero
 			scrollPercentageStr = "Top"
-		} else if s.selectedFilenameIndex == len(s.filenamesFilteredIndices)-1 {
+		} else if s.selectedFilenameIndex == filenamesLen-1 {
 			scrollPercentageStr = "Bot"
 		} else {
-			scrollPercentageStr = strconv.FormatInt(int64(float32(s.selectedFilenameIndex)/float32(len(s.filenamesFilteredIndices)-1)*100), 10) + "%"
+			scrollPercentageStr = strconv.FormatInt(int64(float32(s.selectedFilenameIndex)/float32(filenamesLen-1)*100), 10) + "%"
 		}
 	}
 	tview.Print(screen, scrollPercentageStr, x, bottomY, w, tview.AlignRight, tcell.ColorDefault)
@@ -327,7 +343,12 @@ func (s *SearchFilenames) GoDown() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if s.selectedFilenameIndex < len(s.filenamesFilteredIndices)-1 {
+	filenamesLen := len(s.filenamesFilteredIndices)
+	if s.searchTerm == "" {
+		filenamesLen = len(s.filenames)
+	}
+
+	if s.selectedFilenameIndex < filenamesLen-1 {
 		s.selectedFilenameIndex += 1
 	}
 }
@@ -342,7 +363,13 @@ func (s *SearchFilenames) GoTop() {
 func (s *SearchFilenames) GoBottom() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices)-1)
+
+	filenamesLen := len(s.filenamesFilteredIndices)
+	if s.searchTerm == "" {
+		filenamesLen = len(s.filenames)
+	}
+
+	s.selectedFilenameIndex = max(0, filenamesLen-1)
 }
 
 func (s *SearchFilenames) PageUp() {
@@ -358,7 +385,12 @@ func (s *SearchFilenames) PageDown() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
+	filenamesLen := len(s.filenamesFilteredIndices)
+	if s.searchTerm == "" {
+		filenamesLen = len(s.filenames)
+	}
+
 	_, _, _, height := s.Box.GetInnerRect()
 	height = max(5, height-10) // Padding
-	s.selectedFilenameIndex = max(0, min(len(s.filenamesFilteredIndices)-1, s.selectedFilenameIndex+height))
+	s.selectedFilenameIndex = max(0, min(filenamesLen-1, s.selectedFilenameIndex+height))
 }
