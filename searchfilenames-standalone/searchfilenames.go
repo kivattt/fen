@@ -66,6 +66,7 @@ type SearchFilenames struct {
 	mutex                    sync.Mutex
 	wg                       sync.WaitGroup
 	searchTerm               string
+	lastSearchTerm           string
 	filenames                []string
 	filenamesFilteredIndices []int
 
@@ -75,6 +76,7 @@ type SearchFilenames struct {
 	finishedLoading                    bool
 	lastDrawTime                       time.Time
 	firstDraw                          bool
+	selectLastOnNextDraw               bool
 }
 
 func NewSearchFilenames(fen *Fen) *SearchFilenames {
@@ -181,57 +183,92 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 
 // You need to manually lock / unlock the mutex to use this function
 func (s *SearchFilenames) Filter(text string) {
+	s.lastSearchTerm = s.searchTerm
 	s.searchTerm = text
 
-	if text == "" {
+	if s.searchTerm == "" {
 		s.selectedFilenameIndex = max(0, len(s.filenames)-1)
 		return
 	}
 
-	// Let's grow the filenamesFilteredIndices by atleast 0.5 MB whenever we need to.
-	// https://go.dev/wiki/SliceTricks
-	if len(s.filenamesFilteredIndicesUnderlying) < len(s.filenames) {
-		// 125000 * 4 bytes = 0.5MB
-		grow := max(125000, len(s.filenames)-len(s.filenamesFilteredIndicesUnderlying))
-		s.filenamesFilteredIndicesUnderlying = append(make([]int, len(s.filenamesFilteredIndicesUnderlying)+grow), s.filenamesFilteredIndicesUnderlying...)
-	}
+	// On successive characters after the first, we only need to filter s.filenamesFilteredIndices
+	if s.finishedLoading && len(s.lastSearchTerm) > 0 && (s.searchTerm != s.lastSearchTerm) && strings.HasPrefix(s.searchTerm, s.lastSearchTerm) {
+		numGoroutines := runtime.NumCPU()
+		arraySlices := SpreadArrayIntoSlicesForGoroutines(len(s.filenamesFilteredIndices), numGoroutines)
 
-	numGoroutines := runtime.NumCPU()
-	arraySlices := SpreadArrayIntoSlicesForGoroutines(len(s.filenames), numGoroutines)
+		resultsList := make([][]int, len(arraySlices))
+		var wg sync.WaitGroup
+		for goroutineIndex, slice := range arraySlices {
+			wg.Add(1)
+			go func(slice Slice, goroutineIndex int) {
+				ourList := make([]int, 0, slice.length)
 
-	// FIXME: Prevent allocating on every keypress.
-	// Do something similar to the array grow trick above.
-	// We can do that, because runtime.NumCPU() is constant over the program execution
-	resultsList := make([][]int, len(arraySlices))
-	var wg sync.WaitGroup
-	for goroutineIndex, slice := range arraySlices {
-		wg.Add(1)
-		go func(slice Slice, goroutineIndex int) {
-			ourList := make([]int, 0, slice.length)
-
-			for i := slice.start; i < slice.start + slice.length; i++ {
-				filename := s.filenames[i]
-				if strings.Contains(filename, text) {
-					ourList = append(ourList, i)
+				for i := slice.start; i < slice.start+slice.length; i++ {
+					filenameIndex := s.filenamesFilteredIndices[i]
+					filename := s.filenames[filenameIndex]
+					if strings.Contains(filename, s.searchTerm) {
+						ourList = append(ourList, filenameIndex)
+					}
 				}
-				//time.Sleep(50 * time.Nanosecond)
-			}
 
-			resultsList[goroutineIndex] = ourList
-			wg.Done()
-		}(slice, goroutineIndex)
+				resultsList[goroutineIndex] = ourList
+				wg.Done()
+			}(slice, goroutineIndex)
+		}
+
+		wg.Wait()
+
+		// Merge the search results of all the goroutines
+		s.filenamesFilteredIndices = []int{}
+		for _, e := range resultsList {
+			s.filenamesFilteredIndices = append(s.filenamesFilteredIndices, e...)
+		}
+	} else {
+		// Let's grow the filenamesFilteredIndices by atleast 0.5 MB whenever we need to.
+		// https://go.dev/wiki/SliceTricks
+		if len(s.filenamesFilteredIndicesUnderlying) < len(s.filenames) {
+			// 125000 * 4 bytes = 0.5MB
+			grow := max(125000, len(s.filenames)-len(s.filenamesFilteredIndicesUnderlying))
+			s.filenamesFilteredIndicesUnderlying = append(make([]int, len(s.filenamesFilteredIndicesUnderlying)+grow), s.filenamesFilteredIndicesUnderlying...)
+		}
+
+		numGoroutines := runtime.NumCPU()
+		arraySlices := SpreadArrayIntoSlicesForGoroutines(len(s.filenames), numGoroutines)
+
+		// FIXME: Prevent allocating on every keypress.
+		// Do something similar to the array grow trick above.
+		// We can do that, because runtime.NumCPU() is constant over the program execution
+		resultsList := make([][]int, len(arraySlices))
+		var wg sync.WaitGroup
+		for goroutineIndex, slice := range arraySlices {
+			wg.Add(1)
+			go func(slice Slice, goroutineIndex int) {
+				ourList := make([]int, 0, slice.length)
+
+				for i := slice.start; i < slice.start+slice.length; i++ {
+					filename := s.filenames[i]
+					if strings.Contains(filename, s.searchTerm) {
+						ourList = append(ourList, i)
+					}
+				}
+
+				resultsList[goroutineIndex] = ourList
+				wg.Done()
+			}(slice, goroutineIndex)
+		}
+
+		wg.Wait()
+
+		// Merge the search results of all the goroutines
+		i := 0
+		for _, e := range resultsList {
+			copy(s.filenamesFilteredIndicesUnderlying[i:], e[:])
+			i += len(e)
+		}
+
+		s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:i]
 	}
 
-	wg.Wait()
-
-	// Merge the search results of all the goroutines
-	i := 0
-	for _, e := range resultsList {
-		copy(s.filenamesFilteredIndicesUnderlying[i:], e[:])
-		i += len(e)
-	}
-
-	s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:i]
 	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices)-1)
 }
 
@@ -250,6 +287,11 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	filenamesLen := len(s.filenamesFilteredIndices)
 	if s.searchTerm == "" {
 		filenamesLen = len(s.filenames)
+	}
+
+	if s.selectLastOnNextDraw {
+		s.selectedFilenameIndex = max(0, filenamesLen-1)
+		s.selectLastOnNextDraw = false
 	}
 
 	scrollOffset := max(0, min(filenamesLen-h+1, s.selectedFilenameIndex-h/2))

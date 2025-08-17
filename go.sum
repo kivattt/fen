@@ -14,8 +14,8 @@ github.com/kivattt/gogitstatus v0.0.0-20250108154353-83d8075e2b11 h1:9TOlJV/zJD4
 github.com/kivattt/gogitstatus v0.0.0-20250108154353-83d8075e2b11/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1 h1:+kTjmvCYTLoEb7evW3UoJM3lMaV+TQKaVzAou2xMoqw=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1/go.mod h1:2tg6gQmD3C2WJK0NBUrWnjIV6nSjv+j5w/+monQdfVI=
-github.com/kivattt/tview v1.0.5 h1:85XQYPf4uKhoWysA2bAZFP6wqTxVCz7xxqBoWqyOO1Q=
-github.com/kivattt/tview v1.0.5/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
+github.com/kivattt/tview v1.0.6 h1:G/mU8e80x9Lpu8O1D0ChhIBDL4t3W2Sqtn3Z15tioa0=
+github.com/kivattt/tview v1.0.6/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/mattn/go-runewidth v0.0.15/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=

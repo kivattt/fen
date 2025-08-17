@@ -153,7 +153,7 @@ func main() {
 			inputField := tview.NewInputField().
 				SetLabel(" Search: ").
 				SetPlaceholder("case-sensitive"). // TODO: Smart-case or atleast case-insensitive
-				SetFieldWidth(-1)                 // Special feature of my tview fork, github.com/kivattt/tview
+				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
@@ -166,7 +166,6 @@ func main() {
 			searchFilenames := NewSearchFilenames(fen)
 			inputField.SetChangedFunc(func(text string) {
 				searchFilenames.mutex.Lock()
-				searchFilenames.searchTerm = text
 				searchFilenames.Filter(text)
 				searchFilenames.mutex.Unlock()
 			})
@@ -186,6 +185,8 @@ func main() {
 					searchFilenames.mutex.Lock()
 					if len(searchFilenames.filenamesFilteredIndices) > 0 {
 						selectedFilename := searchFilenames.filenames[searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex]]
+						// Memory-usage optimization:
+						//selectedFilename := string_from_start(&searchFilenames.filenames, searchFilenames.filenamesStartIndices, searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex])
 						if selectedFilename == "" {
 							panic("Empty string selected in search filenames popup")
 						}
@@ -223,6 +224,16 @@ func main() {
 					searchFilenames.GoBottom()
 					return nil
 				}
+
+				// While loading, if you press backspace with an empty search
+				// it will trigger a redraw, and since the text didn't change,
+				// Filter() isn't called and thus the selection isn't updated.
+				// Therefore, we need to tell the draw function to select the last element as it normally would while files are loading.
+				searchFilenames.mutex.Lock()
+				if !searchFilenames.finishedLoading {
+					searchFilenames.selectLastOnNextDraw = true
+				}
+				searchFilenames.mutex.Unlock()
 
 				return event
 			})

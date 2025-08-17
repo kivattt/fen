@@ -754,7 +754,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			inputField := tview.NewInputField().
 				SetLabel(" Search: ").
 				SetPlaceholder("case-sensitive"). // TODO: Smart-case or atleast case-insensitive
-				SetFieldWidth(-1)                 // Special feature of my tview fork, github.com/kivattt/tview
+				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
@@ -825,6 +825,16 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 					searchFilenames.GoBottom()
 					return nil
 				}
+
+				// While loading, if you press backspace with an empty search
+				// it will trigger a redraw, and since the text didn't change,
+				// Filter() isn't called and thus the selection isn't updated.
+				// Therefore, we need to tell the draw function to select the last element as it normally would while files are loading.
+				searchFilenames.mutex.Lock()
+				if !searchFilenames.finishedLoading {
+					searchFilenames.selectLastOnNextDraw = true
+				}
+				searchFilenames.mutex.Unlock()
 
 				return event
 			})
