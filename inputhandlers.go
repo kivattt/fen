@@ -767,7 +767,6 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			searchFilenames := NewSearchFilenames(fen)
 			inputField.SetChangedFunc(func(text string) {
 				searchFilenames.mutex.Lock()
-				searchFilenames.searchTerm = text
 				searchFilenames.Filter(text)
 				searchFilenames.mutex.Unlock()
 			})
