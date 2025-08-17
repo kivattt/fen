@@ -185,7 +185,7 @@ func (s *SearchFilenames) Filter(text string) {
 	// https://go.dev/wiki/SliceTricks
 	if len(s.filenamesFilteredIndicesUnderlying) < len(s.filenames) {
 		// 125000 * 4 bytes = 0.5MB
-		grow := max(125000, len(s.filenames) - len(s.filenamesFilteredIndicesUnderlying))
+		grow := max(125000, len(s.filenames)-len(s.filenamesFilteredIndicesUnderlying))
 		s.filenamesFilteredIndicesUnderlying = append(make([]int, len(s.filenamesFilteredIndicesUnderlying)+grow), s.filenamesFilteredIndicesUnderlying...)
 	}
 
