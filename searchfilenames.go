@@ -119,10 +119,19 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 	var basePathLength int
 	if basePathSymlinkResolved == "." {
 		basePathLength = 0
-	} else if basePathSymlinkResolved == "/" {
-		basePathLength = 1
 	} else {
 		basePathLength = 1 + len(basePathSymlinkResolved)
+	}
+
+	if runtime.GOOS == "windows" {
+		volumeName := filepath.VolumeName(pathInput)
+		if basePathSymlinkResolved == volumeName {
+			basePathLength = len(volumeName)
+		}
+	} else {
+		if basePathSymlinkResolved == "/" {
+			basePathLength = 1
+		}
 	}
 
 	// FIXME: Unfortunately, WalkDir doesn't resolve symlink directories. Do you think anyone will notice? :3
