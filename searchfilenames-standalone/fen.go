@@ -1,6 +1,10 @@
 package main
 
-import "github.com/rivo/tview"
+import (
+	"os"
+
+	"github.com/rivo/tview"
+)
 
 type Config struct {
 	FileEventIntervalMillis int
@@ -11,6 +15,7 @@ type BottomBar struct {
 }
 
 func (bottomBar *BottomBar) TemporarilyShowTextInstead(text string) {
+	os.Stderr.WriteString(text + "\n")
 	return
 }
 
