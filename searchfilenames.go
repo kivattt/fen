@@ -124,7 +124,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 	}
 
 	if runtime.GOOS == "windows" {
-		volumeName := filepath.VolumeName(pathInput)
+		volumeName := filepath.VolumeName(pathInput) + "\\"
 		if basePathSymlinkResolved == volumeName {
 			basePathLength = len(volumeName)
 		}
