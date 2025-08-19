@@ -85,6 +85,7 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 		fen:          fen,
 		lastDrawTime: time.Now(),
 		firstDraw:    true, // This is used so we can have a shorter delay on the first draw and longer for later ones
+		selectLastOnNextDraw: true, // Make sure the last element is selected on the first draw
 	}
 
 	s.wg.Add(1)
