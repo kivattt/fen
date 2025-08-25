@@ -153,7 +153,7 @@ func main() {
 			inputField := tview.NewInputField().
 				SetLabel(" Search: ").
 				SetPlaceholder("case-sensitive"). // TODO: Smart-case or atleast case-insensitive
-				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
+				SetFieldWidth(-1)                 // Special feature of my tview fork, github.com/kivattt/tview
 			inputField.SetTitleColor(tcell.ColorDefault)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
 			inputField.SetFieldBackgroundColor(tcell.ColorGray)
@@ -202,7 +202,7 @@ func main() {
 					return nil
 				}
 
-				// These GoUp/Go.../PageUp/PageDown functions lock/unlock the mutex internally.
+				// These Go...() functions lock/unlock the mutex internally.
 				// Keep this in mind if you want to make these blocks do more than just the Go... function call
 				// since that might require moving the mutex lock/unlock into the if-block instead.
 				if event.Key() == tcell.KeyUp {
