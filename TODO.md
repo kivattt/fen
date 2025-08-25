@@ -2,11 +2,9 @@
 
 ## TODOs for the "Search filenames" (f / Ctrl + n) feature
 - Case-insensitive search
-- Pack filename strings into a single string builder, instead of []string to lower memory usage
 - Show approximate memory usage
-- Speed up GatherFiles()
-- Speed up Filter(), atleast by multithreading it
 - Add sorting (See the first comment in `searchfilenames.go`)
+- Pack filename strings into a single string builder, instead of []string to lower memory usage (Does this work at all?)
 
 ## TODOs, (very vaguely) sorted by priority
 
