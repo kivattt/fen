@@ -183,22 +183,36 @@ func main() {
 			inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 				if event.Key() == tcell.KeyEnter {
 					searchFilenames.mutex.Lock()
-					if len(searchFilenames.filenamesFilteredIndices) > 0 {
-						selectedFilename := searchFilenames.filenames[searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex]]
-						// Memory-usage optimization:
-						//selectedFilename := string_from_start(&searchFilenames.filenames, searchFilenames.filenamesStartIndices, searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex])
-						if selectedFilename == "" {
-							panic("Empty string selected in search filenames popup")
-						}
+					defer func() {
+						searchFilenames.cancel = true
+						searchFilenames.mutex.Unlock()
+						pages.RemovePage("popup")
+					}()
 
-						_, err := fen.GoPath(selectedFilename)
-						if err != nil {
-							fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+					var selectedFilename string
+					if searchFilenames.searchTerm == "" {
+						if len(searchFilenames.filenames) == 0 {
+							return nil
 						}
+						selectedFilename = searchFilenames.filenames[searchFilenames.selectedFilenameIndex]
+					} else {
+						if len(searchFilenames.filenamesFilteredIndices) == 0 {
+							return nil
+						}
+						selectedFilename = searchFilenames.filenames[searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex]]
 					}
-					searchFilenames.cancel = true
-					searchFilenames.mutex.Unlock()
-					pages.RemovePage("popup")
+
+					// Memory-usage optimization:
+					//selectedFilename := string_from_start(&searchFilenames.filenames, searchFilenames.filenamesStartIndices, searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex])
+					if selectedFilename == "" {
+						panic("Empty string selected in search filenames popup")
+					}
+
+					_, err := fen.GoPath(selectedFilename)
+					if err != nil {
+						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+					}
+
 					return nil
 				}
 
@@ -243,8 +257,6 @@ func main() {
 				AddItem(inputField, 1, 1, true)
 
 			flex.SetBorder(true)
-			//flex.SetMouseCapture(nil)
-
 			pages.AddPage("popup", centered_large(flex, 10), true, true)
 			return nil
 		}
