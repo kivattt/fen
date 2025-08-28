@@ -16,7 +16,6 @@ type BottomBar struct {
 
 func (bottomBar *BottomBar) TemporarilyShowTextInstead(text string) {
 	os.Stderr.WriteString(text + "\n")
-	return
 }
 
 type Fen struct {
