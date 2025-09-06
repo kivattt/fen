@@ -782,31 +782,18 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			})
 
 			inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+				searchFilenames.mutex.Lock()
+				defer searchFilenames.mutex.Unlock()
+
 				if event.Key() == tcell.KeyEnter {
-					searchFilenames.mutex.Lock()
 					defer func() {
 						searchFilenames.cancel = true
-						searchFilenames.mutex.Unlock()
 						pages.RemovePage("popup")
 					}()
 
-					var selectedFilename string
-					if searchFilenames.searchTerm == "" {
-						if len(searchFilenames.filenames) == 0 {
-							return nil
-						}
-						selectedFilename = searchFilenames.filenames[searchFilenames.selectedFilenameIndex]
-					} else {
-						if len(searchFilenames.filenamesFilteredIndices) == 0 {
-							return nil
-						}
-						selectedFilename = searchFilenames.filenames[searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex]]
-					}
-
-					// Memory-usage optimization:
-					//selectedFilename := string_from_start(&searchFilenames.filenames, searchFilenames.filenamesStartIndices, searchFilenames.filenamesFilteredIndices[searchFilenames.selectedFilenameIndex])
+					selectedFilename := searchFilenames.selectedFilename
 					if selectedFilename == "" {
-						panic("Empty string selected in search filenames popup")
+						return nil
 					}
 
 					_, err := fen.GoPath(selectedFilename)
@@ -817,9 +804,6 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 					return nil
 				}
 
-				// These Go...() functions lock/unlock the mutex internally.
-				// Keep this in mind if you want to make these blocks do more than just the Go... function call
-				// since that might require moving the mutex lock/unlock into the if-block instead.
 				if event.Key() == tcell.KeyUp {
 					searchFilenames.GoUp()
 					return nil
@@ -844,11 +828,9 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 				// it will trigger a redraw, and since the text didn't change,
 				// Filter() isn't called and thus the selection isn't updated.
 				// Therefore, we need to tell the draw function to select the last element as it normally would while files are loading.
-				searchFilenames.mutex.Lock()
 				if !searchFilenames.finishedLoading {
 					searchFilenames.selectLastOnNextDraw = true
 				}
-				searchFilenames.mutex.Unlock()
 
 				return event
 			})

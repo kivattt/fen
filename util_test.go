@@ -344,6 +344,8 @@ func TestFindSubstringAllStartIndices(t *testing.T) {
 		{"aa aa", "aa", []int{0, 3}},
 		{"hooks/hooks", "hoo", []int{0, 6}},
 		{"hooks/hooks", "hooo", []int{}},
+		{"Hei Økonomi", "Ø", []int{4}},
+		{"Hei Økonomi", "k", []int{6}}, // Index in terms of bytes
 	}
 
 	for _, test := range tests {

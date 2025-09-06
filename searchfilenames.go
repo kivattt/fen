@@ -72,6 +72,7 @@ type SearchFilenames struct {
 
 	filenamesFilteredIndicesUnderlying []int
 	selectedFilenameIndex              int
+	selectedFilename                   string
 	cancel                             bool
 	finishedLoading                    bool
 	lastDrawTime                       time.Time
@@ -104,6 +105,26 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 	}()
 
 	return &s
+}
+
+func (s *SearchFilenames) SetSelectedFilenameIndex(index int) {
+	s.selectedFilenameIndex = index
+
+	if s.searchTerm == "" {
+		if index < len(s.filenames) {
+			s.selectedFilename = s.filenames[index]
+			if s.selectedFilename == "" {
+				panic("Empty string selected in search filenames popup")
+			}
+		}
+	} else {
+		if index < len(s.filenamesFilteredIndices) {
+			s.selectedFilename = s.filenames[s.filenamesFilteredIndices[index]]
+			if s.selectedFilename == "" {
+				panic("Empty string selected in search filenames popup")
+			}
+		}
+	}
 }
 
 func (s *SearchFilenames) GatherFiles(pathInput string) {
@@ -200,7 +221,7 @@ func (s *SearchFilenames) Filter(text string) {
 	s.searchTerm = text
 
 	if s.searchTerm == "" {
-		s.selectedFilenameIndex = max(0, len(s.filenames)-1)
+		s.SetSelectedFilenameIndex(max(0, len(s.filenames)-1))
 		return
 	}
 
@@ -282,7 +303,7 @@ func (s *SearchFilenames) Filter(text string) {
 		s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:i]
 	}
 
-	s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices)-1)
+	s.SetSelectedFilenameIndex(max(0, len(s.filenamesFilteredIndices)-1))
 }
 
 func (s *SearchFilenames) Draw(screen tcell.Screen) {
@@ -303,7 +324,7 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	}
 
 	if s.selectLastOnNextDraw {
-		s.selectedFilenameIndex = max(0, filenamesLen-1)
+		s.SetSelectedFilenameIndex(max(0, filenamesLen-1))
 		s.selectLastOnNextDraw = false
 	}
 
@@ -315,30 +336,35 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		if i == s.selectedFilenameIndex-scrollOffset {
 			style = style.Reverse(true)
 		}
+
 		// There is no strings.LastIndexRune() function, probably because it's slow.
 		lastSlash := strings.LastIndexByte(filename, os.PathSeparator)
+
+		// Match indices in terms of bytes, not runes!
 		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm)
 
 		yPos := startY + i
-		for j, c := range filename {
-			if j >= w-1 {
-				screen.SetCell(x+j, yPos, style, missingSpaceRune)
+		runeIndex := -1
+		for byteIndex, c := range filename {
+			runeIndex += 1
+			if runeIndex >= w-1 {
+				screen.SetContent(x+runeIndex, yPos, missingSpaceRune, nil, style)
 				break
 			}
 
 			color := tcell.ColorBlue
-			if j > lastSlash {
+			if runeIndex > lastSlash {
 				color = tcell.ColorDefault
 			}
 
 			for _, matchIndex := range matchIndices {
-				if j >= matchIndex && j < matchIndex+len(s.searchTerm) {
+				if byteIndex >= matchIndex && byteIndex < matchIndex+len(s.searchTerm) {
 					color = tcell.ColorOrange
 					break
 				}
 			}
 
-			screen.SetCell(x+j, yPos, style.Foreground(color), c)
+			screen.SetContent(x+runeIndex, yPos, c, nil, style.Foreground(color))
 		}
 	}
 
@@ -386,60 +412,42 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 }
 
 func (s *SearchFilenames) GoUp() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
 	if s.selectedFilenameIndex > 0 {
-		s.selectedFilenameIndex -= 1
+		s.SetSelectedFilenameIndex(s.selectedFilenameIndex - 1)
 	}
 }
 
 func (s *SearchFilenames) GoDown() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
 	filenamesLen := len(s.filenamesFilteredIndices)
 	if s.searchTerm == "" {
 		filenamesLen = len(s.filenames)
 	}
 
 	if s.selectedFilenameIndex < filenamesLen-1 {
-		s.selectedFilenameIndex += 1
+		s.SetSelectedFilenameIndex(s.selectedFilenameIndex + 1)
 	}
 }
 
 func (s *SearchFilenames) GoTop() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	s.selectedFilenameIndex = 0
+	s.SetSelectedFilenameIndex(0)
 }
 
 func (s *SearchFilenames) GoBottom() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
 	filenamesLen := len(s.filenamesFilteredIndices)
 	if s.searchTerm == "" {
 		filenamesLen = len(s.filenames)
 	}
 
-	s.selectedFilenameIndex = max(0, filenamesLen-1)
+	s.SetSelectedFilenameIndex(max(0, filenamesLen-1))
 }
 
 func (s *SearchFilenames) PageUp() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
 	_, _, _, height := s.Box.GetInnerRect()
 	height = max(5, height-10) // Padding
-	s.selectedFilenameIndex = max(0, s.selectedFilenameIndex-height)
+	s.SetSelectedFilenameIndex(max(0, s.selectedFilenameIndex-height))
 }
 
 func (s *SearchFilenames) PageDown() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
 	filenamesLen := len(s.filenamesFilteredIndices)
 	if s.searchTerm == "" {
 		filenamesLen = len(s.filenames)
@@ -447,5 +455,5 @@ func (s *SearchFilenames) PageDown() {
 
 	_, _, _, height := s.Box.GetInnerRect()
 	height = max(5, height-10) // Padding
-	s.selectedFilenameIndex = max(0, min(filenamesLen-1, s.selectedFilenameIndex+height))
+	s.SetSelectedFilenameIndex(max(0, min(filenamesLen-1, s.selectedFilenameIndex+height)))
 }

@@ -1246,7 +1246,7 @@ func FindSubstringAllStartIndices(s, searchText string) []int {
 	var result []int
 
 	i := 0
-	for {
+	for limit := 0; limit < 100; limit += 1 { // Stop after 100 iterations
 		if i >= len(s) {
 			break
 		}
