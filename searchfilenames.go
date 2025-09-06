@@ -340,7 +340,7 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		// There is no strings.LastIndexRune() function, probably because it's slow.
 		lastSlash := strings.LastIndexByte(filename, os.PathSeparator)
 
-		// Match indices in terms of bytes, not runes!
+		// The search match indices in terms of bytes, not runes!
 		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm)
 
 		yPos := startY + i
