@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/rivo/tview"
 )
 
@@ -15,7 +13,7 @@ type BottomBar struct {
 }
 
 func (bottomBar *BottomBar) TemporarilyShowTextInstead(text string) {
-	os.Stderr.WriteString(text + "\n")
+	//os.Stderr.WriteString("Temp text: " + text + "\n")
 }
 
 type Fen struct {
