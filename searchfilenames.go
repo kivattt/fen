@@ -53,6 +53,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"slices"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -73,6 +74,8 @@ type SearchFilenames struct {
 	filenamesFilteredIndicesUnderlying []int
 	selectedFilenameIndex              int
 	selectedFilename                   string
+	scrollLocked                       bool
+
 	cancel                             bool
 	finishedLoading                    bool
 	lastDrawTime                       time.Time
@@ -94,10 +97,15 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 	go func() {
 		s.wg.Wait()
 
+		// All files have been loaded
 		if !s.cancel {
 			s.fen.app.QueueUpdateDraw(func() {
 				s.mutex.Lock()
 				s.Filter(s.searchTerm)
+				if s.scrollLocked {
+					s.SetSelectedIndexToSelectedFilename()
+				}
+				s.scrollLocked = false
 				s.finishedLoading = true
 				s.mutex.Unlock()
 			})
@@ -107,23 +115,61 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 	return &s
 }
 
-func (s *SearchFilenames) SetSelectedFilenameIndex(index int) {
-	s.selectedFilenameIndex = index
+// TODO: Measure the performance of this function.
+// We might make it faster by searching around the previous selectedFilenameIndex
+// (backwards, then forwards?)
+func (s *SearchFilenames) SetSelectedIndexToSelectedFilename() {
+	if s.selectedFilename == "" {
+		panic("unreachable!")
+	}
 
 	if s.searchTerm == "" {
-		if index < len(s.filenames) {
-			s.selectedFilename = s.filenames[index]
-			if s.selectedFilename == "" {
+		found := slices.Index(s.filenames, s.selectedFilename)
+		if found != -1 {
+			s.selectedFilenameIndex = found
+			return
+		}
+	} else {
+		for i, e := range s.filenamesFilteredIndices {
+			if s.filenames[e] == s.selectedFilename {
+				s.selectedFilenameIndex = i
+				return
+			}
+		}
+	}
+
+	// Didn't find it in the list
+	s.scrollLocked = false
+}
+
+// Returns the selected filename, or an empty string if there is none.
+func (s *SearchFilenames) GetSelectedFilename() string {
+	out := ""
+	if s.searchTerm == "" {
+		if s.selectedFilenameIndex < len(s.filenames) {
+			out = s.filenames[s.selectedFilenameIndex]
+			if out == "" {
 				panic("Empty string selected in search filenames popup")
 			}
 		}
 	} else {
-		if index < len(s.filenamesFilteredIndices) {
-			s.selectedFilename = s.filenames[s.filenamesFilteredIndices[index]]
-			if s.selectedFilename == "" {
+		if s.selectedFilenameIndex < len(s.filenamesFilteredIndices) {
+			out = s.filenames[s.filenamesFilteredIndices[s.selectedFilenameIndex]]
+			if out == "" {
 				panic("Empty string selected in search filenames popup")
 			}
 		}
+	}
+
+	return out
+}
+
+func (s *SearchFilenames) SetSelectedIndexAndLockScrollIfLoading(index int) {
+	s.selectedFilenameIndex = index
+
+	if !s.finishedLoading {
+		s.selectedFilename = s.GetSelectedFilename()
+		s.scrollLocked = true
 	}
 }
 
@@ -204,6 +250,9 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 			s.fen.app.QueueUpdateDraw(func() {
 				s.mutex.Lock()
 				s.Filter(s.searchTerm)
+				if s.scrollLocked {
+					s.SetSelectedIndexToSelectedFilename()
+				}
 				s.mutex.Unlock()
 			})
 			s.lastDrawTime = time.Now()
@@ -221,7 +270,7 @@ func (s *SearchFilenames) Filter(text string) {
 	s.searchTerm = text
 
 	if s.searchTerm == "" {
-		s.SetSelectedFilenameIndex(max(0, len(s.filenames)-1))
+		s.selectedFilenameIndex = max(0, len(s.filenames)-1)
 		return
 	}
 
@@ -303,7 +352,9 @@ func (s *SearchFilenames) Filter(text string) {
 		s.filenamesFilteredIndices = s.filenamesFilteredIndicesUnderlying[:i]
 	}
 
-	s.SetSelectedFilenameIndex(max(0, len(s.filenamesFilteredIndices)-1))
+	if !s.scrollLocked {
+		s.selectedFilenameIndex = max(0, len(s.filenamesFilteredIndices)-1)
+	}
 }
 
 func (s *SearchFilenames) Draw(screen tcell.Screen) {
@@ -323,8 +374,8 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		filenamesLen = len(s.filenames)
 	}
 
-	if s.selectLastOnNextDraw {
-		s.SetSelectedFilenameIndex(max(0, filenamesLen-1))
+	if s.selectLastOnNextDraw && !s.scrollLocked {
+		s.selectedFilenameIndex = max(0, filenamesLen-1)
 		s.selectLastOnNextDraw = false
 	}
 
@@ -392,6 +443,11 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		color = green
 	}
 
+	if filenamesLen == 0 {
+		//color = tcell.ColorWhite
+		color = tcell.ColorGray
+	}
+
 	matchCountStr := strconv.FormatInt(int64(filenamesLen), 10)
 	filesTotalCountStr := strconv.FormatInt(int64(len(s.filenames)), 10)
 	tview.Print(screen, matchCountStr+" / "+filesTotalCountStr+" files", x, bottomY, w, tview.AlignLeft, color)
@@ -413,7 +469,7 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 
 func (s *SearchFilenames) GoUp() {
 	if s.selectedFilenameIndex > 0 {
-		s.SetSelectedFilenameIndex(s.selectedFilenameIndex - 1)
+		s.SetSelectedIndexAndLockScrollIfLoading(s.selectedFilenameIndex - 1)
 	}
 }
 
@@ -424,12 +480,14 @@ func (s *SearchFilenames) GoDown() {
 	}
 
 	if s.selectedFilenameIndex < filenamesLen-1 {
-		s.SetSelectedFilenameIndex(s.selectedFilenameIndex + 1)
+		s.SetSelectedIndexAndLockScrollIfLoading(s.selectedFilenameIndex + 1)
 	}
 }
 
 func (s *SearchFilenames) GoTop() {
-	s.SetSelectedFilenameIndex(0)
+	if s.selectedFilenameIndex != 0 {
+		s.SetSelectedIndexAndLockScrollIfLoading(0)
+	}
 }
 
 func (s *SearchFilenames) GoBottom() {
@@ -438,13 +496,18 @@ func (s *SearchFilenames) GoBottom() {
 		filenamesLen = len(s.filenames)
 	}
 
-	s.SetSelectedFilenameIndex(max(0, filenamesLen-1))
+	if s.selectedFilenameIndex != max(0, filenamesLen-1) {
+		s.SetSelectedIndexAndLockScrollIfLoading(max(0, filenamesLen-1))
+		s.scrollLocked = false
+	}
 }
 
 func (s *SearchFilenames) PageUp() {
 	_, _, _, height := s.Box.GetInnerRect()
 	height = max(5, height-10) // Padding
-	s.SetSelectedFilenameIndex(max(0, s.selectedFilenameIndex-height))
+	if s.selectedFilenameIndex != 0 {
+		s.SetSelectedIndexAndLockScrollIfLoading(max(0, s.selectedFilenameIndex-height))
+	}
 }
 
 func (s *SearchFilenames) PageDown() {
@@ -455,5 +518,9 @@ func (s *SearchFilenames) PageDown() {
 
 	_, _, _, height := s.Box.GetInnerRect()
 	height = max(5, height-10) // Padding
-	s.SetSelectedFilenameIndex(max(0, min(filenamesLen-1, s.selectedFilenameIndex+height)))
+	index := max(0, min(filenamesLen-1, s.selectedFilenameIndex+height))
+
+	if s.selectedFilenameIndex != index {
+		s.SetSelectedIndexAndLockScrollIfLoading(index)
+	}
 }

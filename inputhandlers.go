@@ -791,7 +791,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 						pages.RemovePage("popup")
 					}()
 
-					selectedFilename := searchFilenames.selectedFilename
+					selectedFilename := searchFilenames.GetSelectedFilename()
 					if selectedFilename == "" {
 						return nil
 					}
