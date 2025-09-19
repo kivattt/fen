@@ -267,6 +267,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 				}
 				s.mutex.Unlock()
 			})
+
 			s.lastDrawTime = time.Now()
 		}
 
