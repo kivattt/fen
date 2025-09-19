@@ -165,7 +165,7 @@ func (s *SearchFilenames) GetSelectedFilename() (string, error) {
 	}
 
 	if out == "" {
-		return out, errors.New("No filename selected")
+		return out, errors.New("no filename selected")
 	} else {
 		return out, nil
 	}
