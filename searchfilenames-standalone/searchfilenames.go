@@ -46,14 +46,15 @@ package main
 */
 
 import (
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
-	"slices"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -101,12 +102,14 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 		if !s.cancel {
 			s.fen.app.QueueUpdateDraw(func() {
 				s.mutex.Lock()
-				s.Filter(s.searchTerm)
-				if s.scrollLocked {
-					s.SetSelectedIndexToSelectedFilename()
+				{
+					s.Filter(s.searchTerm)
+					if s.scrollLocked {
+						s.SetSelectedIndexToSelectedFilename()
+					}
+					s.scrollLocked = false
+					s.finishedLoading = true
 				}
-				s.scrollLocked = false
-				s.finishedLoading = true
 				s.mutex.Unlock()
 			})
 		}
@@ -120,7 +123,8 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 // (backwards, then forwards?)
 func (s *SearchFilenames) SetSelectedIndexToSelectedFilename() {
 	if s.selectedFilename == "" {
-		panic("unreachable!")
+		s.scrollLocked = false
+		return
 	}
 
 	if s.searchTerm == "" {
@@ -142,8 +146,7 @@ func (s *SearchFilenames) SetSelectedIndexToSelectedFilename() {
 	s.scrollLocked = false
 }
 
-// Returns the selected filename, or an empty string if there is none.
-func (s *SearchFilenames) GetSelectedFilename() string {
+func (s *SearchFilenames) GetSelectedFilename() (string, error) {
 	out := ""
 	if s.searchTerm == "" {
 		if s.selectedFilenameIndex < len(s.filenames) {
@@ -161,15 +164,22 @@ func (s *SearchFilenames) GetSelectedFilename() string {
 		}
 	}
 
-	return out
+	if out == "" {
+		return out, errors.New("No filename selected")
+	} else {
+		return out, nil
+	}
 }
 
 func (s *SearchFilenames) SetSelectedIndexAndLockScrollIfLoading(index int) {
 	s.selectedFilenameIndex = index
 
 	if !s.finishedLoading {
-		s.selectedFilename = s.GetSelectedFilename()
-		s.scrollLocked = true
+		var err error
+		s.selectedFilename, err = s.GetSelectedFilename()
+		if err == nil {
+			s.scrollLocked = true
+		}
 	}
 }
 
@@ -249,9 +259,11 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 
 			s.fen.app.QueueUpdateDraw(func() {
 				s.mutex.Lock()
-				s.Filter(s.searchTerm)
-				if s.scrollLocked {
-					s.SetSelectedIndexToSelectedFilename()
+				{
+					s.Filter(s.searchTerm)
+					if s.scrollLocked {
+						s.SetSelectedIndexToSelectedFilename()
+					}
 				}
 				s.mutex.Unlock()
 			})
@@ -444,7 +456,6 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	}
 
 	if filenamesLen == 0 {
-		//color = tcell.ColorWhite
 		color = tcell.ColorGray
 	}
 
@@ -497,7 +508,7 @@ func (s *SearchFilenames) GoBottom() {
 	}
 
 	if s.selectedFilenameIndex != max(0, filenamesLen-1) {
-		s.SetSelectedIndexAndLockScrollIfLoading(max(0, filenamesLen-1))
+		s.selectedFilenameIndex = max(0, filenamesLen-1)
 		s.scrollLocked = false
 	}
 }
