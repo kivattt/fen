@@ -77,11 +77,11 @@ type SearchFilenames struct {
 	selectedFilename                   string
 	scrollLocked                       bool
 
-	cancel                             bool
-	finishedLoading                    bool
-	lastDrawTime                       time.Time
-	firstDraw                          bool
-	selectLastOnNextDraw               bool
+	cancel               bool
+	finishedLoading      bool
+	lastDrawTime         time.Time
+	firstDraw            bool
+	selectLastOnNextDraw bool
 }
 
 func NewSearchFilenames(fen *Fen) *SearchFilenames {
