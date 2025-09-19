@@ -791,12 +791,12 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 						pages.RemovePage("popup")
 					}()
 
-					selectedFilename := searchFilenames.GetSelectedFilename()
-					if selectedFilename == "" {
+					selectedFilename, err := searchFilenames.GetSelectedFilename()
+					if err != nil {
 						return nil
 					}
 
-					_, err := fen.GoPath(selectedFilename)
+					_, err = fen.GoPath(selectedFilename)
 					if err != nil {
 						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 					}
