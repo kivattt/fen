@@ -50,9 +50,9 @@ var helpScreenControlsList = []control{
 
 	{KeyBindings: []string{"Home", "g"}, Description: "Go to the top"},
 	{KeyBindings: []string{"End", "G"}, Description: "Go to the bottom"},
+	{KeyBindings: []string{"M"}, Description: "Go to the middle"},
 	{KeyBindings: []string{"Ctrl+Left"}, Description: "Go to the root folder"},
 	{KeyBindings: []string{"Ctrl+Right"}, Description: "Go to the path furthest down in history"},
-	{KeyBindings: []string{"M"}, Description: "Go to the middle"},
 	{KeyBindings: []string{"PgUp", "PgDn"}, Description: "Scroll up/down an entire page"},
 	{KeyBindings: []string{"H"}, Description: "Go to the top of the screen"},
 	{KeyBindings: []string{"L"}, Description: "Go to the bottom of the screen"},

@@ -41,9 +41,9 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 <kbd>!</kbd> Run system shell command (cmd on Windows)\
 <kbd>Home</kbd> or <kbd>g</kbd> Go to the top\
 <kbd>End</kbd> or <kbd>G</kbd> Go to the bottom\
+<kbd>M</kbd> Go to the middle\
 <kbd>Ctrl + Left arrow</kbd> Go to the root folder (or current Git repository if `fen.git_status=true`)\
 <kbd>Ctrl + Right arrow</kbd> Go to the path furthest down in history, follow a symlink or go to the first changed file if `fen.git_status=true`\
-<kbd>M</kbd> Go to the middle\
 <kbd>Page Up</kbd> / <kbd>Page Down</kbd> Scroll up/down an entire page\
 <kbd>H</kbd> Go to the top of the screen\
 <kbd>L</kbd> Go to the bottom of the screen\
