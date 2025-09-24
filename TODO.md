@@ -1,7 +1,6 @@
 ## Source code comments with "LUA PLUGINS:" in them are for things we have to change to make Lua plugins a possibility in the future
 
 ## TODOs based on feedback
-- Add "press any key to continue" whenever a file is opened, successfully or not. (Make it a configurable option!)
 - Don't ignore Ctrl+C, Ctrl+D, Ctrl+Z
 - Add `more`/`less` to the default program list "I wonder if there's a common legacy text editor that you could fall back to. like, something similar to cat or more"
 - Add case-insensitivity by default for the search filenames feature
