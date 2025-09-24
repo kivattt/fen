@@ -15,13 +15,15 @@ func fillWithFilenames(s *SearchFilenames, howManyFilenames int) {
 
 // Actually a benchmark, but I don't know how to write it with the benchmark test API (b *testing.B)
 func TestFilter(t *testing.T) {
+	howManyFilenames := 2000000
+	loopCount := 10
+	searchTerms := []string{"", ".", ".t", ".tx", ".txt", "e.txt", "le.txt", "a_file", "folders", "long_filename/folders/and/stuff", "no match", "also not a match..."}
+	fmt.Print("[Benchmark] Filtering ", howManyFilenames, " filenames ", loopCount*len(searchTerms), " times:")
+
 	var s SearchFilenames
 
-	howManyFilenames := 2000000
 	fillWithFilenames(&s, howManyFilenames)
 
-	loopCount := 10
-	searchTerms := []string{"", ".", ".t", ".tx", ".txt", "a_file", "folders", "long_filename/folders/and/stuff", "no match", "also not a match..."}
 
 	totalStart := time.Now()
 
@@ -32,5 +34,5 @@ func TestFilter(t *testing.T) {
 	}
 
 	totalDuration := time.Since(totalStart)
-	fmt.Println("Filtering", howManyFilenames, "filenames", loopCount*len(searchTerms), "times:", totalDuration)
+	fmt.Println(" " + totalDuration.String())
 }

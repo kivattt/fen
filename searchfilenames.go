@@ -277,8 +277,16 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 	s.wg.Done()
 }
 
+//var tempGlobal []time.Duration
+
 // You need to manually lock / unlock the mutex to use this function
 func (s *SearchFilenames) Filter(text string) {
+	/*start := time.Now()
+	defer func() {
+		tempGlobal = append(tempGlobal, time.Since(start))
+		s.fen.bottomBar.TemporarilyShowTextInstead(tempGlobal[len(tempGlobal)-1].String())
+	}()*/
+
 	s.lastSearchTerm = s.searchTerm
 	s.searchTerm = text
 
@@ -288,6 +296,7 @@ func (s *SearchFilenames) Filter(text string) {
 	}
 
 	// On successive characters after the first, we only need to filter s.filenamesFilteredIndices
+	// TODO: Also do this for insertions at the beginning of the search string!
 	if s.finishedLoading && len(s.lastSearchTerm) > 0 && (s.searchTerm != s.lastSearchTerm) && strings.HasPrefix(s.searchTerm, s.lastSearchTerm) {
 		numGoroutines := runtime.NumCPU()
 		arraySlices := SpreadArrayIntoSlicesForGoroutines(len(s.filenamesFilteredIndices), numGoroutines)
