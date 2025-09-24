@@ -133,6 +133,7 @@ type Config struct {
 	CloseOnEscape           bool                 `lua:"close_on_escape"`
 	FileSizeInAllPanes      bool                 `lua:"file_size_in_all_panes"`
 	FileSizeFormat          string               `lua:"file_size_format"` /* Valid values defined in ValidFileSizeFormatValues */
+	PauseOnOpenFile         bool                 `lua:"pause_on_open_file"`
 }
 
 func NewConfigDefaultValues() Config {
@@ -148,6 +149,7 @@ func NewConfigDefaultValues() Config {
 		ScrollSpeed:             2,
 		PreviewSafetyBlocklist:  true,
 		FileSizeFormat:          HUMAN_READABLE,
+		PauseOnOpenFile:         true,
 	}
 }
 

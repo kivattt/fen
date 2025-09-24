@@ -901,7 +901,6 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 						anyKey := "press \x1b[4many key\x1b[0m\x1b[1;30m to continue..."
 						enter := "press \x1b[4mEnter\x1b[0m\x1b[1;30m to continue..."
 						PressAnyKeyToContinue(anyKey, enter)
-						fmt.Print("\x1b[0m\n\n")
 					}
 				})
 

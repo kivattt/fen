@@ -714,7 +714,7 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 					fmt.Println("Lua error:")
 					fmt.Println(err)
 					PressAnyKeyToContinue("\x1b[1;30m"+pressAnyKeyToContinueText, "\x1b[1;30m"+pressEnterToContinueText)
-					fmt.Print("\x1b[0m\n\n")
+					return
 				}
 
 				break
@@ -732,6 +732,8 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 			if len(fen.selected) <= 0 {
 				cmd = exec.Command(programName, append(programArguments, fen.sel)...)
 			} else {
+				// FIXME: It would be nice if we kept track of the order of selected files,
+				// or sort them first to make the argument order deterministic.
 				cmd = exec.Command(programName, append(programArguments, MapStringBoolKeys(fen.selected)...)...)
 			}
 			cmd.Dir = fen.wd
@@ -743,6 +745,10 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 			if err == nil {
 				break
 			}
+		}
+
+		if fen.config.PauseOnOpenFile {
+			PressAnyKeyToContinue("\x1b[1;30m"+"Press \x1b[4many key\x1b[0m\x1b[1;30m to continue...", "\x1b[1;30m"+pressEnterToContinueText)
 		}
 	})
 
@@ -996,6 +1002,8 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 // Falls back to pressEnterText if an error occurred.
 // NOTE: Since this enables terminal raw mode, you need an explicit carriage return for every newline in the arguments (atleast on xterm, Linux)
 func PressAnyKeyToContinue(pressAnyKeyText, pressEnterText string) {
+	defer fmt.Print("\x1b[0m\n\n")
+
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		fmt.Print(pressEnterText)
