@@ -4,7 +4,6 @@
 - Add "press any key to continue" whenever a file is opened, successfully or not. (Make it a configurable option!)
 - Don't ignore Ctrl+C, Ctrl+D, Ctrl+Z
 - Add `more`/`less` to the default program list "I wonder if there's a common legacy text editor that you could fall back to. like, something similar to cat or more"
-- Add "searching in /some/folder" title to the search filenames feature. "the only thing that's not obvious at rist sight to me is that it's a global search"
 - Add case-insensitivity by default for the search filenames feature
 - Get rid of `/`, make it open the search filenames feature. Maybe even restrict to only files in working directory
 

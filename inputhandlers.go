@@ -840,6 +840,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 				AddItem(inputField, 1, 1, true)
 
 			flex.SetBorder(true)
+			flex.SetTitle(" Searching " + fen.wd + " ")
 			pages.AddPage("popup", centered_large(flex, 10), true, true)
 			return nil
 		} else if event.Rune() == '!' {
