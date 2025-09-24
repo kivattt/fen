@@ -247,7 +247,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 		s.mutex.Unlock()
 
 		delay := 200 * time.Millisecond
-		if s.firstDraw { // A mutex is not necessary here.
+		if s.firstDraw { // A mutex is not necessary here. This variable is only accessed in one thread
 			// We use a shorter delay for the first draw so the user isn't left waiting 200ms for the first files to show up on-screen.
 			delay = 10 * time.Millisecond
 		}
