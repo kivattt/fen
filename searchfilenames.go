@@ -59,6 +59,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	//"github.com/charlievieth/strcase"
 )
 
 type SearchFilenames struct {
@@ -277,18 +278,16 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 	s.wg.Done()
 }
 
-//var tempGlobal []time.Duration
-
 // You need to manually lock / unlock the mutex to use this function
 func (s *SearchFilenames) Filter(text string) {
 	/*start := time.Now()
 	defer func() {
-		tempGlobal = append(tempGlobal, time.Since(start))
-		s.fen.bottomBar.TemporarilyShowTextInstead(tempGlobal[len(tempGlobal)-1].String())
+		s.fen.bottomBar.TemporarilyShowTextInstead(time.Since(start).String())
 	}()*/
 
 	s.lastSearchTerm = s.searchTerm
 	s.searchTerm = text
+	//s.searchTerm = ToLowerFast(text)
 
 	if s.searchTerm == "" {
 		s.selectedFilenameIndex = max(0, len(s.filenames)-1)
@@ -311,6 +310,7 @@ func (s *SearchFilenames) Filter(text string) {
 				for i := slice.start; i < slice.start+slice.length; i++ {
 					filenameIndex := s.filenamesFilteredIndices[i]
 					filename := s.filenames[filenameIndex]
+					//filename := ToLowerFast(s.filenames[filenameIndex])
 					if strings.Contains(filename, s.searchTerm) {
 						ourList = append(ourList, filenameIndex)
 					}
@@ -352,6 +352,8 @@ func (s *SearchFilenames) Filter(text string) {
 
 				for i := slice.start; i < slice.start+slice.length; i++ {
 					filename := s.filenames[i]
+					//filename := ToLowerFast(s.filenames[i])
+					//if strings.Contains(filename, s.searchTerm) {
 					if strings.Contains(filename, s.searchTerm) {
 						ourList = append(ourList, i)
 					}

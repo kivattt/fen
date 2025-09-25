@@ -496,7 +496,7 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 
 	hasSuffixFromList := func(str string, list []string) bool {
 		for _, e := range list {
-			if strings.HasSuffix(ToLowerFasterASCIIOnly(str), e) {
+			if strings.HasSuffix(strings.ToLower(str), e) {
 				return true
 			}
 		}
@@ -1318,14 +1318,4 @@ func SpreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []Slice 
 	})
 
 	return result
-}
-
-func ToLowerFasterASCIIOnly(s string) string {
-	var sb strings.Builder
-	sb.Grow(len(s))
-	for _, e := range s {
-		sb.WriteRune(e | 0b00100000)
-	}
-
-	return sb.String()
 }
