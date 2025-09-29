@@ -71,6 +71,12 @@ var ConfigKeysByTagNameNotToIncludeInOptionsMenu = []string{
 }
 
 const (
+	CASE_INSENSITIVE = "insensitive"
+	CASE_SENSITIVE = "sensitive"
+)
+var ValidFilenameSearchCaseValues = [...]string{CASE_INSENSITIVE, CASE_SENSITIVE}
+
+const (
 	// SORT_NONE should only be used if fen is too slow loading big folders, because it messes with some things
 	SORT_NONE           = "none" // TODO: Make SORT_NONE also disable the implicit sorting of os.ReadDir()
 	SORT_ALPHABETICAL   = "alphabetical"
@@ -109,6 +115,13 @@ func isInvalidSortByValue(sortBy string) bool {
 	return true
 }
 
+type PreviewOrOpenEntry struct {
+	Script     string
+	Program    []string // The name used to be "Programs", but this makes more sense for the lua configuration
+	Match      []string
+	DoNotMatch []string
+}
+
 type Config struct {
 	UiBorders               bool                 `lua:"ui_borders"`
 	Mouse                   bool                 `lua:"mouse"`
@@ -134,6 +147,7 @@ type Config struct {
 	FileSizeInAllPanes      bool                 `lua:"file_size_in_all_panes"`
 	FileSizeFormat          string               `lua:"file_size_format"` /* Valid values defined in ValidFileSizeFormatValues */
 	PauseOnOpenFile         bool                 `lua:"pause_on_open_file"`
+	FilenameSearchCase      string               `lua:"filename_search_case"` /* Valid values defined in ValidFilenameSearchCaseValues */
 }
 
 func NewConfigDefaultValues() Config {
@@ -150,6 +164,7 @@ func NewConfigDefaultValues() Config {
 		PreviewSafetyBlocklist:  true,
 		FileSizeFormat:          HUMAN_READABLE,
 		PauseOnOpenFile:         true,
+		FilenameSearchCase:      CASE_INSENSITIVE,
 	}
 }
 
@@ -200,13 +215,6 @@ var DefaultPreviewBlocklistCaseInsensitive = []string{
 
 	// Dataset
 	"*.parquet",
-}
-
-type PreviewOrOpenEntry struct {
-	Script     string
-	Program    []string // The name used to be "Programs", but this makes more sense for the lua configuration
-	Match      []string
-	DoNotMatch []string
 }
 
 type PanePos int

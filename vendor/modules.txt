@@ -1,3 +1,8 @@
+# github.com/charlievieth/strcase v0.0.5
+## explicit; go 1.19
+github.com/charlievieth/strcase
+github.com/charlievieth/strcase/internal/bytealg
+github.com/charlievieth/strcase/internal/tables
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
@@ -87,6 +92,7 @@ golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 # golang.org/x/sys v0.26.0
 ## explicit; go 1.18
+golang.org/x/sys/cpu
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows

@@ -767,7 +767,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			searchFilenames := NewSearchFilenames(fen)
 			inputField.SetChangedFunc(func(text string) {
 				searchFilenames.mutex.Lock()
-				searchFilenames.Filter(text)
+				searchFilenames.Filter(text, fen.config.FilenameSearchCase)
 				searchFilenames.mutex.Unlock()
 			})
 
@@ -1010,6 +1010,10 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 						optionsForm.AddDropDown(fieldName, ValidFileSizeFormatValues[:], slices.Index(ValidFileSizeFormatValues[:], fieldValue), func(option string, optionIndex int) {
 							*fieldPtr.(*string) = option
 							fen.UpdatePanes(true)
+						})
+					} else if fieldName == "filename_search_case" {
+						optionsForm.AddDropDown(fieldName, ValidFilenameSearchCaseValues[:], slices.Index(ValidFilenameSearchCaseValues[:], fieldValue), func(option string, optionIndex int) {
+							*fieldPtr.(*string) = option
 						})
 					} else {
 						panic("Unknown string option \"" + fieldName + "\"")

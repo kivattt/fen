@@ -1,0 +1,35 @@
+labelType: long
+buildStyle:
+  bold: true
+  foreground: yellow
+startStyle:
+  foreground: lightBlack
+  # foreground: lighYellow
+passStyle:
+  foreground: green
+failStyle:
+  bold: true
+  foreground: lightBlack
+skipStyle:
+  foreground: lightBlack
+  # foreground: lightYellow
+passPackageStyle:
+  foreground: green
+  hide: true
+failPackageStyle:
+  bold: true
+  foreground: red
+  hide: true
+coverThreshold: 50
+coveredStyle:
+  foreground: green
+uncoveredStyle:
+  bold: true
+  foreground: yellow
+fileStyle:
+  foreground: cyan
+lineStyle:
+  foreground: magenta
+leaveTestPrefix: true
+removals:
+  - '=== CONT'

@@ -349,7 +349,7 @@ func TestFindSubstringAllStartIndices(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := FindSubstringAllStartIndices(test.text, test.searchText)
+		got := FindSubstringAllStartIndices(test.text, test.searchText, CASE_SENSITIVE)
 
 		// For some reason, reflect.DeepEqual() doesn't think two empty slices are equal
 		if len(got) == 0 && len(test.expected) == 0 {

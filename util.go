@@ -21,6 +21,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/charlievieth/strcase"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	lua "github.com/yuin/gopher-lua"
@@ -1246,12 +1247,22 @@ func expandTildeTestable(path string, homeDir string) string {
 	return path
 }
 
-func FindSubstringAllStartIndices(s, searchText string) []int {
+// The valid values for the caseSensitivity parameter are defined in ValidFilenameSearchCaseValues (fen.go)
+func FindSubstringAllStartIndices(s, searchText, caseSensitivity string) []int {
 	if s == "" || searchText == "" {
 		return []int{}
 	}
 
 	var result []int
+
+	var stringIndexFunc func(s, substr string) int
+	if caseSensitivity == CASE_INSENSITIVE {
+		stringIndexFunc = strcase.Index
+	} else if caseSensitivity == CASE_SENSITIVE {
+		stringIndexFunc = strings.Index
+	} else {
+		panic("FindSubstringAllStartIndices(): Invalid fen.filename_search.Case value: " + caseSensitivity)
+	}
 
 	i := 0
 	for limit := 0; limit < 100; limit += 1 { // Stop after 100 iterations
@@ -1259,7 +1270,7 @@ func FindSubstringAllStartIndices(s, searchText string) []int {
 			break
 		}
 
-		found := strings.Index(s[i:], searchText)
+		found := stringIndexFunc(s[i:], searchText)
 		if found == -1 {
 			break
 		}

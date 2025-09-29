@@ -59,7 +59,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	//"github.com/charlievieth/strcase"
+	"github.com/charlievieth/strcase"
 )
 
 type SearchFilenames struct {
@@ -104,7 +104,7 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 			s.fen.app.QueueUpdateDraw(func() {
 				s.mutex.Lock()
 				{
-					s.Filter(s.searchTerm)
+					s.Filter(s.searchTerm, s.fen.config.FilenameSearchCase)
 					if s.scrollLocked {
 						s.SetSelectedIndexToSelectedFilename()
 					}
@@ -261,7 +261,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 			s.fen.app.QueueUpdateDraw(func() {
 				s.mutex.Lock()
 				{
-					s.Filter(s.searchTerm)
+					s.Filter(s.searchTerm, s.fen.config.FilenameSearchCase)
 					if s.scrollLocked {
 						s.SetSelectedIndexToSelectedFilename()
 					}
@@ -279,7 +279,8 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 }
 
 // You need to manually lock / unlock the mutex to use this function
-func (s *SearchFilenames) Filter(text string) {
+// The valid values for the caseSensitivity parameter are defined in ValidFilenameSearchCaseValues (fen.go)
+func (s *SearchFilenames) Filter(text, caseSensitivity string) {
 	/*start := time.Now()
 	defer func() {
 		s.fen.bottomBar.TemporarilyShowTextInstead(time.Since(start).String())
@@ -287,11 +288,20 @@ func (s *SearchFilenames) Filter(text string) {
 
 	s.lastSearchTerm = s.searchTerm
 	s.searchTerm = text
-	//s.searchTerm = ToLowerFast(text)
 
 	if s.searchTerm == "" {
 		s.selectedFilenameIndex = max(0, len(s.filenames)-1)
 		return
+	}
+
+	var containsFunc func(s, substr string) bool
+	// FIXME: Use tagged switch suggestion by LSP. I don't know the keybind...
+	if caseSensitivity == CASE_INSENSITIVE {
+		containsFunc = strcase.Contains
+	} else if caseSensitivity == CASE_SENSITIVE {
+		containsFunc = strings.Contains
+	} else {
+		panic("Filter(): Invalid fen.filename_search.Case value: " + caseSensitivity)
 	}
 
 	// On successive characters after the first, we only need to filter s.filenamesFilteredIndices
@@ -310,8 +320,7 @@ func (s *SearchFilenames) Filter(text string) {
 				for i := slice.start; i < slice.start+slice.length; i++ {
 					filenameIndex := s.filenamesFilteredIndices[i]
 					filename := s.filenames[filenameIndex]
-					//filename := ToLowerFast(s.filenames[filenameIndex])
-					if strings.Contains(filename, s.searchTerm) {
+					if containsFunc(filename, s.searchTerm) {
 						ourList = append(ourList, filenameIndex)
 					}
 				}
@@ -352,9 +361,7 @@ func (s *SearchFilenames) Filter(text string) {
 
 				for i := slice.start; i < slice.start+slice.length; i++ {
 					filename := s.filenames[i]
-					//filename := ToLowerFast(s.filenames[i])
-					//if strings.Contains(filename, s.searchTerm) {
-					if strings.Contains(filename, s.searchTerm) {
+					if containsFunc(filename, s.searchTerm) {
 						ourList = append(ourList, i)
 					}
 				}
@@ -416,7 +423,7 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		lastSlash := strings.LastIndexByte(filename, os.PathSeparator)
 
 		// The search match indices in terms of bytes, not runes!
-		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm)
+		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm, s.fen.config.FilenameSearchCase)
 
 		yPos := startY + i
 		runeIndex := -1
