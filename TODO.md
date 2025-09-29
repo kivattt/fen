@@ -7,7 +7,6 @@
 - Get rid of `/`, make it open the search filenames feature. Maybe even restrict to only files in working directory
 
 ## TODOs for the "Search filenames" (f / Ctrl + n) feature
-- Case-insensitive search
 - Show approximate memory usage
 - Add sorting (See the first comment in `searchfilenames.go`)
 - Pack filename strings into a single string builder, instead of []string to lower memory usage (Does this work at all?)
