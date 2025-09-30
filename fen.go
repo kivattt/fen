@@ -74,6 +74,7 @@ const (
 	CASE_INSENSITIVE = "insensitive"
 	CASE_SENSITIVE = "sensitive"
 )
+
 var ValidFilenameSearchCaseValues = [...]string{CASE_INSENSITIVE, CASE_SENSITIVE}
 
 const (
@@ -94,26 +95,6 @@ const (
 )
 
 var ValidFileSizeFormatValues = [...]string{HUMAN_READABLE, BYTES}
-
-func isInvalidFileSizeFormatValue(format string) bool {
-	for _, e := range ValidFileSizeFormatValues {
-		if format == e {
-			return false
-		}
-	}
-
-	return true
-}
-
-func isInvalidSortByValue(sortBy string) bool {
-	for _, e := range ValidSortByValues {
-		if sortBy == e {
-			return false
-		}
-	}
-
-	return true
-}
 
 type PreviewOrOpenEntry struct {
 	Script     string
