@@ -57,9 +57,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/charlievieth/strcase"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/charlievieth/strcase"
 )
 
 type SearchFilenames struct {

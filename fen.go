@@ -72,7 +72,7 @@ var ConfigKeysByTagNameNotToIncludeInOptionsMenu = []string{
 
 const (
 	CASE_INSENSITIVE = "insensitive"
-	CASE_SENSITIVE = "sensitive"
+	CASE_SENSITIVE   = "sensitive"
 )
 
 var ValidFilenameSearchCaseValues = [...]string{CASE_INSENSITIVE, CASE_SENSITIVE}

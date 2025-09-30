@@ -26,7 +26,6 @@ func TestFilter(t *testing.T) {
 	searchTerms := []string{"", ".", ".t", ".tx", ".txt", "e.txt", "le.txt", "a_file", "folders", "long_filename/folders/and/stuff", "no match", "also not a match..."}
 	var s SearchFilenames
 
-
 	fmt.Print("[Benchmark] Filtering (case-sensitive) ", howManyFilenames, " filenames ", loopCount*2*len(searchTerms), " times:")
 	totalStart := time.Now()
 	fillWithFilenames(&s, howManyFilenames, false)
