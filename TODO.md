@@ -3,10 +3,10 @@
 ## TODOs based on feedback
 - Don't ignore Ctrl+C, Ctrl+D, Ctrl+Z
 - Add `more`/`less` to the default program list "I wonder if there's a common legacy text editor that you could fall back to. like, something similar to cat or more"
-- Add case-insensitivity by default for the search filenames feature
 - Get rid of `/`, make it open the search filenames feature. Maybe even restrict to only files in working directory
 
 ## TODOs for the "Search filenames" (f / Ctrl + n) feature
+- Ignore list in config and/or something like a .fenignore file
 - Show approximate memory usage
 - Add sorting (See the first comment in `searchfilenames.go`)
 - Pack filename strings into a single string builder, instead of []string to lower memory usage (Does this work at all?)
