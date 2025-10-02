@@ -7,11 +7,9 @@ replace github.com/gdamore/tcell/v2 => github.com/kivattt/tcell-naively-faster/v
 replace github.com/rivo/tview => github.com/kivattt/tview v1.0.5
 
 require (
+	github.com/charlievieth/strcase v0.0.5
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/rivo/tview v0.0.0-20250625164341-a4a78f1e05cb
-	github.com/yuin/gopher-lua v1.1.1
-	golang.org/x/term v0.28.0
-	layeh.com/gopher-luar v1.0.11
 )
 
 require (
@@ -20,5 +18,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 )

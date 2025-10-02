@@ -4,9 +4,15 @@ import (
 	"github.com/rivo/tview"
 )
 
+const (
+	CASE_INSENSITIVE = "insensitive"
+	CASE_SENSITIVE   = "sensitive"
+)
+
 type Config struct {
 	FileEventIntervalMillis int
 	HiddenFiles             bool
+	FilenameSearchCase      string
 }
 
 type BottomBar struct {
@@ -29,7 +35,7 @@ func NewFen(app *tview.Application) *Fen {
 	return &Fen{
 		//wd: "../..",
 		app:    app,
-		config: Config{FileEventIntervalMillis: 333, HiddenFiles: true},
+		config: Config{FileEventIntervalMillis: 333, HiddenFiles: true, FilenameSearchCase: CASE_INSENSITIVE},
 	}
 }
 

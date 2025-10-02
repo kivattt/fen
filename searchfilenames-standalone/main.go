@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/charlievieth/strcase"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -61,20 +62,30 @@ func SpreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []Slice 
 	return result
 }
 
-func FindSubstringAllStartIndices(s, searchText string) []int {
+// The valid values for the caseSensitivity parameter are defined in ValidFilenameSearchCaseValues (fen.go)
+func FindSubstringAllStartIndices(s, searchText, caseSensitivity string) []int {
 	if s == "" || searchText == "" {
 		return []int{}
 	}
 
 	var result []int
 
+	var stringIndexFunc func(s, substr string) int
+	if caseSensitivity == CASE_INSENSITIVE {
+		stringIndexFunc = strcase.Index
+	} else if caseSensitivity == CASE_SENSITIVE {
+		stringIndexFunc = strings.Index
+	} else {
+		panic("FindSubstringAllStartIndices(): Invalid fen.filename_search.Case value: " + caseSensitivity)
+	}
+
 	i := 0
-	for {
+	for limit := 0; limit < 100; limit += 1 { // Stop after 100 iterations
 		if i >= len(s) {
 			break
 		}
 
-		found := strings.Index(s[i:], searchText)
+		found := stringIndexFunc(s[i:], searchText)
 		if found == -1 {
 			break
 		}
@@ -166,7 +177,7 @@ func main() {
 			searchFilenames := NewSearchFilenames(fen)
 			inputField.SetChangedFunc(func(text string) {
 				searchFilenames.mutex.Lock()
-				searchFilenames.Filter(text)
+				searchFilenames.Filter(text, fen.config.FilenameSearchCase)
 				searchFilenames.mutex.Unlock()
 			})
 
@@ -239,6 +250,7 @@ func main() {
 				AddItem(inputField, 1, 1, true)
 
 			flex.SetBorder(true)
+			flex.SetTitle(" Searching " + fen.wd + " ")
 			pages.AddPage("popup", centered_large(flex, 10), true, true)
 			return nil
 		}

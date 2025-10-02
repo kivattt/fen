@@ -57,6 +57,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/charlievieth/strcase"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -103,7 +104,7 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 			s.fen.app.QueueUpdateDraw(func() {
 				s.mutex.Lock()
 				{
-					s.Filter(s.searchTerm)
+					s.Filter(s.searchTerm, s.fen.config.FilenameSearchCase)
 					if s.scrollLocked {
 						s.SetSelectedIndexToSelectedFilename()
 					}
@@ -165,7 +166,7 @@ func (s *SearchFilenames) GetSelectedFilename() (string, error) {
 	}
 
 	if out == "" {
-		return out, errors.New("No filename selected")
+		return out, errors.New("no filename selected")
 	} else {
 		return out, nil
 	}
@@ -247,7 +248,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 		s.mutex.Unlock()
 
 		delay := 200 * time.Millisecond
-		if s.firstDraw { // A mutex is not necessary here.
+		if s.firstDraw { // A mutex is not necessary here. This variable is only accessed in one thread
 			// We use a shorter delay for the first draw so the user isn't left waiting 200ms for the first files to show up on-screen.
 			delay = 10 * time.Millisecond
 		}
@@ -260,13 +261,14 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 			s.fen.app.QueueUpdateDraw(func() {
 				s.mutex.Lock()
 				{
-					s.Filter(s.searchTerm)
+					s.Filter(s.searchTerm, s.fen.config.FilenameSearchCase)
 					if s.scrollLocked {
 						s.SetSelectedIndexToSelectedFilename()
 					}
 				}
 				s.mutex.Unlock()
 			})
+
 			s.lastDrawTime = time.Now()
 		}
 
@@ -277,7 +279,13 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 }
 
 // You need to manually lock / unlock the mutex to use this function
-func (s *SearchFilenames) Filter(text string) {
+// The valid values for the caseSensitivity parameter are defined in ValidFilenameSearchCaseValues (fen.go)
+func (s *SearchFilenames) Filter(text, caseSensitivity string) {
+	/*start := time.Now()
+	defer func() {
+		s.fen.bottomBar.TemporarilyShowTextInstead(time.Since(start).String())
+	}()*/
+
 	s.lastSearchTerm = s.searchTerm
 	s.searchTerm = text
 
@@ -286,7 +294,18 @@ func (s *SearchFilenames) Filter(text string) {
 		return
 	}
 
+	var containsFunc func(s, substr string) bool
+	// FIXME: Use tagged switch suggestion by LSP. I don't know the keybind...
+	if caseSensitivity == CASE_INSENSITIVE {
+		containsFunc = strcase.Contains
+	} else if caseSensitivity == CASE_SENSITIVE {
+		containsFunc = strings.Contains
+	} else {
+		panic("Filter(): Invalid fen.filename_search.Case value: " + caseSensitivity)
+	}
+
 	// On successive characters after the first, we only need to filter s.filenamesFilteredIndices
+	// TODO: Also do this for insertions at the beginning of the search string!
 	if s.finishedLoading && len(s.lastSearchTerm) > 0 && (s.searchTerm != s.lastSearchTerm) && strings.HasPrefix(s.searchTerm, s.lastSearchTerm) {
 		numGoroutines := runtime.NumCPU()
 		arraySlices := SpreadArrayIntoSlicesForGoroutines(len(s.filenamesFilteredIndices), numGoroutines)
@@ -301,7 +320,7 @@ func (s *SearchFilenames) Filter(text string) {
 				for i := slice.start; i < slice.start+slice.length; i++ {
 					filenameIndex := s.filenamesFilteredIndices[i]
 					filename := s.filenames[filenameIndex]
-					if strings.Contains(filename, s.searchTerm) {
+					if containsFunc(filename, s.searchTerm) {
 						ourList = append(ourList, filenameIndex)
 					}
 				}
@@ -342,7 +361,7 @@ func (s *SearchFilenames) Filter(text string) {
 
 				for i := slice.start; i < slice.start+slice.length; i++ {
 					filename := s.filenames[i]
-					if strings.Contains(filename, s.searchTerm) {
+					if containsFunc(filename, s.searchTerm) {
 						ourList = append(ourList, i)
 					}
 				}
@@ -404,7 +423,7 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		lastSlash := strings.LastIndexByte(filename, os.PathSeparator)
 
 		// The search match indices in terms of bytes, not runes!
-		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm)
+		matchIndices := FindSubstringAllStartIndices(filename, s.searchTerm, s.fen.config.FilenameSearchCase)
 
 		yPos := startY + i
 		runeIndex := -1
