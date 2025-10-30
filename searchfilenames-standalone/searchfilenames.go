@@ -474,7 +474,7 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 		color = green
 	}
 
-	if filenamesLen == 0 {
+	if filenamesLen == 0 && s.finishedLoading {
 		color = tcell.ColorGray
 	}
 
