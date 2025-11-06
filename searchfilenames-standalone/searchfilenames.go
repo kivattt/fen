@@ -185,9 +185,8 @@ func (s *SearchFilenames) SetSelectedIndexAndLockScrollIfLoading(index int) {
 }
 
 func (s *SearchFilenames) GatherFiles(pathInput string) {
-	// I forgot the difference between EvalSymlinks and directly stat-ing the symlink to get its path.
-	// I think EvalSymlinks does so recursively and is slower.
-	// We can afford it to be slow, this is only ran once when you open the search filenames popup.
+	// EvalSymlinks is a recursive, potentially slow function.
+	// We can afford it to be slow, because it is only ran once when you open the search filenames popup.
 	basePathSymlinkResolved, err := filepath.EvalSymlinks(pathInput)
 	if err != nil {
 		s.fen.bottomBar.TemporarilyShowTextInstead(err.Error())
