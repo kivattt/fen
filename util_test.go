@@ -325,3 +325,69 @@ func TestExpandTildeTestable(t *testing.T) {
 		}
 	}
 }
+
+func TestFindSubstringAllStartIndices(t *testing.T) {
+	type TestCase struct {
+		text       string
+		searchText string
+		expected   []int
+	}
+
+	tests := []TestCase{
+		{"", "", []int{}},
+		{"hello", "", []int{}},
+		{"file", "file", []int{0}},
+		{"file.go", "file", []int{0}},
+		{"file.go", ".go", []int{4}},
+		{"file.go.go", ".go", []int{4, 7}},
+		{"aa", "a", []int{0, 1}},
+		{"aa aa", "aa", []int{0, 3}},
+		{"hooks/hooks", "hoo", []int{0, 6}},
+		{"hooks/hooks", "hooo", []int{}},
+		{"Hei Økonomi", "Ø", []int{4}},
+		{"Hei Økonomi", "k", []int{6}}, // Index in terms of bytes
+	}
+
+	for _, test := range tests {
+		got := FindSubstringAllStartIndices(test.text, test.searchText, CASE_SENSITIVE)
+
+		// For some reason, reflect.DeepEqual() doesn't think two empty slices are equal
+		if len(got) == 0 && len(test.expected) == 0 {
+			continue
+		}
+
+		if !reflect.DeepEqual(got, test.expected) {
+			t.Fatal("Expected", test.expected, "but got:", got)
+		}
+	}
+}
+
+func TestSpreadArrayIntoSlicesForGoroutines(t *testing.T) {
+	type TestCase struct {
+		arrayLength   int
+		numGoroutines int
+		expected      []Slice
+	}
+
+	tests := []TestCase{
+		{0, 0, []Slice{}},
+		{1, 4, []Slice{{0, 1}}}, // Less goroutines than elements, will use arrayLength goroutines instead.
+		{1, 1, []Slice{{0, 1}}},
+		{2, 2, []Slice{{0, 1}, {1, 1}}},
+		{3, 2, []Slice{{0, 1}, {1, 2}}},
+		{3, 4, []Slice{{0, 1}, {1, 1}, {2, 1}}}, // Less goroutines than elements, will use arrayLength goroutines instead.
+		{100, 2, []Slice{{0, 50}, {50, 50}}},
+		{500, 4, []Slice{{0, 125}, {125, 125}, {250, 125}, {375, 125}}},
+		{501, 4, []Slice{{0, 125}, {125, 125}, {250, 125}, {375, 126}}},
+		{504, 4, []Slice{{0, 126}, {126, 126}, {252, 126}, {378, 126}}},
+		{505, 4, []Slice{{0, 126}, {126, 126}, {252, 126}, {378, 127}}},
+	}
+
+	for _, test := range tests {
+		got := SpreadArrayIntoSlicesForGoroutines(test.arrayLength, test.numGoroutines)
+
+		if !reflect.DeepEqual(got, test.expected) {
+			t.Fatal("Expected", test.expected, "but got:", got)
+		}
+	}
+}

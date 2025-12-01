@@ -71,6 +71,13 @@ var ConfigKeysByTagNameNotToIncludeInOptionsMenu = []string{
 }
 
 const (
+	CASE_INSENSITIVE = "insensitive"
+	CASE_SENSITIVE   = "sensitive"
+)
+
+var ValidFilenameSearchCaseValues = [...]string{CASE_INSENSITIVE, CASE_SENSITIVE}
+
+const (
 	// SORT_NONE should only be used if fen is too slow loading big folders, because it messes with some things
 	SORT_NONE           = "none" // TODO: Make SORT_NONE also disable the implicit sorting of os.ReadDir()
 	SORT_ALPHABETICAL   = "alphabetical"
@@ -89,24 +96,11 @@ const (
 
 var ValidFileSizeFormatValues = [...]string{HUMAN_READABLE, BYTES}
 
-func isInvalidFileSizeFormatValue(format string) bool {
-	for _, e := range ValidFileSizeFormatValues {
-		if format == e {
-			return false
-		}
-	}
-
-	return true
-}
-
-func isInvalidSortByValue(sortBy string) bool {
-	for _, e := range ValidSortByValues {
-		if sortBy == e {
-			return false
-		}
-	}
-
-	return true
+type PreviewOrOpenEntry struct {
+	Script     string
+	Program    []string // The name used to be "Programs", but this makes more sense for the lua configuration
+	Match      []string
+	DoNotMatch []string
 }
 
 type Config struct {
@@ -133,6 +127,8 @@ type Config struct {
 	CloseOnEscape           bool                 `lua:"close_on_escape"`
 	FileSizeInAllPanes      bool                 `lua:"file_size_in_all_panes"`
 	FileSizeFormat          string               `lua:"file_size_format"` /* Valid values defined in ValidFileSizeFormatValues */
+	PauseOnOpenFile         bool                 `lua:"pause_on_open_file"`
+	FilenameSearchCase      string               `lua:"filename_search_case"` /* Valid values defined in ValidFilenameSearchCaseValues */
 }
 
 func NewConfigDefaultValues() Config {
@@ -148,6 +144,8 @@ func NewConfigDefaultValues() Config {
 		ScrollSpeed:             2,
 		PreviewSafetyBlocklist:  true,
 		FileSizeFormat:          HUMAN_READABLE,
+		PauseOnOpenFile:         true,
+		FilenameSearchCase:      CASE_INSENSITIVE,
 	}
 }
 
@@ -198,13 +196,6 @@ var DefaultPreviewBlocklistCaseInsensitive = []string{
 
 	// Dataset
 	"*.parquet",
-}
-
-type PreviewOrOpenEntry struct {
-	Script     string
-	Program    []string // The name used to be "Programs", but this makes more sense for the lua configuration
-	Match      []string
-	DoNotMatch []string
 }
 
 type PanePos int
@@ -1003,7 +994,7 @@ func (fen *Fen) GoIndex(index int) {
 func (fen *Fen) GoPath(path string) (string, error) {
 	// TODO: Add an option to not enter directories
 
-	/* PLUGINS:
+	/* LUA PLUGINS:
 	 * We should fen.UpdatePanes(true) when we can't find the newPath in the current middlePane (for going to path on renaming)
 	 * This would slow down "Goto path" when going to a non-existent path, but would guarantee this function always works predictably
 	 * so that Lua plugins won't have to manually call fen.UpdatePanes(true) before a fen.GoPath() for recently renamed/created/etc. files

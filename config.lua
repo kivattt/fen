@@ -19,6 +19,8 @@ fen.preview_safety_blocklist = true -- Prevents common sensitive file types from
 fen.close_on_escape = false -- Use the Escape key to close fen, useful for embedding in other applications
 fen.file_size_in_all_panes = false
 fen.file_size_format = "human-readable" -- "fen -h" for valid values
+fen.pause_on_open_file = true -- Set this to false to disable the "Press any key to continue..." prompt after having opened a file
+fen.filename_search_case = "insensitive" -- "insensitive", "sensitive"
 
 -- Everything below this line is non-default examples
 

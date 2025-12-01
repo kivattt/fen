@@ -21,6 +21,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/charlievieth/strcase"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	lua "github.com/yuin/gopher-lua"
@@ -184,6 +185,7 @@ func FolderFileCount(path string, hiddenFiles bool) (int, error) {
 
 func FilePermissionsString(stat os.FileInfo) string {
 	var ret strings.Builder
+	ret.Grow(8) // The output will be 8 bytes long
 
 	permissionChars := "xwr"
 	for i := 8; i >= 0; i-- {
@@ -713,7 +715,7 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 					fmt.Println("Lua error:")
 					fmt.Println(err)
 					PressAnyKeyToContinue("\x1b[1;30m"+pressAnyKeyToContinueText, "\x1b[1;30m"+pressEnterToContinueText)
-					fmt.Print("\x1b[0m\n\n")
+					return
 				}
 
 				break
@@ -731,6 +733,8 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 			if len(fen.selected) <= 0 {
 				cmd = exec.Command(programName, append(programArguments, fen.sel)...)
 			} else {
+				// FIXME: It would be nice if we kept track of the order of selected files,
+				// or sort them first to make the argument order deterministic.
 				cmd = exec.Command(programName, append(programArguments, MapStringBoolKeys(fen.selected)...)...)
 			}
 			cmd.Dir = fen.wd
@@ -742,6 +746,10 @@ func OpenFile(fen *Fen, app *tview.Application, openWith string) error {
 			if err == nil {
 				break
 			}
+		}
+
+		if fen.config.PauseOnOpenFile {
+			PressAnyKeyToContinue("\x1b[1;30m"+"Press \x1b[4many key\x1b[0m\x1b[1;30m to continue...", "\x1b[1;30m"+pressEnterToContinueText)
 		}
 	})
 
@@ -947,11 +955,7 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 	offset := 0
 	for i, c := range filename {
 		if offset >= maxWidth-2 {
-			if runtime.GOOS == "freebsd" {
-				screen.SetContent(x+offset, y, '~', nil, style)
-			} else {
-				screen.SetContent(x+offset, y, '…', nil, style)
-			}
+			screen.SetContent(x+offset, y, missingSpaceRune, nil, style)
 			offset++
 			return offset
 		}
@@ -961,11 +965,7 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 			printableCode := RuneToPrintableCode(c)
 			for _, character := range printableCode {
 				if offset >= maxWidth-2 {
-					if runtime.GOOS == "freebsd" {
-						screen.SetContent(x+offset, y, '~', nil, style)
-					} else {
-						screen.SetContent(x+offset, y, '…', nil, style)
-					}
+					screen.SetContent(x+offset, y, missingSpaceRune, nil, style)
 					offset++
 					return offset
 				}
@@ -982,11 +982,7 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 			printableCode := RuneToPrintableCode(c)
 			for _, character := range printableCode {
 				if offset >= maxWidth-2 {
-					if runtime.GOOS == "freebsd" {
-						screen.SetContent(x+offset, y, '~', nil, style)
-					} else {
-						screen.SetContent(x+offset, y, '…', nil, style)
-					}
+					screen.SetContent(x+offset, y, missingSpaceRune, nil, style)
 					offset++
 					return offset
 				}
@@ -1007,6 +1003,8 @@ func PrintFilenameInvisibleCharactersAsCodeHighlighted(screen tcell.Screen, x, y
 // Falls back to pressEnterText if an error occurred.
 // NOTE: Since this enables terminal raw mode, you need an explicit carriage return for every newline in the arguments (atleast on xterm, Linux)
 func PressAnyKeyToContinue(pressAnyKeyText, pressEnterText string) {
+	defer fmt.Print("\x1b[0m\n\n")
+
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		fmt.Print(pressEnterText)
@@ -1247,4 +1245,88 @@ func expandTildeTestable(path string, homeDir string) string {
 	}
 
 	return path
+}
+
+// The valid values for the caseSensitivity parameter are defined in ValidFilenameSearchCaseValues (fen.go)
+func FindSubstringAllStartIndices(s, searchText, caseSensitivity string) []int {
+	if s == "" || searchText == "" {
+		return []int{}
+	}
+
+	var result []int
+
+	var stringIndexFunc func(s, substr string) int
+	if caseSensitivity == CASE_INSENSITIVE {
+		stringIndexFunc = strcase.Index
+	} else if caseSensitivity == CASE_SENSITIVE {
+		stringIndexFunc = strings.Index
+	} else {
+		panic("FindSubstringAllStartIndices(): Invalid fen.filename_search.Case value: " + caseSensitivity)
+	}
+
+	i := 0
+	for limit := 0; limit < 100; limit += 1 { // Stop after 100 iterations
+		if i >= len(s) {
+			break
+		}
+
+		found := stringIndexFunc(s[i:], searchText)
+		if found == -1 {
+			break
+		}
+
+		i += found
+		result = append(result, i)
+		i += len(searchText)
+	}
+
+	return result
+}
+
+type Slice struct {
+	start  int
+	length int
+}
+
+func SpreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []Slice {
+	if arrayLength == 0 {
+		return []Slice{}
+	}
+
+	if numGoroutines <= 1 {
+		return []Slice{
+			{0, arrayLength},
+		}
+	}
+
+	// More goroutines than there are elements, use arrayLength goroutines instead.
+	// That is, 1 goroutine per element...
+	if numGoroutines >= arrayLength {
+		var result []Slice
+		for i := 0; i < arrayLength; i++ {
+			result = append(result, Slice{i, 1})
+		}
+		return result
+	}
+
+	var result []Slice
+	lengthPerGoroutine := arrayLength / numGoroutines
+
+	rollingIndex := 0
+	for i := 0; i < numGoroutines-1; i++ {
+		result = append(result, Slice{
+			start:  rollingIndex,
+			length: lengthPerGoroutine,
+		})
+
+		rollingIndex += lengthPerGoroutine
+	}
+
+	// Last goroutine will handle the last part of the array
+	result = append(result, Slice{
+		start:  rollingIndex,
+		length: arrayLength - rollingIndex,
+	})
+
+	return result
 }

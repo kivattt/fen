@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"slices"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -15,7 +16,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.23"
+const version = "v1.7.24"
 
 func SetTviewStyles() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
@@ -39,8 +40,13 @@ func SetTviewStyles() {
 	}
 }
 
+var missingSpaceRune rune = '…'
+
 func main() {
 	SetTviewStyles()
+	if runtime.GOOS == "freebsd" {
+		missingSpaceRune = '~'
+	}
 
 	userConfigDir, err := os.UserConfigDir()
 	defaultConfigFilenamePath := ""
@@ -226,15 +232,21 @@ func main() {
 		fen.config.FileSizeFormat = *fileSizeFormat
 	}
 
-	if isInvalidFileSizeFormatValue(fen.config.FileSizeFormat) {
+	if !slices.Contains(ValidFileSizeFormatValues[:], fen.config.FileSizeFormat) {
 		fmt.Fprintln(os.Stderr, "Invalid file_size_format value \""+fen.config.FileSizeFormat+"\"")
 		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidFileSizeFormatValues[:], ", "))
 		os.Exit(1)
 	}
 
-	if isInvalidSortByValue(fen.config.SortBy) {
+	if !slices.Contains(ValidSortByValues[:], fen.config.SortBy) {
 		fmt.Fprintln(os.Stderr, "Invalid sort_by value \""+fen.config.SortBy+"\"")
 		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidSortByValues[:], ", "))
+		os.Exit(1)
+	}
+
+	if !slices.Contains(ValidFilenameSearchCaseValues[:], fen.config.FilenameSearchCase) {
+		fmt.Fprintln(os.Stderr, "Invalid filename_search_case value \""+fen.config.FilenameSearchCase+"\"")
+		fmt.Fprintln(os.Stderr, "Valid values: "+strings.Join(ValidFilenameSearchCaseValues[:], ", "))
 		os.Exit(1)
 	}
 

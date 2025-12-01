@@ -1,16 +1,30 @@
-## Source code comments with "PLUGINS:" in them are for things we have to change to make Lua plugins a possibility in the future
+## Source code comments with "LUA PLUGINS:" in them are for things we have to change to make Lua plugins a possibility in the future
 
-## TODOs, vaguely sorted by priority
+## TODOs based on feedback
+- Don't ignore Ctrl+C, Ctrl+D, Ctrl+Z
+- Add `more`/`less` to the default program list "I wonder if there's a common legacy text editor that you could fall back to. like, something similar to cat or more"
+- Get rid of `/`, make it open the search filenames feature. Maybe even restrict to only files in working directory
 
+## TODOs for the "Search filenames" (f / Ctrl + n) feature
+- Ignore list in config and/or something like a .fenignore file
+- Show approximate memory usage
+- Add sorting (See the first comment in `searchfilenames.go`)
+- Pack filename strings into a single string builder, instead of []string to lower memory usage (Does this work at all?)
+- Insertions at the beginning of the search string should also filter only on the current search results
+
+## TODOs, (very vaguely) sorted by priority
+
+- Bash-like tab-completion in things, especially "Run bash command" modal
+
+- Ctrl+Shift+f to search by content
 - Scrollable search history
-- Better scrolling
+- Better scrolling (leeway either direction, like every other scrolling system in this universe...)
 - It sometimes exits badly, stuff is left on screen ever since async file operations were added
 - Interactive file operations log (with undo when applicable)
 - Make file previews async
 - Changing owner/group, chmod inside fen (probably not, since you can do it with open-with)
 - Make draw functions for top bar / bottom bar scriptable with lua
 - Global selection (selection stored in a file under UserCacheDir ?)
-- Ctrl+Shift+n, Ctrl+Shift+n search by content, search by path name like telescope
 - Check if [dragon](https://github.com/mwh/dragon) works, maybe just make my own built into fen with some gtk wrapper? (bad idea lol)
 - Show current folder size beside disk size?
 - A sort of --no-unicode option, to print the character codes instead of fancy unicode characters

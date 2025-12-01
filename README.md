@@ -37,13 +37,13 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 <kbd>q</kbd> Quit fen\
 <kbd>o</kbd> Options\
 <kbd>z</kbd> or <kbd>Backspace</kbd> Toggle hidden files\
-<kbd>Ctrl + Space</kbd> or <kbd>Ctrl + n</kbd> Open file(s) with specific program\
+<kbd>Ctrl + Space</kbd> or <kbd>Ctrl + b</kbd> Open file(s) with specific program\
 <kbd>!</kbd> Run system shell command (cmd on Windows)\
 <kbd>Home</kbd> or <kbd>g</kbd> Go to the top\
 <kbd>End</kbd> or <kbd>G</kbd> Go to the bottom\
+<kbd>M</kbd> Go to the middle\
 <kbd>Ctrl + Left arrow</kbd> Go to the root folder (or current Git repository if `fen.git_status=true`)\
 <kbd>Ctrl + Right arrow</kbd> Go to the path furthest down in history, follow a symlink or go to the first changed file if `fen.git_status=true`\
-<kbd>M</kbd> Go to the middle\
 <kbd>Page Up</kbd> / <kbd>Page Down</kbd> Scroll up/down an entire page\
 <kbd>H</kbd> Go to the top of the screen\
 <kbd>L</kbd> Go to the bottom of the screen\
@@ -52,6 +52,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 <kbd>d</kbd> Cut file(s)\
 <kbd>p</kbd> Paste file(s)\
 <kbd>/</kbd> or <kbd>Ctrl + f</kbd> Search\
+<kbd>f</kbd> or <kbd>Ctrl + n</kbd> Search filenames recursively\
 <kbd>c</kbd> Goto path\
 <kbd>Space</kbd> Select files\
 <kbd>A</kbd> Flip selection in folder (select all files)\
