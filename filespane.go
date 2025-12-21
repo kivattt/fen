@@ -336,6 +336,11 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 // This results in an inconsistency with SORT_MODIFIED
 // FIXME: Create a local copy and update the entries with a mutex, instead of this cursed entries.Load() MULTIPLE places thing...
 func (fp *FilesPane) FilterAndSortEntries() {
+	start := time.Now()
+	defer func() {
+		fp.fen.bottomBar.TemporarilyShowTextInstead(time.Since(start).String())
+	}()
+
 	if !fp.fen.config.HiddenFiles {
 		withoutHiddenFiles := []os.DirEntry{}
 		for _, e := range fp.entries.Load().([]os.DirEntry) {
@@ -356,12 +361,34 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		})
 	}
 
+
+	type DirEntryResult struct {
+		info fs.FileInfo
+		err error
+	}
+
+	// We cache directory entry file info to avoid unnecessary syscalls during sorting
+	cachedInfoOfDirEntry := func(e fs.DirEntry, dirEntryCache map[fs.DirEntry]DirEntryResult) (fs.FileInfo, error) {
+		lookup, ok := dirEntryCache[e]
+		if ok {
+			return lookup.info, lookup.err
+		} else {
+			info, err := e.Info()
+			if err == nil {
+				dirEntryCache[e] = DirEntryResult{info, err}
+			}
+			return info, err
+		}
+	}
+	dirEntryCache := make(map[fs.DirEntry]DirEntryResult)
+	defer clear(dirEntryCache)
+
 	switch fp.fen.config.SortBy {
 	case SORT_ALPHABETICAL: // Since we already sort alphabetically above, we don't need to do anything
 	case SORT_MODIFIED:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
-			aInfo, aErr := a.Info()
-			bInfo, bErr := b.Info()
+			aInfo, aErr := cachedInfoOfDirEntry(a, dirEntryCache)
+			bInfo, bErr := cachedInfoOfDirEntry(b, dirEntryCache)
 			if aErr != nil || bErr != nil {
 				return 0
 			}
@@ -377,8 +404,8 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		})
 	case SORT_SIZE:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
-			aInfo, aErr := a.Info()
-			bInfo, bErr := b.Info()
+			aInfo, aErr := cachedInfoOfDirEntry(a, dirEntryCache)
+			bInfo, bErr := cachedInfoOfDirEntry(b, dirEntryCache)
 			if aErr != nil || bErr != nil {
 				return 0
 			}
