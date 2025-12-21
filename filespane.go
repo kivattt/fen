@@ -336,11 +336,6 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 // This results in an inconsistency with SORT_MODIFIED
 // FIXME: Create a local copy and update the entries with a mutex, instead of this cursed entries.Load() MULTIPLE places thing...
 func (fp *FilesPane) FilterAndSortEntries() {
-	start := time.Now()
-	defer func() {
-		fp.fen.bottomBar.TemporarilyShowTextInstead(time.Since(start).String())
-	}()
-
 	if !fp.fen.config.HiddenFiles {
 		withoutHiddenFiles := []os.DirEntry{}
 		for _, e := range fp.entries.Load().([]os.DirEntry) {
