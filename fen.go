@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charlievieth/strcase"
 	"github.com/kivattt/gogitstatus"
 	"github.com/rivo/tview"
 	"github.com/yuin/gluamapper"
@@ -919,7 +920,7 @@ func (fen *Fen) GoSearchFirstMatch(searchTerm string) error {
 	}
 
 	for _, e := range fen.middlePane.entries.Load().([]os.DirEntry) {
-		if strings.Contains(strings.ToLower(e.Name()), strings.ToLower(searchTerm)) {
+		if strcase.Contains(e.Name(), searchTerm) {
 			fen.sel = filepath.Join(fen.wd, e.Name())
 			fen.selectingWithVEndIndex = fen.middlePane.GetSelectedIndexFromEntry(e.Name())
 			return nil
