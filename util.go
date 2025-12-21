@@ -511,7 +511,7 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 	if stat.IsDir() {
 		return ret.Foreground(tcell.ColorBlue).Bold(true)
 	} else if stat.Mode().IsRegular() {
-		if stat.Mode()&0111 != 0 || (runtime.GOOS == "windows" && hasSuffixFromList(path, windowsExecutableTypes)) { // Executable file
+		if stat.Mode()&0111 != 0 || (runtime.GOOS == "windows" && hasSuffixFromList(stat.Name(), windowsExecutableTypes)) { // Executable file
 			return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
 		}
 	} else if stat.Mode()&os.ModeSymlink != 0 {
@@ -526,6 +526,16 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 		return ret.Foreground(tcell.ColorDarkGray)
 	}
 
+	// In order of most hit: None (4420), Document (3422), Code (2049), Image (1257), Video (862), Archive (423), Audio (334)
+
+	if hasSuffixFromList(stat.Name(), documentTypes) {
+		return ret.Foreground(tcell.ColorGray)
+	}
+
+	if hasSuffixFromList(stat.Name(), codeTypes) {
+		return ret.Foreground(tcell.ColorNavy)
+	}
+
 	if hasSuffixFromList(stat.Name(), imageTypes) {
 		return ret.Foreground(tcell.ColorOlive)
 	}
@@ -538,16 +548,8 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 		return ret.Foreground(tcell.ColorRed)
 	}
 
-	if hasSuffixFromList(stat.Name(), codeTypes) {
-		return ret.Foreground(tcell.ColorNavy)
-	}
-
 	if hasSuffixFromList(stat.Name(), audioTypes) {
 		return ret.Foreground(tcell.ColorPurple)
-	}
-
-	if hasSuffixFromList(stat.Name(), documentTypes) {
-		return ret.Foreground(tcell.ColorGray)
 	}
 
 	return ret.Foreground(tcell.ColorDefault)

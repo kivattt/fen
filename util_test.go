@@ -397,15 +397,15 @@ func TestSpreadArrayIntoSlicesForGoroutines(t *testing.T) {
 func TestFileColor(t *testing.T) {
 	// It's important to benchmark the mixed-case filename because strings.ToLower() won't do anything if it detects an all-lowercase string.
 	stat := MockFileInfo{
-		name: "fIlE.pnG",
+		name: "fIlE.wav",
 		size: 6969,
 		mode: 0664, // Regular file, 0664 unix permission bits
 		modTime: time.Now(), // Don't care
 		isDir: false,
 	}
 
-	result := FileColor(stat, "/home/user/some/fIlE.pnG")
-	expected := tcell.StyleDefault.Foreground(tcell.ColorOlive) // The color for image files
+	result := FileColor(stat, "/home/user/some/fIlE.wav")
+	expected := tcell.StyleDefault.Foreground(tcell.ColorPurple) // The color for audio files
 	if result != expected {
 		t.Fatal("Expected", expected, ", but got:", result)
 	}
@@ -415,7 +415,7 @@ func TestFileColor(t *testing.T) {
 
 	start := time.Now()
 	for i := 0; i < howManyTimes; i++ {
-		result := FileColor(stat, "/home/user/some/fIlE.pnG")
+		result := FileColor(stat, "/home/user/some/fIlE.wav")
 		if result != expected {
 			t.Fatal("Expected", expected, ", but got:", result)
 		}
