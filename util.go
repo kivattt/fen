@@ -470,6 +470,7 @@ var codeTypes = []string{
 	".vb",
 	".vbs",
 	".vbscript",
+	".odin",
 }
 
 var documentTypes = []string{
