@@ -356,10 +356,9 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		})
 	}
 
-
 	type DirEntryResult struct {
 		info fs.FileInfo
-		err error
+		err  error
 	}
 
 	// We cache directory entry file info to avoid unnecessary syscalls during sorting
