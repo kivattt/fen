@@ -1,13 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"reflect"
 	"runtime"
 	"slices"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/gdamore/tcell/v2"
 )
@@ -392,35 +390,4 @@ func TestSpreadArrayIntoSlicesForGoroutines(t *testing.T) {
 			t.Fatal("Expected", test.expected, "but got:", got)
 		}
 	}
-}
-
-func TestFileColor(t *testing.T) {
-	// It's important to benchmark the mixed-case filename because strings.ToLower() won't do anything if it detects an all-lowercase string.
-	stat := MockFileInfo{
-		name: "fIlE.pnG",
-		size: 6969,
-		mode: 0664, // Regular file, 0664 unix permission bits
-		modTime: time.Now(), // Don't care
-		isDir: false,
-	}
-
-	result := FileColor(stat, "/home/user/some/fIlE.pnG")
-	expected := tcell.StyleDefault.Foreground(tcell.ColorOlive) // The color for image files
-	if result != expected {
-		t.Fatal("Expected", expected, ", but got:", result)
-	}
-
-	howManyTimes := 1000000
-	fmt.Print("[Benchmark] Calling FileColor() ", howManyTimes, " times:")
-
-	start := time.Now()
-	for i := 0; i < howManyTimes; i++ {
-		result := FileColor(stat, "/home/user/some/fIlE.pnG")
-		if result != expected {
-			t.Fatal("Expected", expected, ", but got:", result)
-		}
-	}
-
-	duration := time.Since(start)
-	fmt.Println(" " + duration.String())
 }

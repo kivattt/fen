@@ -497,7 +497,7 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 
 	hasSuffixFromList := func(str string, list []string) bool {
 		for _, e := range list {
-			if strcase.HasSuffix(str, e) {
+			if strings.HasSuffix(strings.ToLower(str), e) {
 				return true
 			}
 		}
@@ -525,27 +525,27 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 		return ret.Foreground(tcell.ColorDarkGray)
 	}
 
-	if hasSuffixFromList(stat.Name(), imageTypes) {
+	if hasSuffixFromList(path, imageTypes) {
 		return ret.Foreground(tcell.ColorOlive)
 	}
 
-	if hasSuffixFromList(stat.Name(), videoTypes) {
+	if hasSuffixFromList(path, videoTypes) {
 		return ret.Foreground(tcell.ColorHotPink)
 	}
 
-	if hasSuffixFromList(stat.Name(), archiveTypes) {
+	if hasSuffixFromList(path, archiveTypes) {
 		return ret.Foreground(tcell.ColorRed)
 	}
 
-	if hasSuffixFromList(stat.Name(), codeTypes) {
+	if hasSuffixFromList(path, codeTypes) {
 		return ret.Foreground(tcell.ColorNavy)
 	}
 
-	if hasSuffixFromList(stat.Name(), audioTypes) {
+	if hasSuffixFromList(path, audioTypes) {
 		return ret.Foreground(tcell.ColorPurple)
 	}
 
-	if hasSuffixFromList(stat.Name(), documentTypes) {
+	if hasSuffixFromList(path, documentTypes) {
 		return ret.Foreground(tcell.ColorGray)
 	}
 
