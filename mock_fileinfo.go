@@ -6,11 +6,11 @@ import (
 )
 
 type MockFileInfo struct {
-	name string
-	size int64
-	mode os.FileMode
+	name    string
+	size    int64
+	mode    os.FileMode
 	modTime time.Time
-	isDir bool
+	isDir   bool
 }
 
 func (info MockFileInfo) Name() string {
@@ -36,4 +36,3 @@ func (info MockFileInfo) IsDir() bool {
 func (info MockFileInfo) Sys() any {
 	return nil
 }
-

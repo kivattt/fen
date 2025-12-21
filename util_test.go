@@ -397,11 +397,11 @@ func TestSpreadArrayIntoSlicesForGoroutines(t *testing.T) {
 func TestFileColor(t *testing.T) {
 	// It's important to benchmark the mixed-case filename because strings.ToLower() won't do anything if it detects an all-lowercase string.
 	stat := MockFileInfo{
-		name: "fIlE.wav",
-		size: 6969,
-		mode: 0664, // Regular file, 0664 unix permission bits
+		name:    "fIlE.wav",
+		size:    6969,
+		mode:    0664,       // Regular file, 0664 unix permission bits
 		modTime: time.Now(), // Don't care
-		isDir: false,
+		isDir:   false,
 	}
 
 	result := FileColor(stat, "/home/user/some/fIlE.wav")
