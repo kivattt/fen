@@ -36,8 +36,9 @@ var librariesList = []library{
 	{name: "gluamapper", url: "https://github.com/yuin/gluamapper", version: "commit d836955", license: "MIT", licenseURL: "https://github.com/yuin/gluamapper/blob/master/LICENSE"},
 	{name: "gopher-luar", url: "https://layeh.com/gopher-luar", version: "v1.0.11", license: "MPL 2.0", licenseURL: "https://github.com/layeh/gopher-luar/blob/master/LICENSE"},
 	{name: "rsc/getopt", url: "https://github.com/rsc/getopt", customRevisionURL: "https://github.com/kivattt/getopt", license: "BSD 3-Clause", licenseURL: "https://github.com/rsc/getopt/blob/master/LICENSE"},
-	{name: "kivattt/gogitstatus", url: "https://github.com/kivattt/gogitstatus", version: "commit 83d8075", license: "MIT", licenseURL: "https://github.com/kivattt/gogitstatus/blob/main/LICENSE"},
+	{name: "kivattt/gogitstatus", url: "https://github.com/kivattt/gogitstatus", version: "commit c545e1f", license: "MIT", licenseURL: "https://github.com/kivattt/gogitstatus/blob/main/LICENSE"},
 	{name: "charlievieth/strcase", url: "https://github.com/charlievieth/strcase", version: "v0.0.5", license: "MIT", licenseURL: "https://github.com/charlievieth/strcase/blob/master/LICENSE"},
+	{name: "botondmester/goignore", url: "https://github.com/botondmester/goignore", version: "commit 6125e06", license: "MIT", licenseURL: "https://github.com/botondmester/goignore/blob/main/LICENSE"},
 }
 
 func (librariesScreen *LibrariesScreen) Draw(screen tcell.Screen) {
@@ -55,9 +56,9 @@ func (librariesScreen *LibrariesScreen) Draw(screen tcell.Screen) {
 	tview.Print(screen, "[::r] Libraries used in fen "+version+" [::-]", x, yOffset, w, tview.AlignCenter, tcell.ColorDefault)
 	tview.Print(screen, "https://github.com/kivattt/fen", 0, yOffset+2, w, tview.AlignCenter, tcell.NewRGBColor(0, 255, 0)) // Green
 
-	libraryListXOffset := max(0, w/2-32)
+	libraryListXOffset := max(0, w/2-33)
 	tview.Print(screen, "┌─[::b]Library", libraryListXOffset, libraryListYOffset-1, w, tview.AlignLeft, tcell.ColorWhite)
-	tview.Print(screen, "┌─[::b]License", libraryListXOffset+54, libraryListYOffset-1, w, tview.AlignLeft, tcell.ColorWhite)
+	tview.Print(screen, "┌─[::b]License", libraryListXOffset+56, libraryListYOffset-1, w, tview.AlignLeft, tcell.ColorWhite)
 
 	darkGrayColor := "[gray:::"
 	if runtime.GOOS == "freebsd" {
@@ -75,6 +76,6 @@ func (librariesScreen *LibrariesScreen) Draw(screen tcell.Screen) {
 		}
 
 		tview.Print(screen, name, libraryListXOffset, i+libraryListYOffset, w, tview.AlignLeft, tcell.ColorDefault)
-		tview.Print(screen, "[-:-:-:"+e.licenseURL+"]"+e.license, libraryListXOffset+54, i+libraryListYOffset, w, tview.AlignLeft, tcell.ColorDefault)
+		tview.Print(screen, "[-:-:-:"+e.licenseURL+"]"+e.license, libraryListXOffset+56, i+libraryListYOffset, w, tview.AlignLeft, tcell.ColorDefault)
 	}
 }

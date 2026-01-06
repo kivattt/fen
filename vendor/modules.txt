@@ -54,7 +54,7 @@ github.com/gdamore/tcell/v2/terminfo/x/xterm_kitty
 # github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
 ## explicit
 github.com/kivattt/getopt
-# github.com/kivattt/gogitstatus v0.0.0-20260106221056-a7df607c138a
+# github.com/kivattt/gogitstatus v0.0.0-20260106222810-c545e1fea070
 ## explicit; go 1.21.5
 github.com/kivattt/gogitstatus
 # github.com/lucasb-eyer/go-colorful v1.2.0
