@@ -14,9 +14,11 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/sabhiram/go-gitignore"
+	//	"github.com/sabhiram/go-gitignore"
+	ignore "github.com/botondmester/goignore"
 )
 
 // A small subset of a Git index entry
@@ -25,8 +27,8 @@ type GitIndexEntry struct {
 	MetadataChangedTimeNanoSeconds uint32 // ctime
 	ModifiedTimeSeconds            uint32
 	ModifiedTimeNanoSeconds        uint32
-	Mode                           uint32 // Contains the file type and unix permission bits
-	Hash                           []byte // 20 bytes for the standard SHA-1
+	Mode                           uint32   // Contains the file type and unix permission bits
+	Hash                           [20]byte // 20 bytes for the standard SHA-1
 }
 
 // This function is only used for path lengths in the .git/index longer than 0xffe bytes
@@ -37,6 +39,7 @@ func readIndexEntryPathName(reader *bytes.Reader) (strings.Builder, error) {
 	// Entry length so far
 	entryLength := 40 + 20 + 2
 
+	// FIXME: Try to do this on the stack instead
 	singleByteSlice := make([]byte, 1)
 	for {
 		_, err := io.ReadFull(reader, singleByteSlice)
@@ -102,10 +105,17 @@ func ParseGitIndex(ctx context.Context, path string) (map[string]GitIndexEntry, 
 	}
 	defer closeFileData(data)
 
+	return ParseGitIndexFromMemory(ctx, data, -1)
+}
+
+// Returns the relative paths mapping to the GitIndexEntry
+// Parses a Git Index file (version 2)
+// Passing a negative value e.g. -1 to maxEntriesToPreAllocate means there will be no limit. Otherwise, we will only pre-allocate up to that many entries.
+func ParseGitIndexFromMemory(ctx context.Context, data []byte, maxEntriesToPreAllocate int) (map[string]GitIndexEntry, error) {
 	reader := bytes.NewReader(data)
 
 	headerBytes := make([]byte, 12)
-	_, err = io.ReadFull(reader, headerBytes)
+	_, err := io.ReadFull(reader, headerBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +130,18 @@ func ParseGitIndex(ctx context.Context, path string) (map[string]GitIndexEntry, 
 	}
 
 	numEntries := binary.BigEndian.Uint32(headerBytes[8:12])
-	entries := make(map[string]GitIndexEntry)
+	var entries map[string]GitIndexEntry
+	if maxEntriesToPreAllocate < 0 {
+		entries = make(map[string]GitIndexEntry, numEntries)
+	} else {
+		entries = make(map[string]GitIndexEntry, min(uint32(maxEntriesToPreAllocate), numEntries))
+	}
+
+	flagsBytes := make([]byte, 2)         // 16 bits 'flags' field
+	modeBytes := make([]byte, 4)          // 32 bits
+	eightBytes := make([]byte, 8)         // 64 bits
+	hashBytes := make([]byte, 20)         // 160 bits
+	pathNameBuffer := make([]byte, 0xffe) // We allocate enough for the largest possible known-size (not null-terminated) Git path name length.
 
 	var entryIndex uint32
 	for entryIndex = 0; entryIndex < numEntries; entryIndex++ {
@@ -128,23 +149,21 @@ func ParseGitIndex(ctx context.Context, path string) (map[string]GitIndexEntry, 
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			// Read 64-bit metadata changed time
-			cTimeBytes := make([]byte, 8) // 64 bits
-			if _, err := io.ReadFull(reader, cTimeBytes); err != nil {
+			// Read 64-bit metadata changed time (ctime)
+			if _, err := io.ReadFull(reader, eightBytes); err != nil {
 				return nil, errors.New("invalid size, unable to read 64-bit metadata changed time (ctime) within entry at index " + strconv.FormatInt(int64(entryIndex), 10))
 			}
 
-			ctimeSeconds := binary.BigEndian.Uint32(cTimeBytes[:4])
-			ctimeNanoSeconds := binary.BigEndian.Uint32(cTimeBytes[4:])
+			ctimeSeconds := binary.BigEndian.Uint32(eightBytes[:4])
+			ctimeNanoSeconds := binary.BigEndian.Uint32(eightBytes[4:])
 
-			// Read 64-bit modified time
-			mTimeBytes := make([]byte, 8) // 64 bits
-			if _, err := io.ReadFull(reader, mTimeBytes); err != nil {
+			// Read 64-bit modified time (mTime)
+			if _, err := io.ReadFull(reader, eightBytes); err != nil {
 				return nil, errors.New("invalid size, unable to read 64-bit modified time within entry at index " + strconv.FormatInt(int64(entryIndex), 10))
 			}
 
-			mTimeSeconds := binary.BigEndian.Uint32(mTimeBytes[:4])
-			mTimeNanoSeconds := binary.BigEndian.Uint32(mTimeBytes[4:])
+			mTimeSeconds := binary.BigEndian.Uint32(eightBytes[:4])
+			mTimeNanoSeconds := binary.BigEndian.Uint32(eightBytes[4:])
 
 			// Seek to 32-bit mode
 			if _, err := reader.Seek(8, 1); err != nil { // 64 bits
@@ -152,12 +171,11 @@ func ParseGitIndex(ctx context.Context, path string) (map[string]GitIndexEntry, 
 			}
 
 			// Read 32-bit mode
-			bytes := make([]byte, 4) // 32 bits
-			if _, err := io.ReadFull(reader, bytes); err != nil {
+			if _, err := io.ReadFull(reader, modeBytes); err != nil {
 				return nil, errors.New("invalid size, unable to read 32-bit mode within entry at index " + strconv.FormatInt(int64(entryIndex), 10))
 			}
 
-			mode := binary.BigEndian.Uint32(bytes)
+			mode := binary.BigEndian.Uint32(modeBytes)
 
 			// Seek to "object name" (hash data)
 			if _, err := reader.Seek(12, 1); err != nil { // 96 bits
@@ -165,12 +183,10 @@ func ParseGitIndex(ctx context.Context, path string) (map[string]GitIndexEntry, 
 			}
 
 			// Read hash data
-			hash := make([]byte, 20) // 160 bits
-			if _, err := io.ReadFull(reader, hash); err != nil {
+			if _, err := io.ReadFull(reader, hashBytes); err != nil {
 				return nil, errors.New("invalid size, unable to read 20-byte SHA-1 hash at index " + strconv.FormatUint(uint64(entryIndex), 10))
 			}
 
-			flagsBytes := make([]byte, 2) // 16 bits 'flags' field
 			if _, err := io.ReadFull(reader, flagsBytes); err != nil {
 				return nil, errors.New("invalid size, unable to read 2-byte flags field at index " + strconv.FormatUint(uint64(entryIndex), 10))
 			}
@@ -178,20 +194,19 @@ func ParseGitIndex(ctx context.Context, path string) (map[string]GitIndexEntry, 
 			flags := binary.BigEndian.Uint16(flagsBytes)
 			nameLength := flags & 0xfff
 
-			var pathName strings.Builder
-			if nameLength == 0xfff { // Path name length >= 0xfff, need to manually find null bytes
+			var pathName strings.Builder // TODO: Do we really want this to be a string builder? Might be faster to avoid it entirely?
+			if nameLength == 0xfff {     // Path name length >= 0xfff, need to manually find null bytes
 				// Read variable-length path name
 				pathName, err = readIndexEntryPathName(reader)
 				if err != nil {
 					return nil, err
 				}
 			} else {
-				bytes := make([]byte, nameLength)
-				if _, err := io.ReadFull(reader, bytes); err != nil {
+				if _, err := io.ReadFull(reader, pathNameBuffer[:nameLength]); err != nil {
 					return nil, errors.New("invalid size, unable to read path name of size " + strconv.FormatUint(uint64(nameLength), 10) + " at index " + strconv.FormatUint(uint64(entryIndex), 10))
 				}
 
-				pathName.Write(bytes)
+				pathName.Write(pathNameBuffer[:nameLength])
 				entryLength := 40 + 20 + 2 // Entry length so far
 				// Read up to 8 null padding bytes
 				n := 8 - ((int(nameLength) + entryLength) % 8)
@@ -199,12 +214,11 @@ func ParseGitIndex(ctx context.Context, path string) (map[string]GitIndexEntry, 
 					n = 8
 				}
 
-				b := make([]byte, n)
-				if _, err = io.ReadFull(reader, b); err != nil {
+				if _, err = io.ReadFull(reader, eightBytes[:n]); err != nil {
 					return nil, errors.New("invalid size, unable to read path name null bytes of size " + strconv.FormatUint(uint64(n), 10) + " at index " + strconv.FormatUint(uint64(entryIndex), 10))
 				}
 
-				for _, e := range b {
+				for _, e := range eightBytes[:n] {
 					if e != 0 {
 						return nil, errors.New("non-null byte found in null padding of length " + strconv.FormatUint(uint64(n), 10))
 					}
@@ -217,7 +231,7 @@ func ParseGitIndex(ctx context.Context, path string) (map[string]GitIndexEntry, 
 				ModifiedTimeSeconds:            mTimeSeconds,
 				ModifiedTimeNanoSeconds:        mTimeNanoSeconds,
 				Mode:                           mode,
-				Hash:                           hash,
+				Hash:                           [20]byte(hashBytes),
 			}
 		}
 	}
@@ -274,7 +288,7 @@ func hashMatches(path string, stat os.FileInfo, hash []byte) bool {
 	return reflect.DeepEqual(hash, newHash.Sum(nil))
 }
 
-type WhatChanged int
+type WhatChanged uint8
 
 const (
 	// https://github.com/git/git/blob/ef8ce8f3d4344fd3af049c17eeba5cd20d98b69f/statinfo.h#L35
@@ -340,7 +354,8 @@ const REGULAR_FILE = 0b1000 << 12
 const SYMBOLIC_LINK = 0b1010 << 12
 const GITLINK = 0b1110 << 12
 
-// If you pass this a nil value for stat, it will return 0
+// Returns 0 if the file is unchanged.
+// If you pass this a nil value for stat, it will return 0.
 // https://github.com/git/git/blob/ef8ce8f3d4344fd3af049c17eeba5cd20d98b69f/read-cache.c#L307
 func fileChanged(entry GitIndexEntry, entryFullPath string, stat os.FileInfo) WhatChanged {
 	if stat == nil {
@@ -384,7 +399,7 @@ func fileChanged(entry GitIndexEntry, entryFullPath string, stat os.FileInfo) Wh
 
 	// TODO: Store mtime and ctime to check for change here, as is done in the match_stat_data() function in Git
 
-	if !hashMatches(entryFullPath, stat, entry.Hash) {
+	if !hashMatches(entryFullPath, stat, entry.Hash[:]) {
 		whatChanged |= DATA_CHANGED
 	}
 
@@ -405,8 +420,11 @@ func ignoreMatch(path string, ignoresMap map[string]*ignore.GitIgnore) bool {
 			return false
 		}
 
-		if ok && ignore.MatchesPath(rel) {
-			return true
+		if ok {
+			isIgnored, _ := ignore.MatchesPath(rel)
+			if isIgnored {
+				return true
+			}
 		}
 
 		// Debugging
@@ -421,8 +439,9 @@ func ignoreMatch(path string, ignoresMap map[string]*ignore.GitIgnore) bool {
 	}
 }
 
-// Recursively iterates through the directory path, returning a list of all the filepaths found, ignoring files/directories named ".git" and untracked files ignored by .gitignore
-func AccumulatePathsNotIgnored(ctx context.Context, path string, indexEntries map[string]GitIndexEntry, respectGitIgnore bool) (map[string]ChangedFile, error) {
+// Returns untracked files that aren't ignored.
+// It recursively iterates through the directory path, ignoring files/directories named ".git" and files ignored by .gitignore
+func UntrackedPathsNotIgnored(ctx context.Context, path string, indexEntries map[string]GitIndexEntry, respectGitIgnore bool) (map[string]ChangedFile, error) {
 	ignoresMap := make(map[string]*ignore.GitIgnore)
 
 	paths := make(map[string]ChangedFile)
@@ -443,9 +462,12 @@ func AccumulatePathsNotIgnored(ctx context.Context, path string, indexEntries ma
 
 			// If it's in the .git/index, it's tracked
 			_, tracked := indexEntries[filepath.ToSlash(rel)]
+			if tracked {
+				return nil
+			}
 
-			// Don't add untracked ignored files
-			if respectGitIgnore && !tracked {
+			// Don't add ignored files
+			if respectGitIgnore {
 				if d.IsDir() {
 					childIgnore, err := ignore.CompileIgnoreFile(filepath.Join(filePath, ".gitignore"))
 					if err == nil {
@@ -479,7 +501,7 @@ func AccumulatePathsNotIgnored(ctx context.Context, path string, indexEntries ma
 				return nil
 			}
 
-			paths[rel] = ChangedFile{Untracked: !tracked}
+			paths[rel] = ChangedFile{Untracked: true}
 			return nil
 		}
 	})
@@ -582,7 +604,7 @@ func StatusRaw(ctx context.Context, path string, gitIndexPath string, respectGit
 	// If .git/index file is missing, all files are unstaged/untracked
 	_, err = os.Stat(gitIndexPath)
 	if err != nil {
-		return AccumulatePathsNotIgnored(ctx, path, make(map[string]GitIndexEntry), respectGitIgnore)
+		return UntrackedPathsNotIgnored(ctx, path, make(map[string]GitIndexEntry), respectGitIgnore)
 	}
 
 	indexEntries, err := ParseGitIndex(ctx, gitIndexPath)
@@ -590,46 +612,48 @@ func StatusRaw(ctx context.Context, path string, gitIndexPath string, respectGit
 		return nil, errors.New("unable to read " + gitIndexPath + ": " + err.Error())
 	}
 
-	paths, err := AccumulatePathsNotIgnored(ctx, path, indexEntries, respectGitIgnore)
-	if err != nil {
-		return nil, err
-	}
+	var untrackedPaths map[string]ChangedFile
+	var pathsErr error
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		untrackedPaths, pathsErr = UntrackedPathsNotIgnored(ctx, path, indexEntries, respectGitIgnore)
+		wg.Done()
+	}()
 
-	// Filter unchanged files
-	for p, entry := range indexEntries {
+	out := make(map[string]ChangedFile)
+
+	// Add all the tracked files that were changed or deleted.
+	for entryPath, entry := range indexEntries {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
-			pFromSlash := filepath.FromSlash(p)
-			fullPath := filepath.Join(path, pFromSlash)
-
-			_, pathFound := paths[pFromSlash]
+			entryPathFromSlash := filepath.FromSlash(entryPath)
+			fullPath := filepath.Join(path, entryPathFromSlash)
 
 			stat, statErr := os.Lstat(fullPath)
 			if statErr != nil {
-				stat = nil // Just to be sure
-
-				if pathFound { // Deleted file
-					delete(paths, pFromSlash)
-					continue
-				} else {
-					// File is tracked but ignored, so we didn't add it previously. This might cause bugs?
-
-					// Deleted files need to be added since we previously only added files that already exist on the filesystem
-					paths[pFromSlash] = ChangedFile{WhatChanged: DELETED, Untracked: false}
-					continue
-				}
-			}
-
-			whatChanged := fileChanged(entry, fullPath, stat)
-			if whatChanged == 0 {
-				delete(paths, pFromSlash)
+				out[entryPathFromSlash] = ChangedFile{WhatChanged: DELETED, Untracked: false}
 			} else {
-				paths[pFromSlash] = ChangedFile{WhatChanged: whatChanged, Untracked: false}
+				whatChanged := fileChanged(entry, fullPath, stat)
+				if whatChanged != 0 {
+					out[entryPathFromSlash] = ChangedFile{WhatChanged: whatChanged, Untracked: false}
+				}
 			}
 		}
 	}
 
-	return paths, nil
+	wg.Wait()
+
+	if pathsErr != nil {
+		return nil, pathsErr
+	}
+
+	// Add untracked files
+	for k, v := range untrackedPaths {
+		out[k] = v
+	}
+
+	return out, nil
 }

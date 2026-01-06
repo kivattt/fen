@@ -1529,15 +1529,15 @@ func (t *tScreen) parseClipboard(buf *bytes.Buffer, evs *[]Event) (bool, bool) {
 
 	for _, c := range b {
 		// valid base64 digits
-		if state == 0 {
+		if (state == 0) {
 			if (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (c == '+') || (c == '/') || (c == '=') {
 				continue
 			}
-			if c == '\x1b' {
+			if (c == '\x1b') {
 				state = 1
 				continue
 			}
-			if c == '\a' {
+			if (c == '\a') {
 				// matched with BEL instead of ST
 				b = b[:len(b)-1] // drop the trailing BEL
 				decoded := make([]byte, base64.StdEncoding.DecodedLen(len(b)))
@@ -1549,8 +1549,8 @@ func (t *tScreen) parseClipboard(buf *bytes.Buffer, evs *[]Event) (bool, bool) {
 			}
 			return false, false
 		}
-		if state == 1 {
-			if c == '\\' {
+		if (state == 1)  {
+			if (c == '\\') {
 				b = b[:len(b)-2] // drop the trailing ST (\x1b\\)
 				// now decode the data
 				decoded := make([]byte, base64.StdEncoding.DecodedLen(len(b)))

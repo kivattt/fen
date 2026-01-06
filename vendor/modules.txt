@@ -1,3 +1,6 @@
+# github.com/botondmester/goignore v0.0.0-20260103132253-6125e06795f3
+## explicit; go 1.21.5
+github.com/botondmester/goignore
 # github.com/charlievieth/strcase v0.0.5
 ## explicit; go 1.19
 github.com/charlievieth/strcase
@@ -51,7 +54,7 @@ github.com/gdamore/tcell/v2/terminfo/x/xterm_kitty
 # github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
 ## explicit
 github.com/kivattt/getopt
-# github.com/kivattt/gogitstatus v0.0.0-20250108154353-83d8075e2b11
+# github.com/kivattt/gogitstatus v0.0.0-20260106221056-a7df607c138a
 ## explicit; go 1.21.5
 github.com/kivattt/gogitstatus
 # github.com/lucasb-eyer/go-colorful v1.2.0
@@ -74,9 +77,8 @@ github.com/rivo/tview
 github.com/rivo/uniseg
 # github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 ## explicit; go 1.13
-github.com/sabhiram/go-gitignore
-# github.com/stretchr/testify v1.8.0
-## explicit; go 1.13
+# github.com/stretchr/testify v1.10.0
+## explicit; go 1.17
 # github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 ## explicit
 github.com/yuin/gluamapper

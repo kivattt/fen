@@ -1,3 +1,5 @@
+github.com/botondmester/goignore v0.0.0-20260103132253-6125e06795f3 h1:0+23tmCwBL/tfYL36lFJw3HLFsvR6SJWwTfcd1Wor5Y=
+github.com/botondmester/goignore v0.0.0-20260103132253-6125e06795f3/go.mod h1:Y6kZdVPUsR9nnp7OpR8Jc18SdqRWop3VMjLVnawWdwo=
 github.com/charlievieth/strcase v0.0.5 h1:gV4iXVyD6eI5KdfOV+/vIVCKXZwtCWOmDMcu7Uy00Rs=
 github.com/charlievieth/strcase v0.0.5/go.mod h1:FIOYY1aDBMSIOFqmVomHBpoK+bteGlESRsgsdWjrhx8=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
@@ -14,6 +16,8 @@ github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f h1:myfMHJX0b7esBOYu
 github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f/go.mod h1:XbVdQu8SHHjoqISPmGcFvHQ8xFuutDrbc4pdw1US62s=
 github.com/kivattt/gogitstatus v0.0.0-20250108154353-83d8075e2b11 h1:9TOlJV/zJD4TsHaQ3dhiK3abPmTCRajAet5YkOsmdNE=
 github.com/kivattt/gogitstatus v0.0.0-20250108154353-83d8075e2b11/go.mod h1:PnoARDQ/sJtGyx+UYcX2OqHjbA4akv7oj1b3CmncZLs=
+github.com/kivattt/gogitstatus v0.0.0-20260106221056-a7df607c138a h1:dvmYw3j9aXkVThcQOej5fN3iFkJnWkDgjxJY7ZOtYxI=
+github.com/kivattt/gogitstatus v0.0.0-20260106221056-a7df607c138a/go.mod h1:DHalOaTqQtYbLyAP3MpKsQ18Vd1K9+qs9gZrPeQm4GI=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1 h1:+kTjmvCYTLoEb7evW3UoJM3lMaV+TQKaVzAou2xMoqw=
 github.com/kivattt/tcell-naively-faster/v2 v2.0.1/go.mod h1:2tg6gQmD3C2WJK0NBUrWnjIV6nSjv+j5w/+monQdfVI=
 github.com/kivattt/tview v1.0.6 h1:G/mU8e80x9Lpu8O1D0ChhIBDL4t3W2Sqtn3Z15tioa0=
@@ -43,6 +47,7 @@ github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0 h1:pSgiaMZlXftHpm5L7V1+rVB+AZJydKsMxsQBIJw4PKk=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
+github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7 h1:noHsffKZsNfU38DwcXWEPldrTjIZ8FPNKx8mYMGnqjs=
 github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7/go.mod h1:bbMEM6aU1WDF1ErA5YJ0p91652pGv140gGw4Ww3RGp8=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
