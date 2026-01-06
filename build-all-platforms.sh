@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 # In case of build errors, install the latest Go version
 bin=./bin
 
