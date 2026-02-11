@@ -36,6 +36,10 @@ for line in io.lines(fen.selectedFile) do
 	local x = 0
 
 	for i = 1, #line do
+		if x >= fen.Width then
+			break
+		end
+
 		char = line:sub(i,i)
 		local nextIdx = math.min(#line, i + 1)
 		nextChar = line:sub(nextIdx,nextIdx)
