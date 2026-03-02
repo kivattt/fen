@@ -164,7 +164,7 @@ func FolderFileCountCached(cache map[string]int, path string, hiddenFiles bool) 
 }
 
 func FolderFileCount(path string, hiddenFiles bool) (int, error) {
-	files, err := os.ReadDir(path)
+	files, err := myReadDir(path)
 	if err != nil {
 		return 0, err
 	}

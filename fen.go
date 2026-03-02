@@ -242,7 +242,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 
 	fen.bottomBar = NewBottomBar(fen)
 
-	wdFiles, err := os.ReadDir(fen.wd)
+	wdFiles, err := myReadDir(fen.wd)
 	shouldSelectSpecifiedFile := false
 
 	stat, statErr := os.Stat(fen.wd)
@@ -257,7 +257,7 @@ func (fen *Fen) Init(path string, app *tview.Application, helpScreenVisible *boo
 		}
 
 		fen.wd = filepath.Dir(fen.wd)
-		wdFiles, err = os.ReadDir(fen.wd)
+		wdFiles, err = myReadDir(fen.wd)
 	}
 
 	if len(wdFiles) > 0 {

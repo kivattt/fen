@@ -318,7 +318,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 	if err == nil && statIsDir {
 		fp.fileWatcher.Remove(fp.folder)
 		fp.folder = path
-		newEntries, _ := os.ReadDir(fp.folder)
+		newEntries, _ := myReadDir(fp.folder)
 		fp.entries.Store(newEntries)
 		fp.fileWatcher.Add(fp.folder) // This has to be after the os.ReadDir() so we have something to update
 
