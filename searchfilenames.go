@@ -294,12 +294,13 @@ func (s *SearchFilenames) Filter(text, caseSensitivity string) {
 	}
 
 	var containsFunc func(s, substr string) bool
-	// FIXME: Use tagged switch suggestion by LSP. I don't know the keybind...
-	if caseSensitivity == CASE_INSENSITIVE {
+
+	switch caseSensitivity {
+	case CASE_INSENSITIVE:
 		containsFunc = strcase.Contains
-	} else if caseSensitivity == CASE_SENSITIVE {
+	case CASE_SENSITIVE:
 		containsFunc = strings.Contains
-	} else {
+	default:
 		panic("Filter(): Invalid fen.filename_search.Case value: " + caseSensitivity)
 	}
 
