@@ -318,7 +318,7 @@ func (fp *FilesPane) ChangeDir(path string, forceReadDir bool) {
 	if err == nil && statIsDir {
 		fp.fileWatcher.Remove(fp.folder)
 		fp.folder = path
-		newEntries, _ := os.ReadDir(fp.folder)
+		newEntries, _ := myReadDir(fp.folder)
 		fp.entries.Store(newEntries)
 		fp.fileWatcher.Add(fp.folder) // This has to be after the os.ReadDir() so we have something to update
 
@@ -356,12 +356,33 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		})
 	}
 
+	type DirEntryResult struct {
+		info fs.FileInfo
+		err  error
+	}
+
+	// We cache directory entry file info to avoid unnecessary syscalls during sorting
+	cachedInfoOfDirEntry := func(e fs.DirEntry, dirEntryCache map[fs.DirEntry]DirEntryResult) (fs.FileInfo, error) {
+		lookup, ok := dirEntryCache[e]
+		if ok {
+			return lookup.info, lookup.err
+		} else {
+			info, err := e.Info()
+			if err == nil {
+				dirEntryCache[e] = DirEntryResult{info, err}
+			}
+			return info, err
+		}
+	}
+	dirEntryCache := make(map[fs.DirEntry]DirEntryResult)
+	defer clear(dirEntryCache)
+
 	switch fp.fen.config.SortBy {
 	case SORT_ALPHABETICAL: // Since we already sort alphabetically above, we don't need to do anything
 	case SORT_MODIFIED:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
-			aInfo, aErr := a.Info()
-			bInfo, bErr := b.Info()
+			aInfo, aErr := cachedInfoOfDirEntry(a, dirEntryCache)
+			bInfo, bErr := cachedInfoOfDirEntry(b, dirEntryCache)
 			if aErr != nil || bErr != nil {
 				return 0
 			}
@@ -377,8 +398,8 @@ func (fp *FilesPane) FilterAndSortEntries() {
 		})
 	case SORT_SIZE:
 		slices.SortStableFunc(fp.entries.Load().([]os.DirEntry), func(a, b fs.DirEntry) int {
-			aInfo, aErr := a.Info()
-			bInfo, bErr := b.Info()
+			aInfo, aErr := cachedInfoOfDirEntry(a, dirEntryCache)
+			bInfo, bErr := cachedInfoOfDirEntry(b, dirEntryCache)
 			if aErr != nil || bErr != nil {
 				return 0
 			}

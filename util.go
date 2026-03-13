@@ -164,7 +164,7 @@ func FolderFileCountCached(cache map[string]int, path string, hiddenFiles bool) 
 }
 
 func FolderFileCount(path string, hiddenFiles bool) (int, error) {
-	files, err := os.ReadDir(path)
+	files, err := myReadDir(path)
 	if err != nil {
 		return 0, err
 	}
@@ -470,6 +470,7 @@ var codeTypes = []string{
 	".vb",
 	".vbs",
 	".vbscript",
+	".odin",
 }
 
 var documentTypes = []string{
@@ -497,7 +498,7 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 
 	hasSuffixFromList := func(str string, list []string) bool {
 		for _, e := range list {
-			if strings.HasSuffix(strings.ToLower(str), e) {
+			if strcase.HasSuffix(str, e) {
 				return true
 			}
 		}
@@ -510,7 +511,7 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 	if stat.IsDir() {
 		return ret.Foreground(tcell.ColorBlue).Bold(true)
 	} else if stat.Mode().IsRegular() {
-		if stat.Mode()&0111 != 0 || (runtime.GOOS == "windows" && hasSuffixFromList(path, windowsExecutableTypes)) { // Executable file
+		if stat.Mode()&0111 != 0 || (runtime.GOOS == "windows" && hasSuffixFromList(stat.Name(), windowsExecutableTypes)) { // Executable file
 			return ret.Foreground(tcell.NewRGBColor(0, 255, 0)).Bold(true) // Green
 		}
 	} else if stat.Mode()&os.ModeSymlink != 0 {
@@ -525,28 +526,30 @@ func FileColor(stat os.FileInfo, path string) tcell.Style {
 		return ret.Foreground(tcell.ColorDarkGray)
 	}
 
-	if hasSuffixFromList(path, imageTypes) {
-		return ret.Foreground(tcell.ColorOlive)
+	// In order of most hit: None (4420), Document (3422), Code (2049), Image (1257), Video (862), Archive (423), Audio (334)
+
+	if hasSuffixFromList(stat.Name(), documentTypes) {
+		return ret.Foreground(tcell.ColorGray)
 	}
 
-	if hasSuffixFromList(path, videoTypes) {
-		return ret.Foreground(tcell.ColorHotPink)
-	}
-
-	if hasSuffixFromList(path, archiveTypes) {
-		return ret.Foreground(tcell.ColorRed)
-	}
-
-	if hasSuffixFromList(path, codeTypes) {
+	if hasSuffixFromList(stat.Name(), codeTypes) {
 		return ret.Foreground(tcell.ColorNavy)
 	}
 
-	if hasSuffixFromList(path, audioTypes) {
-		return ret.Foreground(tcell.ColorPurple)
+	if hasSuffixFromList(stat.Name(), imageTypes) {
+		return ret.Foreground(tcell.ColorOlive)
 	}
 
-	if hasSuffixFromList(path, documentTypes) {
-		return ret.Foreground(tcell.ColorGray)
+	if hasSuffixFromList(stat.Name(), videoTypes) {
+		return ret.Foreground(tcell.ColorHotPink)
+	}
+
+	if hasSuffixFromList(stat.Name(), archiveTypes) {
+		return ret.Foreground(tcell.ColorRed)
+	}
+
+	if hasSuffixFromList(stat.Name(), audioTypes) {
+		return ret.Foreground(tcell.ColorPurple)
 	}
 
 	return ret.Foreground(tcell.ColorDefault)

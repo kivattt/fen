@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"runtime"
 	"slices"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 )
@@ -371,11 +373,11 @@ func TestSpreadArrayIntoSlicesForGoroutines(t *testing.T) {
 
 	tests := []TestCase{
 		{0, 0, []Slice{}},
-		{1, 4, []Slice{{0, 1}}}, // Less goroutines than elements, will use arrayLength goroutines instead.
+		{1, 4, []Slice{{0, 1}}}, // Less elements than goroutines, will use arrayLength goroutines instead.
 		{1, 1, []Slice{{0, 1}}},
 		{2, 2, []Slice{{0, 1}, {1, 1}}},
 		{3, 2, []Slice{{0, 1}, {1, 2}}},
-		{3, 4, []Slice{{0, 1}, {1, 1}, {2, 1}}}, // Less goroutines than elements, will use arrayLength goroutines instead.
+		{3, 4, []Slice{{0, 1}, {1, 1}, {2, 1}}}, // Less elements than goroutines, will use arrayLength goroutines instead.
 		{100, 2, []Slice{{0, 50}, {50, 50}}},
 		{500, 4, []Slice{{0, 125}, {125, 125}, {250, 125}, {375, 125}}},
 		{501, 4, []Slice{{0, 125}, {125, 125}, {250, 125}, {375, 126}}},
@@ -390,4 +392,35 @@ func TestSpreadArrayIntoSlicesForGoroutines(t *testing.T) {
 			t.Fatal("Expected", test.expected, "but got:", got)
 		}
 	}
+}
+
+func TestFileColor(t *testing.T) {
+	// It's important to benchmark the mixed-case filename because strings.ToLower() won't do anything if it detects an all-lowercase string.
+	stat := MockFileInfo{
+		name:    "fIlE.wav",
+		size:    6969,
+		mode:    0664,       // Regular file, 0664 unix permission bits
+		modTime: time.Now(), // Don't care
+		isDir:   false,
+	}
+
+	result := FileColor(stat, "/home/user/some/fIlE.wav")
+	expected := tcell.StyleDefault.Foreground(tcell.ColorPurple) // The color for audio files
+	if result != expected {
+		t.Fatal("Expected", expected, ", but got:", result)
+	}
+
+	howManyTimes := 1000000
+	fmt.Print("[Benchmark] Calling FileColor() ", howManyTimes, " times:")
+
+	start := time.Now()
+	for i := 0; i < howManyTimes; i++ {
+		result := FileColor(stat, "/home/user/some/fIlE.wav")
+		if result != expected {
+			t.Fatal("Expected", expected, ", but got:", result)
+		}
+	}
+
+	duration := time.Since(start)
+	fmt.Println(" " + duration.String())
 }

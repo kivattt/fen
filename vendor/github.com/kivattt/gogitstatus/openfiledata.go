@@ -7,6 +7,9 @@ import (
 	"syscall"
 )
 
+// TODO: Keep track of opened files to see if we forgot to close one
+// Keep it behind a `gogitstatus_debug_forgot_to_close_file` flag
+
 func openFileData(file *os.File, stat os.FileInfo) ([]byte, error) {
 	if stat.Size() == 0 {
 		return make([]byte, 0), nil

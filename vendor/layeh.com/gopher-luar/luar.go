@@ -27,9 +27,7 @@ import (
 // New.
 //
 // If a function has the signature:
-//
-//	func(*LState) int // *LState defined in this package, not in lua
-//
+//  func(*LState) int // *LState defined in this package, not in lua
 // The argument and return value conversions described above are skipped, and
 // the function is called with the arguments passed on the Lua stack. Return
 // values are pushed to the stack and the number of return values is returned
@@ -87,6 +85,7 @@ import (
 //
 // All other values (complex numbers, unsafepointer, uintptr) are converted to
 // *lua.LUserData with its Value field set to value and no custom metatable.
+//
 func New(L *lua.LState, value interface{}) lua.LValue {
 	if value == nil {
 		return lua.LNil
