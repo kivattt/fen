@@ -11,7 +11,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
-	github.com/kivattt/gogitstatus v0.0.0-20260106222810-c545e1fea070
+	github.com/kivattt/gogitstatus v0.0.0-20260313123916-106100e4f2b3
 	github.com/otiai10/copy v1.14.0
 	github.com/rivo/tview v0.0.0-20241030223020-e34b54cd4c27
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
@@ -22,7 +22,7 @@ require (
 )
 
 require (
-	github.com/botondmester/goignore v0.0.0-20260103132253-6125e06795f3 // indirect
+	github.com/botondmester/goignore v0.0.0-20260313111718-b1dbf095429d // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect

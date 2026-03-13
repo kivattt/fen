@@ -19,17 +19,15 @@ package main
 import "github.com/botondmester/goignore"
 
 func main() {
-    ignore := goignore.CompileIgnoreLines([]string{
+    ignore := goignore.CompileIgnoreLines(
         "/*",
         "!/foo",
         "/foo/*",
         "!/foo/bar",
-    })
+    )
 
     // should print `foo/baz is ignored`
-    isIgnored, _ := ignore.MatchesPath("foo/baz")
-
-    if isIgnored {
+    if ignore.MatchesPath("foo/baz") {
         println("foo/baz is ignored")
     } else {
         println("foo/baz is not ignored")
@@ -37,23 +35,29 @@ func main() {
 }
 ```
 
-For more examples, refer to the [goignore_test.go](goignore_test.go) file.
+For more examples, refer to the [goignore\_test.go](goignore_test.go) file.
 
 ## Tests
+
+If you're not on Windows, you can still run the tests through wine with `run_windows_test.sh` e.g. on Linux.
 
 Some of this package's tests were copied from the [go-gitignore](https://github.com/sabhiram/go-gitignore) package, and were modified, corrected or extended where needed.
 
 ## Fuzzing
 
-I have fuzzed the library for about 2 hours in total, and the fuzzer did not find any crashes in that time.
-Currently fuzzing does not check if the library's output is correct.
-
-If you want to, you can do fuzzing using these commands:
+Fuzz for bugs in the library, it uses [git-check-ignore](https://git-scm.com/docs/git-check-ignore) to see where we have different output.
 ```shell
-go test -fuzz FuzzStringMatch
+go test -fuzz FuzzCorrectness
 ```
-or
+
+Fuzz for crashes in `makeRuleComponent()` and `matchComponent()`
+```shell
+go test -fuzz FuzzMatchComponent
+```
+
+Fuzz for crashes in `CompileIgnoreLines()` and `MatchesPath()`
 ```shell
 go test -fuzz FuzzWhole
 ```
+
 These are implemented at the bottom of the [tests file](goignore_test.go).
