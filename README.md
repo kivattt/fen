@@ -51,7 +51,7 @@ Arrow keys, hjkl, mouse click or scrollwheel to navigate (Enter goes right), Esc
 <kbd>y</kbd> Copy file(s)\
 <kbd>d</kbd> Cut file(s)\
 <kbd>p</kbd> Paste file(s)\
-<kbd>/</kbd> or <kbd>Ctrl + f</kbd> Search\
+<kbd>/</kbd> Search filenames in current folder\
 <kbd>f</kbd> or <kbd>Ctrl + n</kbd> Search filenames recursively\
 <kbd>c</kbd> Goto path\
 <kbd>Space</kbd> Select files\

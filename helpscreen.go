@@ -44,7 +44,7 @@ var helpScreenControlsList = []control{
 	{KeyBindings: []string{"a"}, Description: "Rename a file"},
 	{KeyBindings: []string{"b"}, Description: "Bulk-rename files in editor"},
 	{KeyBindings: []string{"Del", "x"}, Description: "Delete file"},
-	{KeyBindings: []string{"/", "^F"}, Description: "Search"},
+	{KeyBindings: []string{"/"}, Description: "Search filenames in current folder"},
 	{KeyBindings: []string{"f", "^N"}, Description: "Search filenames recursively"},
 	{KeyBindings: []string{"c"}, Description: "Goto path"},
 
