@@ -232,9 +232,14 @@ func (s *SearchFilenames) GatherFiles(pathInput string, doNotRecurse bool) {
 		if d.IsDir() {
 			// If we don't want to recurse, skip all directories but the root path (pathInput).
 			if doNotRecurse && path != pathInput {
-				// We still want to add the folders in the current folder to the search results
-				pathName := path[basePathLength:] + "/"
-				s.filenames = append(s.filenames, pathName)
+				s.mutex.Lock()
+				{
+					// We still want to add the folders in the current folder to the search results
+					pathName := path[basePathLength:] + "/"
+					s.filenames = append(s.filenames, pathName)
+				}
+				s.mutex.Unlock()
+
 				return filepath.SkipDir
 			} else {
 				return nil
