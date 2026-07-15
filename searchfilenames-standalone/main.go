@@ -237,7 +237,7 @@ func main() {
 
 	app := tview.NewApplication()
 	appFlex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(tview.NewTextView().SetText("press 'f'"), 1, 0, false)
+		AddItem(tview.NewTextView().SetText("press 'f', or '/'"), 1, 0, false)
 
 	fen := NewFen(app)
 	fen.wd = folderToSearch
