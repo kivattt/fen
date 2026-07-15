@@ -16,7 +16,6 @@ import (
 	"github.com/rivo/tview"
 )
 
-
 func openSearchFilenames(pages *tview.Pages, fen *Fen, doNotRecurse bool) *tcell.EventKey {
 	// size = 5 is a reasonable large size
 	centeredLarge := func(p tview.Primitive, size int) tview.Primitive {
