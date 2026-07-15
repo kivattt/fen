@@ -491,13 +491,12 @@ type ChangedFile struct {
 func ignoreMatch(path string, ignoresMap map[string]*ignore.GitIgnore) bool {
 	// TODO: Use strings.indexByte directly without temporary storage to speed up filepath.Dir()?
 
-	dir := ""
-	if path[len(path)-1] == '/' {
-		// We hint something is a folder with a trailing '/', so remove it to get the real parent folder
-		dir = filepath.Dir(path[:len(path)-1])
-	} else {
-		dir = filepath.Dir(path)
+	dir := path
+	// We hint something is a folder with a trailing '/', so remove it to get the real parent folder
+	if dir[len(dir)-1] == '/' {
+		dir = dir[:len(dir)-1]
 	}
+	dir = filepath.Dir(dir)
 
 	for {
 		// Faster than filepath.Rel()
@@ -871,14 +870,14 @@ func spreadArrayIntoSlicesForGoroutines(arrayLength, numGoroutines int) []sliceT
 	// More goroutines than there are elements, use arrayLength goroutines instead.
 	// That is, 1 goroutine per element...
 	if numGoroutines >= arrayLength {
-		var result []sliceType
+		result := make([]sliceType, arrayLength)
 		for i := 0; i < arrayLength; i++ {
-			result = append(result, sliceType{i, 1})
+			result[i] = sliceType{i, 1}
 		}
 		return result
 	}
 
-	var result []sliceType
+	result := make([]sliceType, 0, numGoroutines)
 	lengthPerGoroutine := arrayLength / numGoroutines
 
 	rollingIndex := 0
