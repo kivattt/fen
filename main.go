@@ -16,7 +16,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const version = "v1.7.25"
+const version = "v1.7.26"
 
 func SetTviewStyles() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault

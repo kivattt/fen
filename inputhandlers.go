@@ -16,6 +16,112 @@ import (
 	"github.com/rivo/tview"
 )
 
+func openSearchFilenames(pages *tview.Pages, fen *Fen, doNotRecurse bool) *tcell.EventKey {
+	// size = 5 is a reasonable large size
+	centeredLarge := func(p tview.Primitive, size int) tview.Primitive {
+		return tview.NewFlex().
+			AddItem(nil, 0, 1, false).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+				AddItem(nil, 0, 1, false).
+				AddItem(p, 0, size, true).
+				AddItem(nil, 0, 1, false), 0, size, true).
+			AddItem(nil, 0, 1, false)
+	}
+
+	inputField := tview.NewInputField().
+		SetLabel(" Search: ").
+		SetPlaceholder("case-sensitive"). // TODO: Smart-case or atleast case-insensitive
+		SetFieldWidth(-1)                 // Special feature of my tview fork, github.com/kivattt/tview
+	inputField.SetTitleColor(tcell.ColorDefault)
+	inputField.SetFieldBackgroundColor(tcell.ColorGray)
+	inputField.SetFieldBackgroundColor(tcell.ColorGray)
+	inputField.SetFieldTextColor(tcell.ColorBlack)
+	inputField.SetBackgroundColor(tcell.ColorDefault)
+
+	inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
+	inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
+
+	searchFilenames := NewSearchFilenames(fen, doNotRecurse)
+	inputField.SetChangedFunc(func(text string) {
+		searchFilenames.mutex.Lock()
+		searchFilenames.Filter(text, fen.config.FilenameSearchCase)
+		searchFilenames.mutex.Unlock()
+	})
+
+	inputField.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyEscape {
+			searchFilenames.mutex.Lock()
+			searchFilenames.cancel = true
+			searchFilenames.mutex.Unlock()
+			pages.RemovePage("popup")
+			return
+		}
+	})
+
+	inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		searchFilenames.mutex.Lock()
+		defer searchFilenames.mutex.Unlock()
+
+		if event.Key() == tcell.KeyEnter {
+			defer func() {
+				searchFilenames.cancel = true
+				pages.RemovePage("popup")
+			}()
+
+			selectedFilename, err := searchFilenames.GetSelectedFilename()
+			if err != nil {
+				return nil
+			}
+
+			_, err = fen.GoPath(selectedFilename)
+			if err != nil {
+				fen.bottomBar.TemporarilyShowTextInstead(err.Error())
+			}
+
+			return nil
+		}
+
+		if event.Key() == tcell.KeyUp {
+			searchFilenames.GoUp()
+			return nil
+		} else if event.Key() == tcell.KeyDown {
+			searchFilenames.GoDown()
+			return nil
+		} else if event.Key() == tcell.KeyPgUp {
+			searchFilenames.PageUp()
+			return nil
+		} else if event.Key() == tcell.KeyPgDn {
+			searchFilenames.PageDown()
+			return nil
+		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyHome {
+			searchFilenames.GoTop()
+			return nil
+		} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyEnd {
+			searchFilenames.GoBottom()
+			return nil
+		}
+
+		// While loading, if you press backspace with an empty search
+		// it will trigger a redraw, and since the text didn't change,
+		// Filter() isn't called and thus the selection isn't updated.
+		// Therefore, we need to tell the draw function to select the last element as it normally would while files are loading.
+		if !searchFilenames.finishedLoading {
+			searchFilenames.selectLastOnNextDraw = true
+		}
+
+		return event
+	})
+
+	flex := tview.NewFlex().
+		AddItem(searchFilenames, 0, 1, false).SetDirection(tview.FlexRow).
+		AddItem(inputField, 1, 1, true)
+
+	flex.SetBorder(true)
+	flex.SetTitle(" Searching " + fen.wd + " ")
+	pages.AddPage("popup", centeredLarge(flex, 10), true, true)
+	return nil
+}
+
 func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, librariesScreen *LibrariesScreen, helpScreen *HelpScreen) {
 	centered := func(p tview.Primitive, height int) tview.Primitive {
 		return tview.NewFlex().
@@ -24,17 +130,6 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 				AddItem(nil, 0, 1, false).
 				AddItem(p, height, 1, true).
 				AddItem(nil, 0, 1, false), 0, 2, true).
-			AddItem(nil, 0, 1, false)
-	}
-
-	// size = 5 is a reasonable large size
-	centered_large := func(p tview.Primitive, size int) tview.Primitive {
-		return tview.NewFlex().
-			AddItem(nil, 0, 1, false).
-			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-				AddItem(nil, 0, 1, false).
-				AddItem(p, 0, size, true).
-				AddItem(nil, 0, 1, false), 0, size, true).
 			AddItem(nil, 0, 1, false)
 	}
 
@@ -164,45 +259,8 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			return nil
 		}
 
-		if event.Rune() == '/' || event.Key() == tcell.KeyCtrlF {
-			inputField := tview.NewInputField().
-				SetLabel(" Search: ").
-				SetPlaceholder("case-insensitive").
-				SetFieldWidth(-1) // Special feature of my tview fork, github.com/kivattt/tview
-
-			inputField.SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
-				return lastChar != '/' // FIXME: Hack to prevent the slash appearing in the search inputfield by just disallowing them
-			})
-
-			inputField.SetDoneFunc(func(key tcell.Key) {
-				pages.RemovePage("popup")
-
-				if key == tcell.KeyEscape {
-					return
-				}
-
-				err := fen.GoSearchFirstMatch(inputField.GetText())
-				if err != nil {
-					// FIXME: We need a log window or something
-					fen.bottomBar.TemporarilyShowTextInstead("Nothing found")
-				} else {
-					// Same code as the wasMovementKey check
-					fen.history.AddToHistory(fen.sel)
-					fen.UpdatePanes(false)
-				}
-			})
-
-			inputField.SetBorder(true)
-			inputField.SetBorderStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
-			inputField.SetTitleColor(tcell.ColorDefault)
-			inputField.SetFieldBackgroundColor(tcell.ColorGray)
-			inputField.SetFieldTextColor(tcell.ColorBlack)
-			inputField.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorBlack))
-			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
-			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
-
-			pages.AddPage("popup", centered(inputField, 3), true, true)
-			return nil
+		if event.Rune() == '/' {
+			return openSearchFilenames(pages, fen, true)
 		} else if event.Rune() == 'A' {
 			for _, e := range fen.middlePane.entries.Load().([]os.DirEntry) {
 				fen.ToggleSelection(filepath.Join(fen.wd, e.Name()))
@@ -751,98 +809,7 @@ func setAppInputHandler(app *tview.Application, pages *tview.Pages, fen *Fen, li
 			pages.AddPage("popup", centered(flex, inputFieldHeight+2+len(programs)), true, true)
 			return nil
 		} else if event.Key() == tcell.KeyCtrlN || event.Rune() == 'f' {
-			inputField := tview.NewInputField().
-				SetLabel(" Search: ").
-				SetPlaceholder("case-sensitive"). // TODO: Smart-case or atleast case-insensitive
-				SetFieldWidth(-1)                 // Special feature of my tview fork, github.com/kivattt/tview
-			inputField.SetTitleColor(tcell.ColorDefault)
-			inputField.SetFieldBackgroundColor(tcell.ColorGray)
-			inputField.SetFieldBackgroundColor(tcell.ColorGray)
-			inputField.SetFieldTextColor(tcell.ColorBlack)
-			inputField.SetBackgroundColor(tcell.ColorDefault)
-
-			inputField.SetLabelColor(tcell.NewRGBColor(0, 255, 0)) // Green
-			inputField.SetPlaceholderStyle(tcell.StyleDefault.Background(tcell.ColorGray).Dim(true))
-
-			searchFilenames := NewSearchFilenames(fen)
-			inputField.SetChangedFunc(func(text string) {
-				searchFilenames.mutex.Lock()
-				searchFilenames.Filter(text, fen.config.FilenameSearchCase)
-				searchFilenames.mutex.Unlock()
-			})
-
-			inputField.SetDoneFunc(func(key tcell.Key) {
-				if key == tcell.KeyEscape {
-					searchFilenames.mutex.Lock()
-					searchFilenames.cancel = true
-					searchFilenames.mutex.Unlock()
-					pages.RemovePage("popup")
-					return
-				}
-			})
-
-			inputField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-				searchFilenames.mutex.Lock()
-				defer searchFilenames.mutex.Unlock()
-
-				if event.Key() == tcell.KeyEnter {
-					defer func() {
-						searchFilenames.cancel = true
-						pages.RemovePage("popup")
-					}()
-
-					selectedFilename, err := searchFilenames.GetSelectedFilename()
-					if err != nil {
-						return nil
-					}
-
-					_, err = fen.GoPath(selectedFilename)
-					if err != nil {
-						fen.bottomBar.TemporarilyShowTextInstead(err.Error())
-					}
-
-					return nil
-				}
-
-				if event.Key() == tcell.KeyUp {
-					searchFilenames.GoUp()
-					return nil
-				} else if event.Key() == tcell.KeyDown {
-					searchFilenames.GoDown()
-					return nil
-				} else if event.Key() == tcell.KeyPgUp {
-					searchFilenames.PageUp()
-					return nil
-				} else if event.Key() == tcell.KeyPgDn {
-					searchFilenames.PageDown()
-					return nil
-				} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyHome {
-					searchFilenames.GoTop()
-					return nil
-				} else if event.Modifiers()&tcell.ModCtrl != 0 && event.Key() == tcell.KeyEnd {
-					searchFilenames.GoBottom()
-					return nil
-				}
-
-				// While loading, if you press backspace with an empty search
-				// it will trigger a redraw, and since the text didn't change,
-				// Filter() isn't called and thus the selection isn't updated.
-				// Therefore, we need to tell the draw function to select the last element as it normally would while files are loading.
-				if !searchFilenames.finishedLoading {
-					searchFilenames.selectLastOnNextDraw = true
-				}
-
-				return event
-			})
-
-			flex := tview.NewFlex().
-				AddItem(searchFilenames, 0, 1, false).SetDirection(tview.FlexRow).
-				AddItem(inputField, 1, 1, true)
-
-			flex.SetBorder(true)
-			flex.SetTitle(" Searching " + fen.wd + " ")
-			pages.AddPage("popup", centered_large(flex, 10), true, true)
-			return nil
+			return openSearchFilenames(pages, fen, false)
 		} else if event.Rune() == '!' {
 			shellName := GetShellArgs()[0]
 			inputField := tview.NewInputField().

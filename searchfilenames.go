@@ -85,7 +85,7 @@ type SearchFilenames struct {
 	selectLastOnNextDraw bool
 }
 
-func NewSearchFilenames(fen *Fen) *SearchFilenames {
+func NewSearchFilenames(fen *Fen, doNotRecurse bool) *SearchFilenames {
 	s := SearchFilenames{
 		Box:                  tview.NewBox().SetBackgroundColor(tcell.ColorDefault),
 		fen:                  fen,
@@ -95,7 +95,7 @@ func NewSearchFilenames(fen *Fen) *SearchFilenames {
 	}
 
 	s.wg.Add(1)
-	go s.GatherFiles(fen.wd)
+	go s.GatherFiles(fen.wd, doNotRecurse)
 	go func() {
 		s.wg.Wait()
 
@@ -184,7 +184,7 @@ func (s *SearchFilenames) SetSelectedIndexAndLockScrollIfLoading(index int) {
 	}
 }
 
-func (s *SearchFilenames) GatherFiles(pathInput string) {
+func (s *SearchFilenames) GatherFiles(pathInput string, doNotRecurse bool) {
 	// EvalSymlinks is a recursive, potentially slow function.
 	// We can afford it to be slow, because it is only ran once when you open the search filenames popup.
 	basePathSymlinkResolved, err := filepath.EvalSymlinks(pathInput)
@@ -230,7 +230,20 @@ func (s *SearchFilenames) GatherFiles(pathInput string) {
 
 		// Hide directories, and "." directory
 		if d.IsDir() {
-			return nil
+			// If we don't want to recurse, skip all directories but the root path (pathInput).
+			if doNotRecurse && path != pathInput {
+				s.mutex.Lock()
+				{
+					// We still want to add the folders in the current folder to the search results
+					pathName := path[basePathLength:] + "/"
+					s.filenames = append(s.filenames, pathName)
+				}
+				s.mutex.Unlock()
+
+				return filepath.SkipDir
+			} else {
+				return nil
+			}
 		}
 
 		s.mutex.Lock()
