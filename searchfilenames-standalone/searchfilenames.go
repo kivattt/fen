@@ -184,31 +184,33 @@ func (s *SearchFilenames) SetSelectedIndexAndLockScrollIfLoading(index int) {
 	}
 }
 
-func (s *SearchFilenames) GatherFiles(pathInput string, doNotRecurse bool) {
+func (s *SearchFilenames) GatherFiles(basePathInput string, doNotRecurse bool) {
 	// EvalSymlinks is a recursive, potentially slow function.
 	// We can afford it to be slow, because it is only ran once when you open the search filenames popup.
-	basePathSymlinkResolved, err := filepath.EvalSymlinks(pathInput)
+	basePathSymlinkResolved, err := filepath.EvalSymlinks(basePathInput)
 	if err != nil {
 		s.fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 		return
 	}
 
-	var basePathLength int
-	if basePathSymlinkResolved == "." {
-		basePathLength = 0
-	} else {
-		basePathLength = 1 + len(basePathSymlinkResolved)
-	}
+	basePathLength := len(basePathSymlinkResolved)
 
 	if runtime.GOOS == "windows" {
-		volumeName := filepath.VolumeName(pathInput) + "\\"
-		if basePathSymlinkResolved == volumeName {
-			basePathLength = len(volumeName)
+		volumeName := filepath.VolumeName(basePathSymlinkResolved) + "\\"
+		// Make sure the base path length includes a trailing slash
+		if basePathSymlinkResolved != volumeName {
+			basePathLength += 1
 		}
 	} else {
-		if basePathSymlinkResolved == "/" {
-			basePathLength = 1
+		// Make sure the base path length includes a trailing slash
+		if basePathSymlinkResolved != "/" {
+			basePathLength += 1
 		}
+	}
+
+	// This should ONLY ever happen when running the searchfilenames-standalone binary with a "." command-line argument.
+	if basePathSymlinkResolved == "." {
+		basePathLength = 0
 	}
 
 	// FIXME: Unfortunately, WalkDir doesn't resolve symlink directories. Do you think anyone will notice? :3
@@ -230,12 +232,12 @@ func (s *SearchFilenames) GatherFiles(pathInput string, doNotRecurse bool) {
 
 		// Hide directories, and "." directory
 		if d.IsDir() {
-			// If we don't want to recurse, skip all directories but the root path (pathInput).
-			if doNotRecurse && path != pathInput {
+			// If we don't want to recurse, skip all directories but the root path (basePathSymlinkResolved).
+			if doNotRecurse && path != basePathSymlinkResolved {
 				s.mutex.Lock()
 				{
-					// We still want to add the folders in the current folder to the search results
-					pathName := path[basePathLength:] + "/"
+					// We want to add the folders in the current folder to the search results
+					pathName := path[basePathLength:] + string(os.PathSeparator)
 					s.filenames = append(s.filenames, pathName)
 				}
 				s.mutex.Unlock()
@@ -427,6 +429,10 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	startY := y + max(0, h-filenamesLen-1)
 
 	drawFilename := func(i int, filename string) {
+		if filename == "" {
+			panic("In searchfilenames.go drawFilename(): received an empty filename")
+		}
+
 		style := tcell.StyleDefault
 		if i == s.selectedFilenameIndex-scrollOffset {
 			style = style.Reverse(true)

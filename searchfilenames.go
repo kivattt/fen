@@ -195,32 +195,23 @@ func (s *SearchFilenames) GatherFiles(basePathInput string, doNotRecurse bool) {
 
 	basePathLength := len(basePathSymlinkResolved)
 
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS == "windows" {
+		volumeName := filepath.VolumeName(basePathSymlinkResolved) + "\\"
+		// Make sure the base path length includes a trailing slash
+		if basePathSymlinkResolved != volumeName {
+			basePathLength += 1
+		}
+	} else {
 		// Make sure the base path length includes a trailing slash
 		if basePathSymlinkResolved != "/" {
 			basePathLength += 1
 		}
 	}
 
-	s.fen.bottomBar.TemporarilyShowTextInstead(basePathSymlinkResolved)
-
-	/*var basePathLength int
+	// This should ONLY ever happen when running the searchfilenames-standalone binary with a "." command-line argument.
 	if basePathSymlinkResolved == "." {
 		basePathLength = 0
-	} else {
-		basePathLength = 1 + len(basePathSymlinkResolved)
 	}
-
-	if runtime.GOOS == "windows" {
-		volumeName := filepath.VolumeName(basePathInput) + "\\"
-		if basePathSymlinkResolved == volumeName {
-			basePathLength = len(volumeName)
-		}
-	} else {
-		if basePathSymlinkResolved == "/" {
-			basePathLength = 1
-		}
-	}*/
 
 	// FIXME: Unfortunately, WalkDir doesn't resolve symlink directories. Do you think anyone will notice? :3
 
@@ -245,9 +236,8 @@ func (s *SearchFilenames) GatherFiles(basePathInput string, doNotRecurse bool) {
 			if doNotRecurse && path != basePathSymlinkResolved {
 				s.mutex.Lock()
 				{
-					// We still want to add the folders in the current folder to the search results
-					//println("basePathInput", basePathInput, "basePathSymlinkResolved", basePathSymlinkResolved, "path", path, "basePathLength", basePathLength) // DEBUGGING
-					pathName := path[basePathLength:] + "/"
+					// We want to add the folders in the current folder to the search results
+					pathName := path[basePathLength:] + string(os.PathSeparator)
 					s.filenames = append(s.filenames, pathName)
 				}
 				s.mutex.Unlock()
@@ -439,6 +429,10 @@ func (s *SearchFilenames) Draw(screen tcell.Screen) {
 	startY := y + max(0, h-filenamesLen-1)
 
 	drawFilename := func(i int, filename string) {
+		if filename == "" {
+			panic("In searchfilenames.go drawFilename(): received an empty filename")
+		}
+
 		style := tcell.StyleDefault
 		if i == s.selectedFilenameIndex-scrollOffset {
 			style = style.Reverse(true)
