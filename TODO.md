@@ -10,6 +10,7 @@
 - Add sorting (See the first comment in `searchfilenames.go`)
 - Pack filename strings into a single string builder, instead of []string to lower memory usage (Does this work at all?)
 - Insertions at the beginning of the search string should also filter only on the current search results
+- Create new buffers for smaller result lists to avoid fragmented memory reads? (need to test on a ton of files first)
 
 ## TODOs, (very vaguely) sorted by priority
 
