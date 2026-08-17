@@ -184,16 +184,27 @@ func (s *SearchFilenames) SetSelectedIndexAndLockScrollIfLoading(index int) {
 	}
 }
 
-func (s *SearchFilenames) GatherFiles(pathInput string, doNotRecurse bool) {
+func (s *SearchFilenames) GatherFiles(basePathInput string, doNotRecurse bool) {
 	// EvalSymlinks is a recursive, potentially slow function.
 	// We can afford it to be slow, because it is only ran once when you open the search filenames popup.
-	basePathSymlinkResolved, err := filepath.EvalSymlinks(pathInput)
+	basePathSymlinkResolved, err := filepath.EvalSymlinks(basePathInput)
 	if err != nil {
 		s.fen.bottomBar.TemporarilyShowTextInstead(err.Error())
 		return
 	}
 
-	var basePathLength int
+	basePathLength := len(basePathSymlinkResolved)
+
+	if runtime.GOOS != "windows" {
+		// Make sure the base path length includes a trailing slash
+		if basePathSymlinkResolved != "/" {
+			basePathLength += 1
+		}
+	}
+
+	s.fen.bottomBar.TemporarilyShowTextInstead(basePathSymlinkResolved)
+
+	/*var basePathLength int
 	if basePathSymlinkResolved == "." {
 		basePathLength = 0
 	} else {
@@ -201,7 +212,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string, doNotRecurse bool) {
 	}
 
 	if runtime.GOOS == "windows" {
-		volumeName := filepath.VolumeName(pathInput) + "\\"
+		volumeName := filepath.VolumeName(basePathInput) + "\\"
 		if basePathSymlinkResolved == volumeName {
 			basePathLength = len(volumeName)
 		}
@@ -209,7 +220,7 @@ func (s *SearchFilenames) GatherFiles(pathInput string, doNotRecurse bool) {
 		if basePathSymlinkResolved == "/" {
 			basePathLength = 1
 		}
-	}
+	}*/
 
 	// FIXME: Unfortunately, WalkDir doesn't resolve symlink directories. Do you think anyone will notice? :3
 
@@ -230,11 +241,12 @@ func (s *SearchFilenames) GatherFiles(pathInput string, doNotRecurse bool) {
 
 		// Hide directories, and "." directory
 		if d.IsDir() {
-			// If we don't want to recurse, skip all directories but the root path (pathInput).
-			if doNotRecurse && path != pathInput {
+			// If we don't want to recurse, skip all directories but the root path (basePathSymlinkResolved).
+			if doNotRecurse && path != basePathSymlinkResolved {
 				s.mutex.Lock()
 				{
 					// We still want to add the folders in the current folder to the search results
+					//println("basePathInput", basePathInput, "basePathSymlinkResolved", basePathSymlinkResolved, "path", path, "basePathLength", basePathLength) // DEBUGGING
 					pathName := path[basePathLength:] + "/"
 					s.filenames = append(s.filenames, pathName)
 				}
