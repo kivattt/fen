@@ -1,7 +1,5 @@
 # fen
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/kivattt/fen)](https://goreportcard.com/report/github.com/kivattt/fen)
-
 fen is a terminal file manager inspired by [ranger](https://github.com/ranger/ranger)\
 Works for Linux, macOS, FreeBSD and Windows
 
