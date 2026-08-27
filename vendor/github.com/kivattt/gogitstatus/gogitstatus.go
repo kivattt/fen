@@ -757,9 +757,7 @@ func untrackedPathsNotIgnored(ctx context.Context, paths []string, gitIgnorePath
 		start = time.Now()
 		// Merge the results
 		for i := 1; i < len(results); i++ {
-			for k, v := range results[i] {
-				results[0][k] = v
-			}
+			maps.Copy(results[0], results[i])
 		}
 		if gogitstatus_debug_profiling {
 			fmt.Println("Merge results:", time.Since(start))
@@ -952,9 +950,7 @@ func trackedPathsChanged(ctx context.Context, path string, indexEntries map[stri
 
 	// Merge the results into the first element
 	for i := 1; i < len(outs); i += 1 {
-		for k, v := range outs[i] {
-			outs[0][k] = v
-		}
+		maps.Copy(outs[0], outs[i])
 	}
 
 	return outs[0], nil
@@ -1040,9 +1036,7 @@ func StatusRaw(ctx context.Context, path string, gitIndexPath string, respectGit
 	}
 
 	// Add untracked files
-	for k, v := range untrackedPaths {
-		out[k] = v
-	}
+	maps.Copy(out, untrackedPaths)
 
 	return out, nil
 }
