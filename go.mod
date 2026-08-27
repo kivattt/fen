@@ -11,7 +11,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
-	github.com/kivattt/gogitstatus v0.0.0-20260318225514-e9852c34cf22
+	github.com/kivattt/gogitstatus v0.0.0-20260827175622-8fa0fa392a32
 	github.com/otiai10/copy v1.14.0
 	github.com/rivo/tview v0.0.0-20241030223020-e34b54cd4c27
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
