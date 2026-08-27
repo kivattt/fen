@@ -1,4 +1,4 @@
-# github.com/botondmester/goignore v0.0.0-20260313111718-b1dbf095429d
+# github.com/botondmester/goignore v0.0.0-20260827220037-4f5be9978110
 ## explicit; go 1.21.5
 github.com/botondmester/goignore
 # github.com/charlievieth/strcase v0.0.5
@@ -54,7 +54,7 @@ github.com/gdamore/tcell/v2/terminfo/x/xterm_kitty
 # github.com/kivattt/getopt v0.0.0-20240907012637-674e0e42e04f
 ## explicit
 github.com/kivattt/getopt
-# github.com/kivattt/gogitstatus v0.0.0-20260318225514-e9852c34cf22
+# github.com/kivattt/gogitstatus v0.0.0-20260827225128-85d33cf67979
 ## explicit; go 1.21.5
 github.com/kivattt/gogitstatus
 # github.com/lucasb-eyer/go-colorful v1.2.0

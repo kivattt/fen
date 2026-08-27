@@ -36,9 +36,9 @@ var librariesList = []library{
 	{name: "gluamapper", url: "https://github.com/yuin/gluamapper", version: "commit d836955", license: "MIT", licenseURL: "https://github.com/yuin/gluamapper/blob/master/LICENSE"},
 	{name: "gopher-luar", url: "https://layeh.com/gopher-luar", version: "v1.0.11", license: "MPL 2.0", licenseURL: "https://github.com/layeh/gopher-luar/blob/master/LICENSE"},
 	{name: "rsc/getopt", url: "https://github.com/rsc/getopt", customRevisionURL: "https://github.com/kivattt/getopt", license: "BSD 3-Clause", licenseURL: "https://github.com/rsc/getopt/blob/master/LICENSE"},
-	{name: "kivattt/gogitstatus", url: "https://github.com/kivattt/gogitstatus", version: "commit e9852c3", license: "MIT", licenseURL: "https://github.com/kivattt/gogitstatus/blob/main/LICENSE"},
+	{name: "kivattt/gogitstatus", url: "https://github.com/kivattt/gogitstatus", version: "commit 85d33cf", license: "MIT", licenseURL: "https://github.com/kivattt/gogitstatus/blob/main/LICENSE"},
 	{name: "charlievieth/strcase", url: "https://github.com/charlievieth/strcase", version: "v0.0.5", license: "MIT", licenseURL: "https://github.com/charlievieth/strcase/blob/master/LICENSE"},
-	{name: "botondmester/goignore", url: "https://github.com/botondmester/goignore", version: "commit b1dbf09", license: "MIT", licenseURL: "https://github.com/botondmester/goignore/blob/main/LICENSE"},
+	{name: "botondmester/goignore", url: "https://github.com/botondmester/goignore", version: "commit 4f5be99", license: "MIT", licenseURL: "https://github.com/botondmester/goignore/blob/main/LICENSE"},
 }
 
 func (librariesScreen *LibrariesScreen) Draw(screen tcell.Screen) {

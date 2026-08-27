@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -756,9 +757,7 @@ func untrackedPathsNotIgnored(ctx context.Context, paths []string, gitIgnorePath
 		start = time.Now()
 		// Merge the results
 		for i := 1; i < len(results); i++ {
-			for k, v := range results[i] {
-				results[0][k] = v
-			}
+			maps.Copy(results[0], results[i])
 		}
 		if gogitstatus_debug_profiling {
 			fmt.Println("Merge results:", time.Since(start))
@@ -772,10 +771,7 @@ func untrackedPathsNotIgnored(ctx context.Context, paths []string, gitIgnorePath
 // by passing the output of Status() or StatusWithContext() through this function.
 // Does not modify the changedFiles input argument.
 func IncludingDirectories(changedFiles map[string]ChangedFile) map[string]ChangedFile {
-	ret := make(map[string]ChangedFile)
-	for k, v := range changedFiles {
-		ret[k] = v
-	}
+	ret := maps.Clone(changedFiles)
 
 	// Bad time complexity, could maybe refactor the normal status functions
 	// to include directories (indicated by a trailing path separator?) to speed it up.
@@ -795,10 +791,7 @@ func IncludingDirectories(changedFiles map[string]ChangedFile) map[string]Change
 // Use this function to exclude directories containing unstaged/untracked files.
 // Does not modify the changedFiles input argument.
 func ExcludingDirectories(changedFiles map[string]ChangedFile) map[string]ChangedFile {
-	ret := make(map[string]ChangedFile)
-	for k, v := range changedFiles {
-		ret[k] = v
-	}
+	ret := maps.Clone(changedFiles)
 
 	// Bad time complexity, could maybe refactor the normal status functions
 	// to include directories (indicated by a trailing path separator?) to speed it up.
@@ -820,13 +813,11 @@ func ExcludingDirectories(changedFiles map[string]ChangedFile) map[string]Change
 // Returns changed files without those that were deleted
 // Does not modify the changedFiles input argument.
 func ExcludingDeleted(changedFiles map[string]ChangedFile) map[string]ChangedFile {
-	ret := make(map[string]ChangedFile)
+	ret := maps.Clone(changedFiles)
 	for path, e := range changedFiles {
 		if e.WhatChanged&DELETED != 0 {
-			continue
+			delete(ret, path)
 		}
-
-		ret[path] = e
 	}
 
 	return ret
@@ -959,9 +950,7 @@ func trackedPathsChanged(ctx context.Context, path string, indexEntries map[stri
 
 	// Merge the results into the first element
 	for i := 1; i < len(outs); i += 1 {
-		for k, v := range outs[i] {
-			outs[0][k] = v
-		}
+		maps.Copy(outs[0], outs[i])
 	}
 
 	return outs[0], nil
@@ -1047,9 +1036,7 @@ func StatusRaw(ctx context.Context, path string, gitIndexPath string, respectGit
 	}
 
 	// Add untracked files
-	for k, v := range untrackedPaths {
-		out[k] = v
-	}
+	maps.Copy(out, untrackedPaths)
 
 	return out, nil
 }
