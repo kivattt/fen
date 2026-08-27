@@ -63,7 +63,7 @@ These examples were run on a [HP ZBook Firefly G8](https://support.hp.com/us-en/
 Its CPU is an 11th Gen Intel i5-1135G7 (8) @ 4.200GHz
 
 <details>
-<summary>Performance examples (click to expand)</summary>
+<summary>OUTDATED Performance examples (click to expand)</summary>
 
 These examples were ran with files cached in memory on gogitstatus commit db17a75ea64c399870eaf635b20109a0c27b613b
 
