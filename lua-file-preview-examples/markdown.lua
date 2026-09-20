@@ -15,8 +15,16 @@ local function isEmphasis(char)
 	return char == '*' or char == '_'
 end
 
-local function isList(char)
-	return char == '-' or char == '*'
+local function isList(firstChar, secondChar)
+	if firstChar == '-' and secondChar ~= '-' then
+		return true
+	end
+
+	if firstChar == '*' and secondChar ~= '*' then
+		return true
+	end
+
+	return false
 end
 
 local function isThematicBreak(char)
@@ -107,6 +115,8 @@ local style = ""
 
 local y = 0
 for line in io.lines(fen.SelectedFile) do
+	lastChar = '' -- Maybe don't do this for bold/italic emphasis?
+
 	local lineTrimLeftSpaces = trimLeftSpaces(line)
 	local xOffset = 0
 
@@ -178,7 +188,7 @@ for line in io.lines(fen.SelectedFile) do
 				goto continue
 			end
 
-			if not backtickString and lastChar ~= '\\' and not isList(lineTrimLeftSpaces:sub(1,1)) then
+			if not backtickString and lastChar ~= '\\' and not isList(lineTrimLeftSpaces:sub(1,1), lineTrimLeftSpaces:sub(2,2)) then
 				if isEmphasis(lastChar) and isEmphasis(char) then
 					bold = not bold
 					italic = false
@@ -240,7 +250,7 @@ for line in io.lines(fen.SelectedFile) do
 
 	if lineIsThematicBreak(line) then
 		printThematicBreak(y)
-	elseif isList(lineTrimLeftSpaces:sub(1,1)) then
+	elseif not codeblock and isList(lineTrimLeftSpaces:sub(1,1), lineTrimLeftSpaces:sub(2,2)) then
 		local listXPos = 0
 		for i = 1, #line do
 			local c = line:sub(i,i)
